@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { connection } from "next/server";
+import { PageHeader } from "@/components/page-header";
 import { db } from "@/lib/supabase";
 import { NewTopicForm } from "./new-topic-form";
 
@@ -9,13 +9,12 @@ export default async function NewTopicPage() {
   const { data: tags } = await db().from("tags").select("name").order("name");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-12">
-      <div className="flex flex-col gap-1">
-        <Link href="/" className="text-sm text-muted-foreground hover:underline">
-          ← Today
-        </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">New topic</h1>
-      </div>
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
+      <PageHeader
+        title="New topic"
+        description="Name it, ask what you're curious about, and set your level."
+        back={{ href: "/", label: "Today" }}
+      />
       <NewTopicForm existingTags={(tags ?? []).map((t) => t.name)} />
     </main>
   );
