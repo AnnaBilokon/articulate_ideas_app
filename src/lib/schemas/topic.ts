@@ -11,6 +11,9 @@ export const topicLevelLabels: Record<(typeof topicLevels)[number], string> = {
   advanced: "Know it well",
 };
 
+export const isTopicLevel = (value: string | null): value is (typeof topicLevels)[number] =>
+  topicLevels.includes(value as (typeof topicLevels)[number]);
+
 export const MAX_USER_QUESTIONS = 10;
 export const MAX_TAGS = 5;
 
