@@ -42,6 +42,16 @@ export async function isValidSession(token: string | undefined): Promise<boolean
   return safeEqual(token, await sessionToken());
 }
 
+// For Server Functions: the proxy guards routes, but Next.js recommends each
+// Server Function check the session itself too.
+export async function requireSession(): Promise<void> {
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  if (!(await isValidSession(cookieStore.get(SESSION_COOKIE)?.value))) {
+    throw new Error("Not logged in");
+  }
+}
+
 export async function isCorrectPassword(input: string): Promise<boolean> {
   // Hash both sides so the comparison doesn't leak the password's length.
   const [given, expected] = await Promise.all([
