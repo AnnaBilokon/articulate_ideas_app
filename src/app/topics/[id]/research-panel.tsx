@@ -1,0 +1,104 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Globe, Loader2, PenLine, RotateCcw, Sparkles } from "lucide-react";
+import type { ResearchStreamEvent } from "@/app/api/topics/[id]/research/route";
+import { Button } from "@/components/ui/button";
+
+type Status = "idle" | "running" | "error";
+
+export function ResearchPanel({ topicId }: { topicId: string }) {
+  const router = useRouter();
+  const [status, setStatus] = useState<Status>("idle");
+  const [searches, setSearches] = useState<string[]>([]);
+  const [writing, setWriting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function start() {
+    setStatus("running");
+    setSearches([]);
+    setWriting(false);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/topics/${topicId}/research`, { method: "POST" });
+      if (!response.ok || !response.body) throw new Error("Could not start the research. Try again.");
+
+      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+      let buffer = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as ResearchStreamEvent;
+          if (event.type === "search") setSearches((s) => [...s, event.query]);
+          if (event.type === "writing") setWriting(true);
+          if (event.type === "retry") setWriting(false);
+          if (event.type === "error") throw new Error(event.message);
+          if (event.type === "done") {
+            router.refresh();
+            return;
+          }
+        }
+      }
+      throw new Error("The connection closed early. Try again.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
+      setStatus("error");
+    }
+  }
+
+  if (status === "idle") {
+    return (
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-muted-foreground">
+          Claude searches the web, then writes a lesson in short chunks that answers your questions first.
+          It takes a minute or two.
+        </p>
+        <Button size="lg" className="h-10 px-4" onClick={start}>
+          <Sparkles className="size-4" />
+          Build my lesson
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3" aria-live="polite">
+      <ul className="flex flex-col gap-2 text-sm">
+        <li className="flex items-center gap-2">
+          <Globe className="size-4 text-info" />
+          <span className="font-medium">Researching</span>
+          {status === "running" && !writing && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+        </li>
+        {searches.map((query, i) => (
+          <li key={i} className="ml-6 text-muted-foreground">
+            Searching: “{query}”
+          </li>
+        ))}
+        {writing && (
+          <li className="flex items-center gap-2">
+            <PenLine className="size-4 text-sunflower-foreground" />
+            <span className="font-medium">Writing the lesson</span>
+            {status === "running" && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+          </li>
+        )}
+      </ul>
+
+      {status === "error" && (
+        <div className="flex flex-col items-start gap-3 rounded-lg bg-coral-soft p-3">
+          <p className="text-sm text-coral-foreground">{error}</p>
+          <Button variant="outline" onClick={start}>
+            <RotateCcw className="size-4" />
+            Try again
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

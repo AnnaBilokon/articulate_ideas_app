@@ -1,23 +1,37 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BookOpen, Brain, HelpCircle, Layers, MessageSquareText, PenLine } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Brain,
+  ExternalLink,
+  HelpCircle,
+  Layers,
+  MessageSquareText,
+  PenLine,
+} from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { TagBadge } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { ResearchPanel } from "./research-panel";
 
-// The learn flow from PLAN.md. Only the first step is "next" until the flow is built.
+// The learn flow from PLAN.md. "soon" steps aren't built yet.
 const steps = [
-  { label: "Pretest", hint: "Guess first; it makes answers stick", icon: HelpCircle },
-  { label: "Lesson", hint: "Short chunks, one at a time", icon: BookOpen },
-  { label: "Brain dump", hint: "Write everything you remember", icon: PenLine },
-  { label: "Topic card", hint: "The essentials, unlocked after the dump", icon: Layers },
-  { label: "Quiz", hint: "Recall questions, scored out of 5", icon: Brain },
-  { label: "Explain", hint: "Say it in your own words", icon: MessageSquareText },
+  { label: "Pretest", hint: "Guess first; it makes answers stick", icon: HelpCircle, soon: true },
+  { label: "Lesson", hint: "Short chunks, one at a time", icon: BookOpen, soon: false },
+  { label: "Brain dump", hint: "Write everything you remember", icon: PenLine, soon: true },
+  { label: "Topic card", hint: "The essentials, unlocked after the dump", icon: Layers, soon: true },
+  { label: "Quiz", hint: "Recall questions, scored out of 5", icon: Brain, soon: true },
+  { label: "Explain", hint: "Say it in your own words", icon: MessageSquareText, soon: true },
 ];
-const currentStep = 0;
+const currentStep = 1;
+
+const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
 export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { id } = await params;
@@ -25,13 +39,16 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
 
   const { data: topic } = await db()
     .from("topics")
-    .select("title, level, status, user_questions(text, position), topic_tags(tags(name))")
+    .select(
+      "title, level, researched_at, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title)",
+    )
     .eq("id", id)
     .order("position", { referencedTable: "user_questions" })
     .maybeSingle();
   if (!topic) notFound();
 
   const tags = topic.topic_tags.flatMap((tt) => (tt.tags ? [tt.tags.name] : []));
+  const hasLesson = topic.lesson_chunks.length > 0;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
@@ -44,14 +61,60 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
         </div>
       </PageHeader>
 
+      <Card className={cn(!hasLesson && "ring-sunflower/60")}>
+        <CardHeader>
+          <CardTitle>Your lesson</CardTitle>
+          {hasLesson && topic.researched_at && (
+            <CardDescription>
+              {topic.lesson_chunks.length} parts · researched on {dateFormat.format(new Date(topic.researched_at))}
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5">
+          {hasLesson ? (
+            <>
+              <div>
+                <Link href={`/topics/${id}/lesson`} className={cn(buttonVariants({ size: "lg" }), "h-10 px-4")}>
+                  Start lesson <ArrowRight className="size-4" />
+                </Link>
+              </div>
+              {topic.sources.length > 0 && (
+                <details className="group">
+                  <summary className="cursor-pointer text-sm font-medium text-muted-foreground select-none hover:text-foreground">
+                    Sources ({topic.sources.length})
+                  </summary>
+                  <ul className="mt-2 flex flex-col gap-1.5">
+                    {topic.sources.map((s) => (
+                      <li key={s.url}>
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-start gap-1.5 text-sm text-info-foreground hover:underline"
+                        >
+                          <ExternalLink className="mt-0.5 size-3.5 shrink-0" />
+                          {s.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </>
+          ) : (
+            <ResearchPanel topicId={id} />
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Learning path</CardTitle>
-          <CardDescription>The next steps open as they&apos;re built.</CardDescription>
+          <CardDescription>Steps marked &quot;soon&quot; open as they&apos;re built.</CardDescription>
         </CardHeader>
         <CardContent>
           <ol className="isolate flex flex-col">
-            {steps.map(({ label, hint, icon: Icon }, i) => {
+            {steps.map(({ label, hint, icon: Icon, soon }, i) => {
               const isCurrent = i === currentStep;
               return (
                 <li key={label} className="relative flex gap-3 pb-5 last:pb-0">
@@ -77,8 +140,11 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                   <div className="flex min-w-0 flex-1 flex-col pt-1.5">
                     <div className="flex items-center gap-2">
                       <span className={cn("font-medium", !isCurrent && "text-muted-foreground")}>{label}</span>
-                      {isCurrent && (
-                        <Badge className="bg-sunflower text-sunflower-foreground">Up next</Badge>
+                      {isCurrent && <Badge className="bg-sunflower text-sunflower-foreground">Up next</Badge>}
+                      {soon && (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          soon
+                        </Badge>
                       )}
                     </div>
                     <span className="text-sm text-muted-foreground">{hint}</span>
@@ -92,8 +158,10 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Your questions</CardTitle>
-          <CardDescription>The lesson answers these first.</CardDescription>
+          <CardTitle>Questions</CardTitle>
+          <CardDescription>
+            {hasLesson ? "The lesson answers these." : "The lesson answers these first."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {topic.user_questions.length > 0 ? (
@@ -103,7 +171,10 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                   <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
                     {i + 1}
                   </span>
-                  <span className="pt-0.5">{q.text}</span>
+                  <span className="flex-1 pt-0.5">{q.text}</span>
+                  {q.is_suggested && (
+                    <Badge className="mt-0.5 bg-info-soft text-info-foreground">Suggested</Badge>
+                  )}
                 </li>
               ))}
             </ol>
