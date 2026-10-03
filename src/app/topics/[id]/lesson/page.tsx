@@ -9,7 +9,7 @@ export default async function LessonPage({ params }: PageProps<"/topics/[id]/les
 
   const { data: topic } = await db()
     .from("topics")
-    .select("title, lesson_chunks(title, content, position)")
+    .select("title, lesson_chunks(title, content, position), topic_cards(id)")
     .eq("id", id)
     .order("position", { referencedTable: "lesson_chunks" })
     .maybeSingle();
@@ -19,7 +19,11 @@ export default async function LessonPage({ params }: PageProps<"/topics/[id]/les
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
       <PageHeader title={topic.title} back={{ href: `/topics/${id}`, label: "Topic" }} />
-      <LessonReader topicId={id} chunks={topic.lesson_chunks.map(({ title, content }) => ({ title, content }))} />
+      <LessonReader
+        topicId={id}
+        hasCard={Boolean(topic.topic_cards)}
+        chunks={topic.lesson_chunks.map(({ title, content }) => ({ title, content }))}
+      />
     </main>
   );
 }

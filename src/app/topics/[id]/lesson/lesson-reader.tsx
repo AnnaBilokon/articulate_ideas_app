@@ -33,7 +33,7 @@ function ChunkBody({ content }: { content: string }) {
   );
 }
 
-export function LessonReader({ topicId, chunks }: { topicId: string; chunks: Chunk[] }) {
+export function LessonReader({ topicId, chunks, hasCard }: { topicId: string; chunks: Chunk[]; hasCard: boolean }) {
   const [index, setIndex] = useState(0);
   const finished = index >= chunks.length;
   const chunk = chunks[Math.min(index, chunks.length - 1)];
@@ -61,16 +61,22 @@ export function LessonReader({ topicId, chunks }: { topicId: string; chunks: Chu
             </span>
             <div className="text-lg font-semibold">Lesson done</div>
             <p className="max-w-md text-muted-foreground">
-              Next comes the brain dump: write everything you remember, without looking back. It&apos;s coming in the
-              next build step.
+              Soon a brain dump comes next: writing everything you remember before seeing the card. Until then, go
+              straight to your Topic Card.
             </p>
             <div className="flex flex-wrap justify-center gap-2 pt-2">
               <Button variant="outline" onClick={() => setIndex(0)}>
                 Read again
               </Button>
-              <Link href={`/topics/${topicId}`} className={buttonVariants()}>
-                Back to topic
-              </Link>
+              {hasCard ? (
+                <Link href={`/topics/${topicId}/card`} className={buttonVariants()}>
+                  Open topic card <ArrowRight className="size-4" />
+                </Link>
+              ) : (
+                <Link href={`/topics/${topicId}`} className={buttonVariants()}>
+                  Back to topic
+                </Link>
+              )}
             </div>
           </CardContent>
         </Card>

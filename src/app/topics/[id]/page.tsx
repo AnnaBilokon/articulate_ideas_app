@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { CardBuilder } from "./card-builder";
 import { ResearchPanel } from "./research-panel";
 
 // The learn flow from PLAN.md. "soon" steps aren't built yet.
@@ -25,13 +26,13 @@ const steps = [
   { label: "Pretest", hint: "Guess first; it makes answers stick", icon: HelpCircle, soon: true },
   { label: "Lesson", hint: "Short chunks, one at a time", icon: BookOpen, soon: false },
   { label: "Brain dump", hint: "Write everything you remember", icon: PenLine, soon: true },
-  { label: "Topic card", hint: "The essentials, unlocked after the dump", icon: Layers, soon: true },
+  { label: "Topic card", hint: "The essentials, unlocked after the dump", icon: Layers, soon: false },
   { label: "Quiz", hint: "Recall questions, scored out of 5", icon: Brain, soon: true },
   { label: "Explain", hint: "Say it in your own words", icon: MessageSquareText, soon: true },
 ];
 const currentStep = 1;
 
-const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
+const dateFormat =new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
 export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { id } = await params;
@@ -40,7 +41,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, level, researched_at, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title)",
+      "title, level, researched_at, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "user_questions" })
@@ -49,6 +50,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
 
   const tags = topic.topic_tags.flatMap((tt) => (tt.tags ? [tt.tags.name] : []));
   const hasLesson = topic.lesson_chunks.length > 0;
+  const hasCard = Boolean(topic.topic_cards);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
@@ -100,6 +102,27 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                   </ul>
                 </details>
               )}
+              <div className="border-t pt-4">
+                {hasCard ? (
+                  <Link
+                    href={`/topics/${id}/card`}
+                    className="group flex items-center gap-3 rounded-xl bg-sunflower-soft p-3 transition-colors hover:bg-sunflower-soft/70"
+                  >
+                    <span className="flex size-9 items-center justify-center rounded-lg bg-sunflower text-sunflower-foreground">
+                      <Layers className="size-4" />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block font-medium">Topic card</span>
+                      <span className="block text-sm text-muted-foreground">
+                        Summary, analogy and {topic.recall_questions.length} recall questions
+                      </span>
+                    </span>
+                    <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                ) : (
+                  <CardBuilder topicId={id} researchedAt={topic.researched_at} />
+                )}
+              </div>
             </>
           ) : (
             <ResearchPanel topicId={id} />
