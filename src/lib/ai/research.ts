@@ -46,6 +46,7 @@ export type ResearchInput = {
 
 export type ResearchEvent =
   | { type: "search"; query: string }
+  | { type: "reading" }
   | { type: "writing" }
   | { type: "retry" };
 

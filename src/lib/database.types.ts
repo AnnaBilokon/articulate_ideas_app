@@ -503,6 +503,7 @@ export type Database = {
           level: string | null
           mastery_level: string | null
           researched_at: string | null
+          source_text: string | null
           status: string
           title: string
         }
@@ -513,6 +514,7 @@ export type Database = {
           level?: string | null
           mastery_level?: string | null
           researched_at?: string | null
+          source_text?: string | null
           status?: string
           title: string
         }
@@ -523,6 +525,7 @@ export type Database = {
           level?: string | null
           mastery_level?: string | null
           researched_at?: string | null
+          source_text?: string | null
           status?: string
           title?: string
         }

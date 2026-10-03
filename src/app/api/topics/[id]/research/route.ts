@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { after } from "next/server";
+import { lessonFromMaterial } from "@/lib/ai/material";
 import { researchLesson, type ResearchEvent } from "@/lib/ai/research";
 import { requireSession } from "@/lib/auth";
 import { isTopicLevel, type Lesson } from "@/lib/schemas";
@@ -22,7 +23,7 @@ export async function POST(_request: Request, { params }: RouteContext<"/api/top
 
   const { data: topic } = await supabase
     .from("topics")
-    .select("title, level, user_questions(text, position, is_suggested), lesson_chunks(id)")
+    .select("title, level, source_text, user_questions(text, position, is_suggested), lesson_chunks(id)")
     .eq("id", id)
     .maybeSingle();
   if (!topic) return Response.json({ error: "Topic not found" }, { status: 404 });
@@ -58,15 +59,16 @@ export async function POST(_request: Request, { params }: RouteContext<"/api/top
           .filter((q) => !q.is_suggested)
           .sort((a, b) => a.position - b.position);
 
-        const { lesson, usage } = await researchLesson(
-          {
-            title: topic.title,
-            level: isTopicLevel(topic.level) ? topic.level : null,
-            questions: ownQuestions.map((q) => q.text),
-          },
-          send,
-        );
-        console.log(`research ${id}:`, usage);
+        const input = {
+          title: topic.title,
+          level: isTopicLevel(topic.level) ? topic.level : null,
+          questions: ownQuestions.map((q) => q.text),
+        };
+        // The learner's own material replaces web research when they gave some.
+        const { lesson, usage } = topic.source_text
+          ? await lessonFromMaterial(input, topic.source_text, send)
+          : await researchLesson(input, send);
+        console.log(`${topic.source_text ? "material" : "research"} ${id}:`, usage);
 
         await saveLesson(id, lesson, ownQuestions.map((q) => q.position));
         reportSaved(true);
@@ -106,7 +108,9 @@ async function saveLesson(topicId: string, lesson: Lesson, questionPositions: nu
 
   try {
     const results = await Promise.all([
-      supabase.from("sources").insert(lesson.sources.map((s) => ({ topic_id: topicId, ...s }))),
+      lesson.sources.length > 0
+        ? supabase.from("sources").insert(lesson.sources.map((s) => ({ topic_id: topicId, ...s })))
+        : null,
       ...lesson.answers.slice(0, questionPositions.length).map((a, i) =>
         supabase
           .from("user_questions")

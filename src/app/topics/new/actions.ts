@@ -21,11 +21,13 @@ export async function createTopic(_prev: NewTopicState, formData: FormData): Pro
     ),
   ];
 
+  const source = formData.get("source");
   const parsed = newTopicSchema.safeParse({
     title: formData.get("title"),
     level: formData.get("level"),
     questions: lines(formData.get("questions")),
     tags,
+    sourceText: formData.get("mode") === "own" && typeof source === "string" ? source : null,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const input = parsed.data;
@@ -34,7 +36,7 @@ export async function createTopic(_prev: NewTopicState, formData: FormData): Pro
 
   const { data: topic, error: topicError } = await supabase
     .from("topics")
-    .insert({ title: input.title, level: input.level, status: "learning" })
+    .insert({ title: input.title, level: input.level, status: "learning", source_text: input.sourceText })
     .select("id")
     .single();
   if (topicError) return { error: "Could not save the topic. Try again." };
