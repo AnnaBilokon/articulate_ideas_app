@@ -60,7 +60,9 @@ function doubtsChunk(doubts: { statement: string; concern: string }[]) {
   const words = (text: string) => text.trim().split(/\s+/).length;
   const lines: string[] = [];
   for (const d of doubts) {
-    const line = `- "${d.statement}": ${d.concern}`;
+    // Claude sometimes quotes the statement already; don't double the quotes.
+    const statement = d.statement.trim().replace(/^["“”']+|["“”']+$/g, "");
+    const line = `- "${statement}": ${d.concern}`;
     if (words([intro, ...lines, line].join(" ")) > MAX_CHUNK_WORDS) break;
     lines.push(line);
   }
