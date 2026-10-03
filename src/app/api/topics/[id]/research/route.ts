@@ -1,8 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { after } from "next/server";
 import { researchLesson, type ResearchEvent } from "@/lib/ai/research";
 import { requireSession } from "@/lib/auth";
 import { isTopicLevel, type Lesson } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
+import { ensureTopicCard } from "@/lib/topic-card";
 
 // Research plus writing can take a few minutes.
 export const maxDuration = 300;
@@ -24,6 +26,20 @@ export async function POST(_request: Request, { params }: RouteContext<"/api/top
     .eq("id", id)
     .maybeSingle();
   if (!topic) return Response.json({ error: "Topic not found" }, { status: 404 });
+
+  // Once the lesson is saved, build the Topic Card in the background so it's
+  // ready by the time the lesson has been read. after() is registered here,
+  // inside the request, and waits for the stream to report the save.
+  let reportSaved: (saved: boolean) => void = () => {};
+  const lessonSaved = new Promise<boolean>((resolve) => (reportSaved = resolve));
+  after(async () => {
+    if (!(await lessonSaved)) return;
+    try {
+      await ensureTopicCard(id);
+    } catch (error) {
+      console.error(`background card ${id} failed:`, error);
+    }
+  });
 
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
@@ -53,11 +69,13 @@ export async function POST(_request: Request, { params }: RouteContext<"/api/top
         console.log(`research ${id}:`, usage);
 
         await saveLesson(id, lesson, ownQuestions.map((q) => q.position));
+        reportSaved(true);
         send({ type: "done", costUsd: usage.costUsd });
       } catch (error) {
         console.error(`research ${id} failed:`, error);
         send({ type: "error", message: errorMessage(error) });
       } finally {
+        reportSaved(false); // no-op if already reported
         controller.close();
       }
     },
