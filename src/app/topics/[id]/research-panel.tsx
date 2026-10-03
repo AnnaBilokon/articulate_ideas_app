@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Globe, Loader2, PenLine, RotateCcw, Sparkles } from "lucide-react";
+import { FileText, Globe, Loader2, PenLine, RotateCcw, Sparkles } from "lucide-react";
 import type { ResearchStreamEvent } from "@/app/api/topics/[id]/research/route";
 import { Button } from "@/components/ui/button";
 
 type Status = "idle" | "running" | "error";
 
-export function ResearchPanel({ topicId }: { topicId: string }) {
+export function ResearchPanel({ topicId, fromMaterial }: { topicId: string; fromMaterial: boolean }) {
+  const FirstIcon = fromMaterial ? FileText : Globe;
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [searches, setSearches] = useState<string[]>([]);
@@ -57,8 +58,9 @@ export function ResearchPanel({ topicId }: { topicId: string }) {
     return (
       <div className="flex flex-col items-start gap-3">
         <p className="text-muted-foreground">
-          Claude searches the web, then writes a lesson in short chunks that answers your questions first.
-          It takes a minute or two.
+          {fromMaterial
+            ? "Claude organizes your material into a lesson in short chunks, answers your questions from it, and flags anything that looks doubtful. It takes about a minute."
+            : "Claude searches the web, then writes a lesson in short chunks that answers your questions first. It takes a minute or two."}
         </p>
         <Button size="lg" className="h-10 px-4" onClick={start}>
           <Sparkles className="size-4" />
@@ -72,8 +74,8 @@ export function ResearchPanel({ topicId }: { topicId: string }) {
     <div className="flex flex-col gap-3" aria-live="polite">
       <ul className="flex flex-col gap-2 text-sm">
         <li className="flex items-center gap-2">
-          <Globe className="size-4 text-info" />
-          <span className="font-medium">Researching</span>
+          <FirstIcon className="size-4 text-info" />
+          <span className="font-medium">{fromMaterial ? "Reading your material" : "Researching"}</span>
           {status === "running" && !writing && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
         </li>
         {searches.map((query, i) => (

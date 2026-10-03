@@ -16,6 +16,8 @@ export const isTopicLevel = (value: string | null): value is (typeof topicLevels
 
 export const MAX_USER_QUESTIONS = 10;
 export const MAX_TAGS = 5;
+export const MIN_SOURCE_CHARS = 200;
+export const MAX_SOURCE_CHARS = 60_000; // about 10,000 words
 
 // "Decision Making" -> "decision-making"
 export function normalizeTag(raw: string): string {
@@ -35,6 +37,13 @@ export const newTopicSchema = z.object({
     .array(z.string().trim().min(1).max(500))
     .max(MAX_USER_QUESTIONS, `At most ${MAX_USER_QUESTIONS} questions`),
   tags: z.array(tagSchema).max(MAX_TAGS, `At most ${MAX_TAGS} tags`),
+  // Learner's own material; null means "research it for me".
+  sourceText: z
+    .string()
+    .trim()
+    .min(MIN_SOURCE_CHARS, "Paste at least a paragraph of material, or choose Research it for me")
+    .max(MAX_SOURCE_CHARS, "That's too long. Paste at most about 10,000 words")
+    .nullable(),
 });
 
 export type TopicLevel = (typeof topicLevels)[number];

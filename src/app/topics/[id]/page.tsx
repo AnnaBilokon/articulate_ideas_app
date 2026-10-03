@@ -41,7 +41,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, level, researched_at, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id)",
+      "title, level, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "user_questions" })
@@ -68,7 +68,8 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
           <CardTitle>Your lesson</CardTitle>
           {hasLesson && topic.researched_at && (
             <CardDescription>
-              {topic.lesson_chunks.length} parts · researched on {dateFormat.format(new Date(topic.researched_at))}
+              {topic.lesson_chunks.length} parts · {topic.source_text ? "built from your material" : "researched"} on{" "}
+              {dateFormat.format(new Date(topic.researched_at))}
             </CardDescription>
           )}
         </CardHeader>
@@ -125,7 +126,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
               </div>
             </>
           ) : (
-            <ResearchPanel topicId={id} />
+            <ResearchPanel topicId={id} fromMaterial={Boolean(topic.source_text)} />
           )}
         </CardContent>
       </Card>
