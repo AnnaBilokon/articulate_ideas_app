@@ -2,11 +2,13 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { BookOpen, CheckCircle2, ChevronRight, GraduationCap, Repeat, Sprout } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { TagBadge, tagColorClass } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 
 export default async function Home() {
   await connection(); // Read fresh data on every visit, not once at build.
@@ -22,9 +24,9 @@ export default async function Home() {
   const topics = learning ?? [];
 
   const stats = [
-    { label: "Due today", value: 0, icon: Repeat },
-    { label: "In progress", value: topics.length, icon: BookOpen },
-    { label: "Learned", value: learnedCount ?? 0, icon: GraduationCap },
+    { label: "Due today", value: 0, icon: Repeat, tone: "bg-sunflower-soft text-sunflower-foreground" },
+    { label: "In progress", value: topics.length, icon: BookOpen, tone: "bg-info-soft text-info-foreground" },
+    { label: "Learned", value: learnedCount ?? 0, icon: GraduationCap, tone: "bg-success-soft text-success-foreground" },
   ];
 
   return (
@@ -32,10 +34,12 @@ export default async function Home() {
       <PageHeader title="Today" description="Recall what's due, then keep learning." />
 
       <div className="grid grid-cols-3 gap-3">
-        {stats.map(({ label, value, icon: Icon }) => (
+        {stats.map(({ label, value, icon: Icon, tone }) => (
           <Card key={label} size="sm">
             <CardContent className="flex flex-col gap-2">
-              <Icon className="size-4 text-primary" />
+              <span className={cn("flex size-8 items-center justify-center rounded-lg", tone)}>
+                <Icon className="size-4" />
+              </span>
               <div className="text-2xl font-semibold tabular-nums">{value}</div>
               <div className="text-xs text-muted-foreground">{label}</div>
             </CardContent>
@@ -43,9 +47,9 @@ export default async function Home() {
         ))}
       </div>
 
-      <Card>
+      <Card className="bg-success-soft/60 ring-success/25">
         <CardContent className="flex items-center gap-4">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success text-white">
             <CheckCircle2 className="size-5" />
           </span>
           <div>
@@ -66,6 +70,15 @@ export default async function Home() {
                   <Link href={`/topics/${topic.id}`} className="group block">
                     <Card size="sm" className="transition-shadow group-hover:shadow-md group-hover:ring-primary/30">
                       <CardContent className="flex items-center gap-3">
+                        <span
+                          className={cn(
+                            "flex size-10 shrink-0 items-center justify-center rounded-xl text-base font-semibold",
+                            tagColorClass(tags[0] ?? topic.title),
+                          )}
+                          aria-hidden
+                        >
+                          {topic.title.trim().charAt(0).toUpperCase()}
+                        </span>
                         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                           <div className="truncate font-medium">{topic.title}</div>
                           <div className="flex flex-wrap gap-1.5">
@@ -73,9 +86,7 @@ export default async function Home() {
                               <Badge variant="secondary">{topicLevelLabels[topic.level]}</Badge>
                             )}
                             {tags.map((tag) => (
-                              <Badge key={tag} variant="outline" className="text-muted-foreground">
-                                {tag}
-                              </Badge>
+                              <TagBadge key={tag} name={tag} />
                             ))}
                           </div>
                         </div>

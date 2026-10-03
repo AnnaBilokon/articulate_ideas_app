@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { BookOpen, Brain, HelpCircle, Layers, MessageSquareText, PenLine } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { TagBadge } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
@@ -38,9 +39,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
         <div className="flex flex-wrap gap-1.5">
           {isTopicLevel(topic.level) && <Badge variant="secondary">{topicLevelLabels[topic.level]}</Badge>}
           {tags.map((tag) => (
-            <Badge key={tag} variant="outline" className="text-muted-foreground">
-              {tag}
-            </Badge>
+            <TagBadge key={tag} name={tag} />
           ))}
         </div>
       </PageHeader>
@@ -51,13 +50,19 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
           <CardDescription>The next steps open as they&apos;re built.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ol className="flex flex-col">
+          <ol className="isolate flex flex-col">
             {steps.map(({ label, hint, icon: Icon }, i) => {
               const isCurrent = i === currentStep;
               return (
                 <li key={label} className="relative flex gap-3 pb-5 last:pb-0">
                   {i < steps.length - 1 && (
                     <span className="absolute top-9 bottom-1 left-4.25 w-px bg-border" aria-hidden />
+                  )}
+                  {isCurrent && (
+                    <span
+                      className="absolute -inset-x-2 -top-2 bottom-3 -z-10 rounded-xl bg-sunflower-soft"
+                      aria-hidden
+                    />
                   )}
                   <span
                     className={cn(
@@ -72,7 +77,9 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                   <div className="flex min-w-0 flex-1 flex-col pt-1.5">
                     <div className="flex items-center gap-2">
                       <span className={cn("font-medium", !isCurrent && "text-muted-foreground")}>{label}</span>
-                      {isCurrent && <Badge>Up next</Badge>}
+                      {isCurrent && (
+                        <Badge className="bg-sunflower text-sunflower-foreground">Up next</Badge>
+                      )}
                     </div>
                     <span className="text-sm text-muted-foreground">{hint}</span>
                   </div>

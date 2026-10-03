@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
+import { tagColorClass } from "@/components/tag-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -111,7 +112,7 @@ export function NewTopicForm({ existingTags }: { existingTags: string[] }) {
                         "flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
                         on
                           ? "border-primary bg-primary text-primary-foreground"
-                          : "bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                          : cn("border-transparent hover:border-current/30", tagColorClass(tag)),
                       )}
                     >
                       {on && <Check className="size-3" />}
@@ -126,7 +127,7 @@ export function NewTopicForm({ existingTags }: { existingTags: string[] }) {
         </CardContent>
 
         <div className="flex items-center justify-between gap-4 border-t bg-muted/50 px-4 py-4 sm:px-6">
-          <p className="text-sm text-destructive" role="alert">
+          <p className="text-sm text-coral-foreground" role="alert">
             {state.error}
           </p>
           <Button type="submit" size="lg" disabled={pending} className="h-10 px-4">

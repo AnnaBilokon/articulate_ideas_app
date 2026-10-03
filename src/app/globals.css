@@ -39,6 +39,30 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-sunflower: var(--sunflower);
+  --color-sunflower-foreground: var(--sunflower-foreground);
+  --color-sunflower-soft: var(--sunflower-soft);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-coral: var(--coral);
+  --color-coral-foreground: var(--coral-foreground);
+  --color-coral-soft: var(--coral-soft);
+  --color-tag-1: var(--tag-1);
+  --color-tag-1-foreground: var(--tag-1-foreground);
+  --color-tag-2: var(--tag-2);
+  --color-tag-2-foreground: var(--tag-2-foreground);
+  --color-tag-3: var(--tag-3);
+  --color-tag-3-foreground: var(--tag-3-foreground);
+  --color-tag-4: var(--tag-4);
+  --color-tag-4-foreground: var(--tag-4-foreground);
+  --color-tag-5: var(--tag-5);
+  --color-tag-5-foreground: var(--tag-5-foreground);
+  --color-tag-6: var(--tag-6);
+  --color-tag-6-foreground: var(--tag-6-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -74,6 +98,38 @@
   --chart-4: oklch(0.47 0.1 160);
   --chart-5: oklch(0.37 0.07 162);
   --radius: 0.75rem;
+
+  /* Accent and feedback colors. Each has a solid fill, a dark foreground for
+     text on the soft tint, and a soft tint for backgrounds.
+     sunflower: attention (due, up next, streaks) · success: correct, mastered
+     info: new, in progress · coral: mistakes, kept gentle on purpose */
+  --sunflower: oklch(0.87 0.16 92);
+  --sunflower-foreground: oklch(0.42 0.09 75);
+  --sunflower-soft: oklch(0.965 0.055 95);
+  --success: oklch(0.6 0.14 155);
+  --success-foreground: oklch(0.4 0.09 158);
+  --success-soft: oklch(0.95 0.045 152);
+  --info: oklch(0.64 0.12 235);
+  --info-foreground: oklch(0.43 0.1 245);
+  --info-soft: oklch(0.955 0.03 230);
+  --coral: oklch(0.68 0.15 28);
+  --coral-foreground: oklch(0.48 0.13 28);
+  --coral-soft: oklch(0.955 0.03 28);
+
+  /* Tag colors: soft tint + readable text. A tag always maps to the same pair. */
+  --tag-1: oklch(0.94 0.04 230); /* sky */
+  --tag-1-foreground: oklch(0.42 0.1 240);
+  --tag-2: oklch(0.94 0.045 300); /* violet */
+  --tag-2-foreground: oklch(0.43 0.13 300);
+  --tag-3: oklch(0.945 0.04 355); /* rose */
+  --tag-3-foreground: oklch(0.47 0.13 360);
+  --tag-4: oklch(0.955 0.06 90); /* amber */
+  --tag-4-foreground: oklch(0.45 0.09 70);
+  --tag-5: oklch(0.945 0.04 190); /* teal */
+  --tag-5-foreground: oklch(0.42 0.08 195);
+  --tag-6: oklch(0.95 0.06 130); /* lime */
+  --tag-6-foreground: oklch(0.42 0.1 135);
+
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -124,12 +180,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* A soft green glow at the top of every page. */
-    background-image: radial-gradient(
-      ellipse 80% 50% at 50% -10%,
-      oklch(0.93 0.06 150 / 0.7),
-      transparent
-    );
+    /* A soft green glow at the top of every page, warmed by a touch of sunflower. */
+    background-image:
+      radial-gradient(ellipse 40% 35% at 85% -5%, oklch(0.95 0.08 95 / 0.8), transparent),
+      radial-gradient(ellipse 80% 50% at 40% -10%, oklch(0.93 0.06 150 / 0.7), transparent);
     background-repeat: no-repeat;
   }
   html {

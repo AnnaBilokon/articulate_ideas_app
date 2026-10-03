@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
                 aria-invalid={Boolean(error)}
                 className="h-10 bg-background px-3 md:text-base"
               />
-              {error && <p className="text-sm text-destructive">Wrong password. Try again.</p>}
+              {error && <p className="text-sm text-coral-foreground">Wrong password. Try again.</p>}
             </div>
             <Button type="submit" size="lg" className="h-10">
               Log in
