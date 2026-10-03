@@ -9,7 +9,9 @@ import {
   Layers,
   MessageSquareText,
   PenLine,
+  Telescope,
 } from "lucide-react";
+import { BackgroundBuilder } from "@/components/background-builder";
 import { PageHeader } from "@/components/page-header";
 import { TagBadge } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { CardBuilder } from "./card-builder";
+import { DeleteTopic } from "./delete-topic";
 import { ResearchPanel } from "./research-panel";
 
 // The learn flow from PLAN.md. "soon" steps aren't built yet.
@@ -29,10 +31,11 @@ const steps = [
   { label: "Topic card", hint: "The essentials, unlocked after the dump", icon: Layers, soon: false },
   { label: "Quiz", hint: "Recall questions, scored out of 5", icon: Brain, soon: true },
   { label: "Explain", hint: "Say it in your own words", icon: MessageSquareText, soon: true },
+  { label: "Think deeper", hint: "Open questions with no single right answer", icon: Telescope, soon: false },
 ];
 const currentStep = 1;
 
-const dateFormat =new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
+const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
 export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { id } = await params;
@@ -41,7 +44,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, level, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id)",
+      "title, level, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id), critical_questions(id)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "user_questions" })
@@ -115,13 +118,21 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                     <span className="flex-1">
                       <span className="block font-medium">Topic card</span>
                       <span className="block text-sm text-muted-foreground">
-                        Summary, analogy and {topic.recall_questions.length} recall questions
+                        Summary, analogy, {topic.recall_questions.length} recall questions
+                        {topic.critical_questions.length > 0 &&
+                          ` and ${topic.critical_questions.length} Think deeper questions`}
                       </span>
                     </span>
                     <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 ) : (
-                  <CardBuilder topicId={id} researchedAt={topic.researched_at} />
+                  <BackgroundBuilder
+                    endpoint={`/api/topics/${id}/card`}
+                    startedAt={topic.researched_at}
+                    waitingText="Preparing your Topic Card and recall questions…"
+                    buttonText="Build topic card"
+                    icon={<Layers className="size-4" />}
+                  />
                 )}
               </div>
             </>
@@ -207,6 +218,8 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
           )}
         </CardContent>
       </Card>
+
+      <DeleteTopic topicId={id} title={topic.title} />
     </main>
   );
 }

@@ -5,6 +5,7 @@ import { researchLesson, type ResearchEvent } from "@/lib/ai/research";
 import { requireSession } from "@/lib/auth";
 import { isTopicLevel, type Lesson } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
+import { ensureCriticalQuestions } from "@/lib/critical-questions";
 import { ensureTopicCard } from "@/lib/topic-card";
 
 // Research plus writing can take a few minutes.
@@ -37,6 +38,7 @@ export async function POST(_request: Request, { params }: RouteContext<"/api/top
     if (!(await lessonSaved)) return;
     try {
       await ensureTopicCard(id);
+      await ensureCriticalQuestions(id);
     } catch (error) {
       console.error(`background card ${id} failed:`, error);
     }

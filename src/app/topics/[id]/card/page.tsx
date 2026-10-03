@@ -1,11 +1,21 @@
 import { notFound, redirect } from "next/navigation";
-import { Brain, Lightbulb, Link2, TriangleAlert } from "lucide-react";
+import { Brain, Lightbulb, Link2, Telescope, TriangleAlert } from "lucide-react";
+import { BackgroundBuilder } from "@/components/background-builder";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { RecallQuestionType } from "@/lib/schemas";
+import type { CriticalKind, RecallQuestionType } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+
+const kindStyles: Record<CriticalKind, { label: string; className: string }> = {
+  assumptions: { label: "Assumptions", className: "bg-sunflower-soft text-sunflower-foreground" },
+  evidence: { label: "Evidence", className: "bg-info-soft text-info-foreground" },
+  counterargument: { label: "Counterargument", className: "bg-coral-soft text-coral-foreground" },
+  implications: { label: "Implications", className: "bg-success-soft text-success-foreground" },
+  perspectives: { label: "Perspectives", className: "bg-tag-2 text-tag-2-foreground" },
+  transfer: { label: "Transfer", className: "bg-tag-5 text-tag-5-foreground" },
+};
 
 const typeStyles: Record<RecallQuestionType, { label: string; className: string }> = {
   why: { label: "Why", className: "bg-sunflower-soft text-sunflower-foreground" },
@@ -21,10 +31,11 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, topic_cards(one_sentence, paragraph, analogy, counterpoint, connects_to), recall_questions(text, type, position)",
+      "title, topic_cards(one_sentence, paragraph, analogy, counterpoint, connects_to, created_at), recall_questions(text, type, position), critical_questions(text, kind, considerations, position)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "recall_questions" })
+    .order("position", { referencedTable: "critical_questions" })
     .maybeSingle();
   if (!topic) notFound();
   const card = topic.topic_cards;
@@ -103,6 +114,53 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
               );
             })}
           </ol>
+        </CardContent>
+      </Card>
+
+      <Card id="think-deeper" className="ring-tag-2-foreground/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Telescope className="size-4 text-tag-2-foreground" /> Think deeper
+          </CardTitle>
+          <CardDescription>
+            Open questions with no single right answer. Think one through, or write a paragraph, before opening the
+            hints.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {topic.critical_questions.length > 0 ? (
+            <ol className="flex flex-col gap-3">
+              {topic.critical_questions.map((q) => {
+                const style = kindStyles[q.kind as CriticalKind] ?? kindStyles.evidence;
+                return (
+                  <li key={q.position} className="flex flex-col gap-2 rounded-xl border bg-background p-4">
+                    <Badge className={cn("w-fit", style.className)}>{style.label}</Badge>
+                    <p className="leading-6 font-medium">{q.text}</p>
+                    <details className="group">
+                      <summary className="cursor-pointer text-sm text-muted-foreground select-none hover:text-foreground">
+                        Things to consider
+                      </summary>
+                      <ul className="mt-2 flex flex-col gap-1 pl-5 text-sm">
+                        {q.considerations.map((c) => (
+                          <li key={c} className="list-disc marker:text-tag-2-foreground">
+                            {c}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </li>
+                );
+              })}
+            </ol>
+          ) : (
+            <BackgroundBuilder
+              endpoint={`/api/topics/${id}/critical`}
+              startedAt={card.created_at}
+              waitingText="Writing your Think deeper questions…"
+              buttonText="Create Think deeper questions"
+              icon={<Telescope className="size-4" />}
+            />
+          )}
         </CardContent>
       </Card>
     </main>

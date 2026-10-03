@@ -83,6 +83,44 @@ export type Database = {
           },
         ]
       }
+      critical_questions: {
+        Row: {
+          considerations: string[]
+          created_at: string
+          id: string
+          kind: string
+          position: number
+          text: string
+          topic_id: string
+        }
+        Insert: {
+          considerations: string[]
+          created_at?: string
+          id?: string
+          kind: string
+          position: number
+          text: string
+          topic_id: string
+        }
+        Update: {
+          considerations?: string[]
+          created_at?: string
+          id?: string
+          kind?: string
+          position?: number
+          text?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "critical_questions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dumps: {
         Row: {
           created_at: string
