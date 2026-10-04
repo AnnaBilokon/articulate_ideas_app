@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { after } from "next/server";
 import { requireSession } from "@/lib/auth";
 import { ensureCriticalQuestions } from "@/lib/critical-questions";
+import { withRetry } from "@/lib/retry";
 import { ensureTopicCard } from "@/lib/topic-card";
 
 export const maxDuration = 300;
@@ -17,7 +18,7 @@ export async function POST(_request: Request, { params }: RouteContext<"/api/top
     // The "Think deeper" questions build on the card; make them in the background.
     after(async () => {
       try {
-        await ensureCriticalQuestions(id);
+        await withRetry(() => ensureCriticalQuestions(id));
       } catch (error) {
         console.error(`background critical ${id} failed:`, error);
       }

@@ -5,10 +5,28 @@ import { z } from "zod";
 // 0-5 rubric score; see "Grading rubric for answers" in PLAN.md.
 export const scoreSchema = z.int().min(0).max(5);
 
+// A quoted part of the user's text and what is wrong or vague about it.
+export const quotedIssueSchema = z.object({
+  quote: z.string().min(1),
+  issue: z.string().min(1),
+});
+
+export const MIN_DUMP_CHARS = 10;
+export const MAX_DUMP_CHARS = 20_000;
+
+export const dumpInputSchema = z
+  .string()
+  .trim()
+  .min(MIN_DUMP_CHARS, "Write at least a sentence, even if it's only what you're unsure about.")
+  .max(MAX_DUMP_CHARS, "That's longer than a brain dump needs. Keep it under about 3,000 words.");
+
 export const gradeDumpSchema = z.object({
+  // Ideas from the lesson the learner got right, in their own terms.
   right: z.array(z.string().min(1)),
+  // Important ideas from the lesson they didn't mention, most important first.
   missed: z.array(z.string().min(1)),
-  wrong: z.array(z.string().min(1)),
+  // Things they wrote that are wrong, quoted, with the correction.
+  wrong: z.array(quotedIssueSchema),
   summary: z.string().min(1),
 });
 
@@ -19,12 +37,6 @@ export const gradeAnswerSchema = z.object({
   feedback: z.string().min(1),
   // Why the answer went wrong; null when nothing did.
   mistake_cause: z.string().min(1).nullable(),
-});
-
-// A quoted part of the user's text and what is wrong or vague about it.
-export const quotedIssueSchema = z.object({
-  quote: z.string().min(1),
-  issue: z.string().min(1),
 });
 
 export const explainPartSchema = z.object({

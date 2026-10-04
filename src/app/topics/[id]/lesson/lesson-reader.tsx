@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, PartyPopper } from "lucide-react";
+import { ArrowRight, Check, PartyPopper, PenLine } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -33,7 +33,7 @@ function ChunkBody({ content }: { content: string }) {
   );
 }
 
-export function LessonReader({ topicId, chunks, hasCard }: { topicId: string; chunks: Chunk[]; hasCard: boolean }) {
+export function LessonReader({ topicId, chunks }: { topicId: string; chunks: Chunk[] }) {
   const [index, setIndex] = useState(0);
   const finished = index >= chunks.length;
   const chunk = chunks[Math.min(index, chunks.length - 1)];
@@ -61,22 +61,16 @@ export function LessonReader({ topicId, chunks, hasCard }: { topicId: string; ch
             </span>
             <div className="text-lg font-semibold">Lesson done</div>
             <p className="max-w-md text-muted-foreground">
-              Soon a brain dump comes next: writing everything you remember before seeing the card. Until then, go
-              straight to your Topic Card.
+              Now close the lesson and write down everything you remember. Recalling it while it&apos;s fresh is
+              what makes it stick, and it unlocks your Topic Card.
             </p>
             <div className="flex flex-wrap justify-center gap-2 pt-2">
               <Button variant="outline" onClick={() => setIndex(0)}>
                 Read again
               </Button>
-              {hasCard ? (
-                <Link href={`/topics/${topicId}/card`} className={buttonVariants()}>
-                  Open topic card <ArrowRight className="size-4" />
-                </Link>
-              ) : (
-                <Link href={`/topics/${topicId}`} className={buttonVariants()}>
-                  Back to topic
-                </Link>
-              )}
+              <Link href={`/topics/${topicId}/dump`} className={buttonVariants()}>
+                <PenLine className="size-4" /> Start brain dump
+              </Link>
             </div>
           </CardContent>
         </Card>

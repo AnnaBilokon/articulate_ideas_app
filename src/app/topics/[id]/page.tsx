@@ -5,8 +5,10 @@ import {
   BookOpen,
   Brain,
   ExternalLink,
+  Check,
   HelpCircle,
   Layers,
+  Lock,
   MessageSquareText,
   PenLine,
   Telescope,
@@ -17,6 +19,7 @@ import { TagBadge } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { gradeDumpSchema } from "@/lib/schemas/grading";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -27,13 +30,15 @@ import { ResearchPanel } from "./research-panel";
 const steps = [
   { label: "Pretest", hint: "Guess first; it makes answers stick", icon: HelpCircle, soon: true },
   { label: "Lesson", hint: "Short chunks, one at a time", icon: BookOpen, soon: false },
-  { label: "Brain dump", hint: "Write everything you remember", icon: PenLine, soon: true },
+  { label: "Brain dump", hint: "Write everything you remember", icon: PenLine, soon: false },
   { label: "Topic card", hint: "The essentials, unlocked after the dump", icon: Layers, soon: false },
   { label: "Quiz", hint: "Recall questions, scored out of 5", icon: Brain, soon: true },
-  { label: "Explain", hint: "Say it in your own words", icon: MessageSquareText, soon: true },
+  { label: "Teach-back", hint: "Explain it in your own words", icon: MessageSquareText, soon: true },
   { label: "Think deeper", hint: "Open questions with no single right answer", icon: Telescope, soon: false },
 ];
-const currentStep = 1;
+const LESSON = 1;
+const DUMP = 2;
+const CARD = 3;
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
@@ -44,16 +49,21 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, level, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id), critical_questions(id)",
+      "title, level, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id), critical_questions(id), dumps(feedback, created_at)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "user_questions" })
+    .order("created_at", { referencedTable: "dumps", ascending: false })
+    .limit(1, { referencedTable: "dumps" })
     .maybeSingle();
   if (!topic) notFound();
 
   const tags = topic.topic_tags.flatMap((tt) => (tt.tags ? [tt.tags.name] : []));
   const hasLesson = topic.lesson_chunks.length > 0;
   const hasCard = Boolean(topic.topic_cards);
+  const lastDump = topic.dumps[0] ? gradeDumpSchema.safeParse(topic.dumps[0].feedback) : null;
+  const hasDump = topic.dumps.length > 0;
+  const currentStep = !hasLesson ? LESSON : !hasDump ? DUMP : CARD;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
@@ -106,8 +116,53 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                   </ul>
                 </details>
               )}
-              <div className="border-t pt-4">
-                {hasCard ? (
+              <div className="flex flex-col gap-3 border-t pt-4">
+                {hasDump ? (
+                  <Link
+                    href={`/topics/${id}/dump`}
+                    className="group flex items-center gap-3 rounded-xl bg-success-soft/70 p-3 transition-colors hover:bg-success-soft"
+                  >
+                    <span className="flex size-9 items-center justify-center rounded-lg bg-success text-white">
+                      <PenLine className="size-4" />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block font-medium">Brain dump</span>
+                      <span className="block text-sm text-muted-foreground">
+                        {lastDump?.success
+                          ? `${lastDump.data.right.length} right · ${lastDump.data.missed.length} missed · ${lastDump.data.wrong.length} to correct`
+                          : "Done"}
+                      </span>
+                    </span>
+                    <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/topics/${id}/dump`}
+                    className="group flex items-center gap-3 rounded-xl bg-sunflower-soft p-3 ring-1 ring-sunflower/60 transition-colors hover:bg-sunflower-soft/70"
+                  >
+                    <span className="flex size-9 items-center justify-center rounded-lg bg-sunflower text-sunflower-foreground">
+                      <PenLine className="size-4" />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block font-medium">Brain dump</span>
+                      <span className="block text-sm text-muted-foreground">
+                        After the lesson: write everything you remember. Unlocks your Topic Card.
+                      </span>
+                    </span>
+                    <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                )}
+                {hasCard && !hasDump ? (
+                  <div className="flex items-center gap-3 rounded-xl bg-muted/60 p-3 text-muted-foreground">
+                    <span className="flex size-9 items-center justify-center rounded-lg bg-background">
+                      <Lock className="size-4" />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block font-medium">Topic card</span>
+                      <span className="block text-sm">Ready, and opens after your brain dump</span>
+                    </span>
+                  </div>
+                ) : hasCard ? (
                   <Link
                     href={`/topics/${id}/card`}
                     className="group flex items-center gap-3 rounded-xl bg-sunflower-soft p-3 transition-colors hover:bg-sunflower-soft/70"
@@ -151,6 +206,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
           <ol className="isolate flex flex-col">
             {steps.map(({ label, hint, icon: Icon, soon }, i) => {
               const isCurrent = i === currentStep;
+              const isDone = !soon && i < currentStep;
               return (
                 <li key={label} className="relative flex gap-3 pb-5 last:pb-0">
                   {i < steps.length - 1 && (
@@ -167,14 +223,18 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                       "z-0 flex size-9 shrink-0 items-center justify-center rounded-full border",
                       isCurrent
                         ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                        : "bg-background text-muted-foreground",
+                        : isDone
+                          ? "border-success/40 bg-success-soft text-success-foreground"
+                          : "bg-background text-muted-foreground",
                     )}
                   >
-                    <Icon className="size-4" />
+                    {isDone ? <Check className="size-4" /> : <Icon className="size-4" />}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col pt-1.5">
                     <div className="flex items-center gap-2">
-                      <span className={cn("font-medium", !isCurrent && "text-muted-foreground")}>{label}</span>
+                      <span className={cn("font-medium", !isCurrent && !isDone && "text-muted-foreground")}>
+                        {label}
+                      </span>
                       {isCurrent && <Badge className="bg-sunflower text-sunflower-foreground">Up next</Badge>}
                       {soon && (
                         <Badge variant="outline" className="text-muted-foreground">

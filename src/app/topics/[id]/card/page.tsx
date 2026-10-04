@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Brain, Lightbulb, Link2, Telescope, TriangleAlert } from "lucide-react";
+import { Brain, Lightbulb, Link2, Lock, PenLine, Telescope, TriangleAlert } from "lucide-react";
 import { BackgroundBuilder } from "@/components/background-builder";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CriticalKind, RecallQuestionType } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
@@ -31,7 +33,7 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, topic_cards(one_sentence, paragraph, analogy, counterpoint, connects_to, created_at), recall_questions(text, type, position), critical_questions(text, kind, considerations, position)",
+      "title, dumps(id), topic_cards(one_sentence, paragraph, analogy, counterpoint, connects_to, created_at), recall_questions(text, type, position), critical_questions(text, kind, considerations, position)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "recall_questions" })
@@ -41,12 +43,34 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
   const card = topic.topic_cards;
   if (!card) redirect(`/topics/${id}`);
 
+  // Recall first: the card stays locked until the first brain dump.
+  if (topic.dumps.length === 0) {
+    return (
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6">
+        <PageHeader title={topic.title} back={{ href: `/topics/${id}`, label: "Topic" }} />
+        <Card className="bg-sunflower-soft/60 ring-sunflower/40">
+          <CardContent className="flex flex-col items-center gap-3 py-6 text-center">
+            <span className="flex size-12 items-center justify-center rounded-full bg-sunflower text-sunflower-foreground">
+              <Lock className="size-5" />
+            </span>
+            <div className="text-lg font-semibold">Your Topic Card opens after your brain dump</div>
+            <p className="max-w-md text-muted-foreground">
+              Write down everything you remember first. Pulling it from memory before you see the summary is what
+              makes it stick.
+            </p>
+            <Link href={`/topics/${id}/dump`} className={cn(buttonVariants({ size: "lg" }), "mt-1 h-10 px-4")}>
+              <PenLine className="size-4" /> Start brain dump
+            </Link>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6">
       <PageHeader title={topic.title} back={{ href: `/topics/${id}`, label: "Topic" }}>
-        <p className="text-sm text-muted-foreground">
-          Topic card · in the full flow this opens after your brain dump (coming soon).
-        </p>
+        <p className="text-sm text-muted-foreground">Topic card</p>
       </PageHeader>
 
       <Card className="gap-0 py-0">
