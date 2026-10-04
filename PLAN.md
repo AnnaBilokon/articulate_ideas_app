@@ -82,7 +82,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Learn from your own material: paste notes, an article or a transcript instead of web research; doubtful statements are flagged (pulled forward from V2)
 - [x] Chunked lesson with "Ready for next?"
 - [ ] Pretest: 2-3 guesses before the lesson
-- [ ] Brain dump with feedback (got right, missed, got wrong)
+- [x] Brain dump with feedback (got right, missed, got wrong)
 - [x] Topic Card generated and saved, including recall questions with key points
 - [x] Think deeper: 5-6 open critical-thinking questions per topic with things to consider (added)
 - [x] Delete a topic (added)
@@ -367,7 +367,7 @@ The MVP takes about 6 weeks part-time (10-15 hours a week), then 2-3 weeks of re
 
 ### Phase 2: Recall and grading (week 3)
 
-- [ ] Brain dump screen and grade\_dump; the card unlocks after the dump
+- [x] Brain dump screen and grade\_dump; the card unlocks after the dump
 - [ ] Quiz screen: one question, confidence 1-3, grade\_answer, re-ask misses; confident misses flagged
 - [ ] Teach-back screen and grade\_explain, with 1-2 follow-up questions on the gaps
 - [ ] Save every attempt

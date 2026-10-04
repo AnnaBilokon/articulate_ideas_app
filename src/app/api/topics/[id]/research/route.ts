@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/auth";
 import { isTopicLevel, type Lesson } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 import { ensureCriticalQuestions } from "@/lib/critical-questions";
+import { withRetry } from "@/lib/retry";
 import { ensureTopicCard } from "@/lib/topic-card";
 
 // Research plus writing can take a few minutes.
@@ -37,8 +38,8 @@ export async function POST(_request: Request, { params }: RouteContext<"/api/top
   after(async () => {
     if (!(await lessonSaved)) return;
     try {
-      await ensureTopicCard(id);
-      await ensureCriticalQuestions(id);
+      await withRetry(() => ensureTopicCard(id));
+      await withRetry(() => ensureCriticalQuestions(id));
     } catch (error) {
       console.error(`background card ${id} failed:`, error);
     }
