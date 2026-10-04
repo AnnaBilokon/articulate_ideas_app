@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button";
 
 type Status = "idle" | "running" | "error";
 
-export function ResearchPanel({ topicId, fromMaterial }: { topicId: string; fromMaterial: boolean }) {
-  const FirstIcon = fromMaterial ? FileText : Globe;
-  const router = useRouter();
+/** Runs the research (or material) lesson build and tracks its streamed progress. */
+export function useResearch(topicId: string, onDone: () => void) {
   const [status, setStatus] = useState<Status>("idle");
   const [searches, setSearches] = useState<string[]>([]);
   const [writing, setWriting] = useState(false);
@@ -24,7 +23,7 @@ export function ResearchPanel({ topicId, fromMaterial }: { topicId: string; from
 
     try {
       const response = await fetch(`/api/topics/${topicId}/research`, { method: "POST" });
-      if (!response.ok || !response.body) throw new Error("Could not start the research. Try again.");
+      if (!response.ok || !response.body) throw new Error("Could not start building the lesson. Try again.");
 
       const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
       let buffer = "";
@@ -42,7 +41,7 @@ export function ResearchPanel({ topicId, fromMaterial }: { topicId: string; from
           if (event.type === "retry") setWriting(false);
           if (event.type === "error") throw new Error(event.message);
           if (event.type === "done") {
-            router.refresh();
+            onDone();
             return;
           }
         }
@@ -54,21 +53,18 @@ export function ResearchPanel({ topicId, fromMaterial }: { topicId: string; from
     }
   }
 
-  if (status === "idle") {
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-muted-foreground">
-          {fromMaterial
-            ? "Claude organizes your material into a lesson in short chunks, answers your questions from it, and flags anything that looks doubtful. It takes about a minute."
-            : "Claude searches the web, then writes a lesson in short chunks that answers your questions first. It takes a minute or two."}
-        </p>
-        <Button size="lg" className="h-10 px-4" onClick={start}>
-          <Sparkles className="size-4" />
-          Build my lesson
-        </Button>
-      </div>
-    );
-  }
+  return { status, searches, writing, error, start };
+}
+
+export function ResearchProgress({
+  research,
+  fromMaterial,
+}: {
+  research: ReturnType<typeof useResearch>;
+  fromMaterial: boolean;
+}) {
+  const { status, searches, writing, error, start } = research;
+  const FirstIcon = fromMaterial ? FileText : Globe;
 
   return (
     <div className="flex flex-col gap-3" aria-live="polite">
@@ -103,4 +99,27 @@ export function ResearchPanel({ topicId, fromMaterial }: { topicId: string; from
       )}
     </div>
   );
+}
+
+export function ResearchPanel({ topicId, fromMaterial }: { topicId: string; fromMaterial: boolean }) {
+  const router = useRouter();
+  const research = useResearch(topicId, () => router.refresh());
+
+  if (research.status === "idle") {
+    return (
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-muted-foreground">
+          {fromMaterial
+            ? "Claude organizes your material into a lesson in short chunks, answers your questions from it, and flags anything that looks doubtful. It takes about a minute."
+            : "Claude searches the web, then writes a lesson in short chunks that answers your questions first. It takes a minute or two."}
+        </p>
+        <Button size="lg" className="h-10 px-4" onClick={research.start}>
+          <Sparkles className="size-4" />
+          Build my lesson
+        </Button>
+      </div>
+    );
+  }
+
+  return <ResearchProgress research={research} fromMaterial={fromMaterial} />;
 }

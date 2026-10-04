@@ -30,6 +30,14 @@ export function normalizeTag(raw: string): string {
     .replace(/^-|-$/g, "");
 }
 
+// The learner's own material, as pasted or edited.
+export const sourceTextSchema = (tooShort = "Keep at least a paragraph of material (200 characters).") =>
+  z
+    .string()
+    .trim()
+    .min(MIN_SOURCE_CHARS, tooShort)
+    .max(MAX_SOURCE_CHARS, "That's too long. Keep it under about 10,000 words.");
+
 export const newTopicSchema = z.object({
   title: z.string().trim().min(1, "Give the topic a title").max(200),
   level: z.enum(topicLevels),
@@ -38,12 +46,7 @@ export const newTopicSchema = z.object({
     .max(MAX_USER_QUESTIONS, `At most ${MAX_USER_QUESTIONS} questions`),
   tags: z.array(tagSchema).max(MAX_TAGS, `At most ${MAX_TAGS} tags`),
   // Learner's own material; null means "research it for me".
-  sourceText: z
-    .string()
-    .trim()
-    .min(MIN_SOURCE_CHARS, "Paste at least a paragraph of material, or choose Research it for me")
-    .max(MAX_SOURCE_CHARS, "That's too long. Paste at most about 10,000 words")
-    .nullable(),
+  sourceText: sourceTextSchema("Paste at least a paragraph of material, or choose Research it for me").nullable(),
 });
 
 export type TopicLevel = (typeof topicLevels)[number];

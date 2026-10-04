@@ -80,6 +80,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Create a topic: title, your questions, level, tags
 - [x] Research with web search, with sources saved
 - [x] Learn from your own material: paste notes, an article or a transcript instead of web research; doubtful statements are flagged (pulled forward from V2)
+- [x] Edit your material later: update the lesson only (keeps card and history) or rebuild everything (added)
 - [x] Chunked lesson with "Ready for next?"
 - [ ] Pretest: 2-3 guesses before the lesson
 - [x] Brain dump with feedback (got right, missed, got wrong)
