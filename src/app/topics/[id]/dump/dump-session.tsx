@@ -1,31 +1,33 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, CircleDashed, Loader2, PenLine, RotateCcw, X } from "lucide-react";
+import { ArrowRight, Check, CircleDashed, Lightbulb, Loader2, PenLine, RotateCcw, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { MAX_DUMP_CHARS, type GradeDumpResult } from "@/lib/schemas/grading";
+import { MAX_DUMP_CHARS, type DumpRecord } from "@/lib/schemas/grading";
 import { cn } from "@/lib/utils";
 
-type Previous = { text: string; feedback: GradeDumpResult };
+type Previous = { text: string; feedback: DumpRecord };
 
 const wordCount = (text: string) => (text.trim() ? text.trim().split(/\s+/).length : 0);
 
-// The draft is kept in this browser so a refresh or a closed tab doesn't lose it.
+// The draft and the nudges used are kept in this browser, so a refresh or a
+// closed tab doesn't lose them.
 const draftKey = (topicId: string) => `dump-draft:${topicId}`;
-function readDraft(topicId: string): string {
+const nudgesKey = (topicId: string) => `dump-nudges:${topicId}`;
+function readStored(key: string): string {
   try {
-    return localStorage.getItem(draftKey(topicId)) ?? "";
+    return localStorage.getItem(key) ?? "";
   } catch {
     return "";
   }
 }
-function writeDraft(topicId: string, text: string) {
+function writeStored(key: string, value: string) {
   try {
-    if (text) localStorage.setItem(draftKey(topicId), text);
-    else localStorage.removeItem(draftKey(topicId));
+    if (value && value !== "0") localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
   } catch {
     // Storage unavailable (private mode): drafts just aren't kept.
   }
@@ -33,15 +35,52 @@ function writeDraft(topicId: string, text: string) {
 
 const noSubscribe = () => () => {};
 
-export function DumpSession({ topicId, previous }: { topicId: string; previous: Previous | null }) {
+export function DumpSession({
+  topicId,
+  cues,
+  previous,
+}: {
+  topicId: string;
+  cues: string[];
+  previous: Previous | null;
+}) {
   const [result, setResult] = useState<Previous | null>(previous);
   const [writing, setWriting] = useState(previous === null);
-  // The saved draft until the learner types; "" on the server, the stored draft in the browser.
-  const savedDraft = useSyncExternalStore(noSubscribe, () => readDraft(topicId), () => "");
+  // Stored values until the learner changes them; "" on the server, the stored ones in the browser.
+  const savedDraft = useSyncExternalStore(noSubscribe, () => readStored(draftKey(topicId)), () => "");
+  const savedNudges = useSyncExternalStore(noSubscribe, () => readStored(nudgesKey(topicId)), () => "");
   const [edited, setEdited] = useState<string | null>(null);
+  const [editedNudges, setEditedNudges] = useState<number | null>(null);
   const text = edited ?? savedDraft;
+  const nudges = Math.min(cues.length, editedNudges ?? (Number(savedNudges) || 0));
   const [grading, setGrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function updateText(value: string) {
+    setEdited(value);
+    writeStored(draftKey(topicId), value);
+  }
+
+  function nudge() {
+    const next = Math.min(cues.length, nudges + 1);
+    setEditedNudges(next);
+    writeStored(nudgesKey(topicId), String(next));
+  }
+
+  // Adds the cue as a heading and puts the cursor under it, ready to type.
+  function answerCue(cue: string) {
+    const prefix = text.trim() ? `${text.replace(/\s+$/, "")}\n\n` : "";
+    const next = `${prefix}${cue}\n`;
+    updateText(next);
+    requestAnimationFrame(() => {
+      const box = textareaRef.current;
+      if (!box) return;
+      box.focus();
+      box.setSelectionRange(next.length, next.length);
+      box.scrollTop = box.scrollHeight;
+    });
+  }
 
   async function submit() {
     setGrading(true);
@@ -50,14 +89,15 @@ export function DumpSession({ topicId, previous }: { topicId: string; previous: 
       const response = await fetch(`/api/topics/${topicId}/dump`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, nudges }),
       });
-      const body = (await response.json()) as { feedback?: GradeDumpResult; error?: string };
+      const body = (await response.json()) as { feedback?: DumpRecord; error?: string };
       if (!response.ok || !body.feedback) throw new Error(body.error ?? "Something went wrong. Try again.");
       setResult({ text, feedback: body.feedback });
       setWriting(false);
-      setEdited("");
-      writeDraft(topicId, "");
+      updateText("");
+      setEditedNudges(0);
+      writeStored(nudgesKey(topicId), "");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
@@ -75,16 +115,35 @@ export function DumpSession({ topicId, previous }: { topicId: string; previous: 
               <PenLine className="size-4 text-primary" /> What do you remember?
             </span>
             <p className="text-sm text-muted-foreground">
-              Write it all down: the main idea, why it works, examples, how it connects to other things, and what
-              confused you. Rough notes are fine. Struggling to recall is what makes it stick.
+              Start on your own and write whatever comes: rough notes are fine. Struggling a little is what makes it
+              stick. If you get stuck, ask for a nudge: each one is a cue, never an answer.
             </p>
           </div>
+
+          {nudges > 0 && (
+            <ol className="flex flex-col gap-1.5 rounded-xl bg-sunflower-soft/70 p-3" aria-label="Nudges">
+              {cues.slice(0, nudges).map((cue) => (
+                <li key={cue} className="flex items-start gap-2 text-sm">
+                  <Lightbulb className="mt-0.5 size-4 shrink-0 text-sunflower-foreground" />
+                  <span className="flex-1 leading-6">{cue}</span>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    disabled={grading}
+                    onClick={() => answerCue(cue)}
+                    className="text-sunflower-foreground"
+                  >
+                    Answer this
+                  </Button>
+                </li>
+              ))}
+            </ol>
+          )}
+
           <Textarea
+            ref={textareaRef}
             value={text}
-            onChange={(e) => {
-              setEdited(e.target.value);
-              writeDraft(topicId, e.target.value);
-            }}
+            onChange={(e) => updateText(e.target.value)}
             maxLength={MAX_DUMP_CHARS}
             rows={14}
             autoFocus
@@ -93,7 +152,16 @@ export function DumpSession({ topicId, previous }: { topicId: string; previous: 
             aria-label="Your brain dump"
             className="min-h-72 bg-background px-3 py-2.5 md:text-base"
           />
-          <p className="text-sm text-muted-foreground">{wordCount(text).toLocaleString("en")} words</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground">
+              {wordCount(text).toLocaleString("en")} words
+              {nudges > 0 && ` · ${nudges} ${nudges === 1 ? "nudge" : "nudges"} used`}
+            </p>
+            <Button variant="outline" disabled={grading || nudges >= cues.length} onClick={nudge}>
+              <Lightbulb className="size-4" />
+              {nudges >= cues.length ? "No more nudges" : "Give me a nudge"}
+            </Button>
+          </div>
         </CardContent>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/50 px-4 py-4 sm:px-6">
           <p className="text-sm text-coral-foreground" role="alert">
@@ -138,6 +206,12 @@ export function DumpSession({ topicId, previous }: { topicId: string; previous: 
             </span>
             <span className="rounded-full bg-coral-soft px-2.5 py-1 text-coral-foreground">
               {feedback.wrong.length} to correct
+            </span>
+            <span className="flex items-center gap-1 rounded-full bg-info-soft px-2.5 py-1 text-info-foreground">
+              <Lightbulb className="size-3.5" />
+              {feedback.nudges === 0
+                ? "no nudges"
+                : `${feedback.nudges} ${feedback.nudges === 1 ? "nudge" : "nudges"}`}
             </span>
           </div>
           <p className="leading-7">{feedback.summary}</p>

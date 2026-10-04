@@ -30,6 +30,13 @@ export const gradeDumpSchema = z.object({
   summary: z.string().min(1),
 });
 
+export const MAX_DUMP_NUDGES = 20;
+
+// A saved dump's feedback: Claude's grading plus how many nudges were used.
+export const dumpRecordSchema = gradeDumpSchema.extend({
+  nudges: z.int().min(0).max(MAX_DUMP_NUDGES).default(0),
+});
+
 export const gradeAnswerSchema = z.object({
   score: scoreSchema,
   points_hit: z.array(z.string().min(1)),
@@ -57,6 +64,7 @@ export const gradeExplainSchema = z.object({
 
 export type Score = z.infer<typeof scoreSchema>;
 export type GradeDumpResult = z.infer<typeof gradeDumpSchema>;
+export type DumpRecord = z.infer<typeof dumpRecordSchema>;
 export type GradeAnswerResult = z.infer<typeof gradeAnswerSchema>;
 export type QuotedIssue = z.infer<typeof quotedIssueSchema>;
 export type ExplainPart = z.infer<typeof explainPartSchema>;
