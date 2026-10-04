@@ -86,7 +86,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Topic Card generated and saved, including recall questions with key points
 - [x] Think deeper: 5-6 open critical-thinking questions per topic with things to consider (added)
 - [x] Delete a topic (added)
-- [ ] Quiz: one question at a time, confidence 1-3, score out of 5, re-ask misses at the end
+- [x] Quiz: one question at a time, confidence 1-3, score out of 5, re-ask misses at the end
 - [ ] Teach-back (Explain mode) with the Claim/Why/Example/Limit/So what feedback and 1-2 follow-up questions on the gaps
 - [ ] Per-question review schedule and a "Today" screen; confident misses come back sooner
 - [ ] Library: topic pages, tags, and search by keyword and by meaning (an embedding saved with each card)
@@ -368,7 +368,7 @@ The MVP takes about 6 weeks part-time (10-15 hours a week), then 2-3 weeks of re
 ### Phase 2: Recall and grading (week 3)
 
 - [x] Brain dump screen and grade\_dump; the card unlocks after the dump
-- [ ] Quiz screen: one question, confidence 1-3, grade\_answer, re-ask misses; confident misses flagged
+- [x] Quiz screen: one question, confidence 1-3, grade\_answer, re-ask misses; confident misses flagged
 - [ ] Teach-back screen and grade\_explain, with 1-2 follow-up questions on the gaps
 - [ ] Save every attempt
 - [ ] Test the grader on 20 of your own sample answers
