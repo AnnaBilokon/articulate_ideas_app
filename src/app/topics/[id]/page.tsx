@@ -19,7 +19,7 @@ import { TagBadge } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { gradeDumpSchema } from "@/lib/schemas/grading";
+import { dumpRecordSchema } from "@/lib/schemas/grading";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -62,7 +62,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const tags = topic.topic_tags.flatMap((tt) => (tt.tags ? [tt.tags.name] : []));
   const hasLesson = topic.lesson_chunks.length > 0;
   const hasCard = Boolean(topic.topic_cards);
-  const lastDump = topic.dumps[0] ? gradeDumpSchema.safeParse(topic.dumps[0].feedback) : null;
+  const lastDump = topic.dumps[0] ? dumpRecordSchema.safeParse(topic.dumps[0].feedback) : null;
   const hasDump = topic.dumps.length > 0;
   const quizTaken = topic.recall_questions.some((q) => q.attempts.length > 0);
   // Teach-back isn't built yet, so after the quiz Think deeper is next.
@@ -132,7 +132,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                       <span className="block font-medium">Brain dump</span>
                       <span className="block text-sm text-muted-foreground">
                         {lastDump?.success
-                          ? `${lastDump.data.right.length} right · ${lastDump.data.missed.length} missed · ${lastDump.data.wrong.length} to correct`
+                          ? `${lastDump.data.right.length} right · ${lastDump.data.missed.length} missed · ${lastDump.data.wrong.length} to correct · ${lastDump.data.nudges === 0 ? "no nudges" : `${lastDump.data.nudges} ${lastDump.data.nudges === 1 ? "nudge" : "nudges"}`}`
                           : "Done"}
                       </span>
                     </span>

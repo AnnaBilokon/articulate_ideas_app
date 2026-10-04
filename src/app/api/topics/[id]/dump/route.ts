@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
 import { gradeDump } from "@/lib/ai/dump";
 import { requireSession } from "@/lib/auth";
-import { dumpInputSchema } from "@/lib/schemas";
+import { MAX_DUMP_NUDGES, dumpInputSchema, type DumpRecord } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
 export const maxDuration = 120;
@@ -11,9 +12,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/topi
   await requireSession();
   const { id } = await params;
 
-  const body = (await request.json().catch(() => null)) as { text?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as { text?: unknown; nudges?: unknown } | null;
   const parsed = dumpInputSchema.safeParse(body?.text);
   if (!parsed.success) return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  const nudges = z.int().min(0).max(MAX_DUMP_NUDGES).catch(0).parse(body?.nudges ?? 0);
 
   const supabase = db();
   const { data: topic } = await supabase
@@ -28,8 +30,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/topi
   }
 
   try {
-    const { feedback, usage } = await gradeDump({ title: topic.title, chunks: topic.lesson_chunks, dump: parsed.data });
-    console.log(`dump ${id}:`, usage);
+    const graded = await gradeDump({ title: topic.title, chunks: topic.lesson_chunks, dump: parsed.data });
+    console.log(`dump ${id}:`, graded.usage);
+    const feedback: DumpRecord = { ...graded.feedback, nudges };
 
     const { error } = await supabase.from("dumps").insert({ topic_id: id, text: parsed.data, feedback });
     if (error) throw new Error("Could not save your brain dump. Try again.");

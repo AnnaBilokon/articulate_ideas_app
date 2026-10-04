@@ -178,7 +178,7 @@ The app has two main flows: learning a new topic and reviewing old ones. The hom
 2. **Pretest:** answer 2-3 quick questions before learning (guessing is fine).
 3. **Research or your material:** Claude searches the web and builds the lesson (sources shown), or builds it from the notes, article or transcript you pasted, flagging doubtful statements in a "Worth double-checking" part.
 4. **Lesson:** answers to your questions plus up to 3 "Suggested" questions, in 300-400 word chunks. "Ready for next?" between chunks. Simpler and Deeper buttons on each chunk.
-5. **Brain dump:** the lesson is hidden. Write everything you remember. Get feedback: right, missed, wrong.
+5. **Brain dump:** the lesson is hidden. Write everything you remember. Stuck? Ask for a nudge: a cue (main idea, a lesson part's title, why, example, where it applies, what confused you), never an answer; the nudges used are saved. Get feedback: right, missed, wrong.
 6. **Topic Card:** unlocks after the dump. Read it once.
 7. **Quiz:** recall questions one at a time, confidence 1-3 before answering, score out of 5, misses re-asked at the end. A confident miss is flagged and shown clearly.
 8. **Teach-back (optional):** explain the whole topic as if to a learner. Get structured feedback, a tighter version, and 1-2 follow-up questions about the gaps; answer them.
