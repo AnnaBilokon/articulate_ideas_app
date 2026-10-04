@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BookOpen,
   Brain,
+  FilePenLine,
   ExternalLink,
   Check,
   HelpCircle,
@@ -18,7 +19,7 @@ import { PageHeader } from "@/components/page-header";
 import { TagBadge } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { dumpRecordSchema } from "@/lib/schemas/grading";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
@@ -87,6 +88,13 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
               {topic.lesson_chunks.length} parts · {topic.source_text ? "built from your material" : "researched"} on{" "}
               {dateFormat.format(new Date(topic.researched_at))}
             </CardDescription>
+          )}
+          {topic.source_text !== null && (
+            <CardAction>
+              <Link href={`/topics/${id}/material`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <FilePenLine className="size-3.5" /> Edit material
+              </Link>
+            </CardAction>
           )}
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
