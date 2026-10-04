@@ -32,13 +32,14 @@ const steps = [
   { label: "Lesson", hint: "Short chunks, one at a time", icon: BookOpen, soon: false },
   { label: "Brain dump", hint: "Write everything you remember", icon: PenLine, soon: false },
   { label: "Topic card", hint: "The essentials, unlocked after the dump", icon: Layers, soon: false },
-  { label: "Quiz", hint: "Recall questions, scored out of 5", icon: Brain, soon: true },
+  { label: "Quiz", hint: "Recall questions, scored out of 5", icon: Brain, soon: false },
   { label: "Teach-back", hint: "Explain it in your own words", icon: MessageSquareText, soon: true },
   { label: "Think deeper", hint: "Open questions with no single right answer", icon: Telescope, soon: false },
 ];
 const LESSON = 1;
 const DUMP = 2;
-const CARD = 3;
+const QUIZ = 4;
+const THINK = 6;
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
@@ -49,7 +50,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, level, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id), critical_questions(id), dumps(feedback, created_at)",
+      "title, level, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id, attempts(id)), critical_questions(id), dumps(feedback, created_at)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "user_questions" })
@@ -63,7 +64,9 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const hasCard = Boolean(topic.topic_cards);
   const lastDump = topic.dumps[0] ? gradeDumpSchema.safeParse(topic.dumps[0].feedback) : null;
   const hasDump = topic.dumps.length > 0;
-  const currentStep = !hasLesson ? LESSON : !hasDump ? DUMP : CARD;
+  const quizTaken = topic.recall_questions.some((q) => q.attempts.length > 0);
+  // Teach-back isn't built yet, so after the quiz Think deeper is next.
+  const currentStep = !hasLesson ? LESSON : !hasDump ? DUMP : !quizTaken ? QUIZ : THINK;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
@@ -188,6 +191,33 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                     buttonText="Build topic card"
                     icon={<Layers className="size-4" />}
                   />
+                )}
+                {hasDump && topic.recall_questions.length > 0 && (
+                  <Link
+                    href={`/topics/${id}/quiz`}
+                    className={cn(
+                      "group flex items-center gap-3 rounded-xl p-3 transition-colors",
+                      quizTaken
+                        ? "bg-muted/60 hover:bg-muted"
+                        : "bg-sunflower-soft ring-1 ring-sunflower/60 hover:bg-sunflower-soft/70",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex size-9 items-center justify-center rounded-lg",
+                        quizTaken ? "bg-background text-primary" : "bg-sunflower text-sunflower-foreground",
+                      )}
+                    >
+                      <Brain className="size-4" />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block font-medium">{quizTaken ? "Quiz again" : "Quiz"}</span>
+                      <span className="block text-sm text-muted-foreground">
+                        {topic.recall_questions.length} recall questions, scored out of 5
+                      </span>
+                    </span>
+                    <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </Link>
                 )}
               </div>
             </>

@@ -5,7 +5,7 @@ import { BackgroundBuilder } from "@/components/background-builder";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CriticalKind, RecallQuestionType } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -122,6 +122,11 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
             {topic.recall_questions.length} questions for your quiz and reviews. The answer keys stay hidden until you
             answer.
           </CardDescription>
+          <CardAction>
+            <Link href={`/topics/${id}/quiz`} className={buttonVariants({ size: "sm" })}>
+              Start quiz
+            </Link>
+          </CardAction>
         </CardHeader>
         <CardContent>
           <ol className="flex flex-col gap-2">
