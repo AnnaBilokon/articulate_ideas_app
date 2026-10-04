@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, useState } from "react";
-import { cn } from "@/lib/utils";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type GlossaryEntry = {
   term: string;
@@ -52,35 +52,95 @@ export function GlossaryText({ text, terms, seen }: { text: string; terms: Gloss
   );
 }
 
-// Dotted-underlined term; the definition shows on hover, or on tap on a phone.
+const TOOLTIP_WIDTH = 320;
+const EDGE = 8; // keep this far from the screen edges
+const ROOM_BELOW = 220; // flip above the term when there's less space than this below it
+
+type Placement = { left: number; width: number } & ({ top: number } | { bottom: number });
+
+// Where to draw the tooltip on screen: below the term, or above it near the
+// bottom of the screen, and always fully inside the screen horizontally.
+function placeNear(anchor: HTMLElement): Placement {
+  const rect = anchor.getBoundingClientRect();
+  const width = Math.min(TOOLTIP_WIDTH, window.innerWidth - EDGE * 2);
+  const left = Math.min(Math.max(EDGE, rect.left), window.innerWidth - width - EDGE);
+  return window.innerHeight - rect.bottom < ROOM_BELOW && rect.top > ROOM_BELOW
+    ? { left, width, bottom: window.innerHeight - rect.top + 6 }
+    : { left, width, top: rect.bottom + 6 };
+}
+
+/**
+ * Dotted-underlined term; the definition shows on hover, or on tap on a
+ * phone. The tooltip is drawn at the top level of the page (a portal with
+ * fixed positioning), so cards that clip their contents can't cut it off.
+ */
 function TermHint({ text, entry }: { text: string; entry: GlossaryEntry }) {
-  const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLButtonElement>(null);
+  const [pinned, setPinned] = useState(false); // opened by a tap or click
+  const [hovered, setHovered] = useState(false);
+  const [placement, setPlacement] = useState<Placement | null>(null);
+  const tooltipId = useId();
+  const show = (pinned || hovered) && placement !== null;
+
+  const place = () => {
+    if (anchorRef.current) setPlacement(placeNear(anchorRef.current));
+  };
+
+  // The tooltip is fixed to the screen, so close it when the page scrolls or resizes.
+  useEffect(() => {
+    if (!pinned && !hovered) return;
+    const close = () => {
+      setPinned(false);
+      setHovered(false);
+    };
+    window.addEventListener("scroll", close, { passive: true, capture: true });
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, { capture: true });
+      window.removeEventListener("resize", close);
+    };
+  }, [pinned, hovered]);
+
   return (
-    <span className="group relative inline">
+    <>
       <button
+        ref={anchorRef}
         type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        onBlur={() => setOpen(false)}
+        aria-expanded={pinned}
+        aria-describedby={show ? tooltipId : undefined}
+        onClick={() => {
+          place();
+          setPinned((p) => !p);
+        }}
+        onMouseEnter={() => {
+          place();
+          setHovered(true);
+        }}
+        onMouseLeave={() => setHovered(false)}
+        onFocus={place}
+        onBlur={() => setPinned(false)}
         // inline (not the default inline-block) so punctuation after a term can't wrap away from it
         className="inline cursor-help underline decoration-primary/60 decoration-dotted decoration-2 underline-offset-4 hover:decoration-primary"
       >
         {text}
       </button>
-      <span
-        role="tooltip"
-        className={cn(
-          "absolute top-full left-0 z-20 mt-1 w-[min(20rem,80vw)] flex-col gap-1 rounded-xl border bg-popover p-3 text-left text-sm leading-6 font-normal text-popover-foreground shadow-lg",
-          open ? "flex" : "hidden group-hover:flex",
+      {show &&
+        createPortal(
+          <span
+            id={tooltipId}
+            role="tooltip"
+            style={placement}
+            className="pointer-events-none fixed z-50 flex flex-col gap-1 rounded-xl border bg-popover p-3 text-left text-sm leading-6 font-normal text-popover-foreground shadow-lg"
+          >
+            <span>
+              <strong>{entry.term}</strong>
+              {entry.full_form && <span className="text-muted-foreground"> · {entry.full_form}</span>}
+            </span>
+            <span>{entry.definition}</span>
+            {entry.example && <span className="text-muted-foreground italic">e.g. {entry.example}</span>}
+          </span>,
+          document.body,
         )}
-      >
-        <span>
-          <strong>{entry.term}</strong>
-          {entry.full_form && <span className="text-muted-foreground"> · {entry.full_form}</span>}
-        </span>
-        <span>{entry.definition}</span>
-        {entry.example && <span className="text-muted-foreground italic">e.g. {entry.example}</span>}
-      </span>
-    </span>
+    </>
   );
 }
