@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Brain, Lightbulb, Link2, Lock, PenLine, Telescope, TriangleAlert } from "lucide-react";
+import { BookA, Brain, Lightbulb, Link2, Lock, PenLine, Telescope, TriangleAlert } from "lucide-react";
 import { BackgroundBuilder } from "@/components/background-builder";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import type { CriticalKind, RecallQuestionType } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { GlossaryEditor } from "./glossary-editor";
 
 const kindStyles: Record<CriticalKind, { label: string; className: string }> = {
   assumptions: { label: "Assumptions", className: "bg-sunflower-soft text-sunflower-foreground" },
@@ -33,11 +34,12 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, dumps(id), topic_cards(one_sentence, paragraph, analogy, counterpoint, connects_to, created_at), recall_questions(text, type, position), critical_questions(text, kind, considerations, position)",
+      "title, researched_at, dumps(id), topic_cards(one_sentence, paragraph, analogy, counterpoint, connects_to, created_at), recall_questions(text, type, position), critical_questions(text, kind, considerations, position), glossary_terms(id, term, full_form, definition, example, source, created_at)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "recall_questions" })
     .order("position", { referencedTable: "critical_questions" })
+    .order("created_at", { referencedTable: "glossary_terms" })
     .maybeSingle();
   if (!topic) notFound();
   const card = topic.topic_cards;
@@ -112,6 +114,21 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
           ))}
         </div>
       )}
+
+      <Card id="glossary">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookA className="size-4 text-info" /> Glossary
+          </CardTitle>
+          <CardDescription>
+            Hard words and abbreviations from the lesson, in plain language. They&apos;re also explained inside the
+            lesson: hover or tap a dotted word.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <GlossaryEditor topicId={id} terms={topic.glossary_terms} startedAt={topic.researched_at} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

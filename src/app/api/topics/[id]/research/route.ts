@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/auth";
 import { isTopicLevel, type Lesson } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 import { ensureCriticalQuestions } from "@/lib/critical-questions";
+import { ensureGlossary } from "@/lib/glossary";
 import { withRetry } from "@/lib/retry";
 import { ensureTopicCard } from "@/lib/topic-card";
 
@@ -30,19 +31,22 @@ export async function POST(_request: Request, { params }: RouteContext<"/api/top
     .maybeSingle();
   if (!topic) return Response.json({ error: "Topic not found" }, { status: 404 });
 
-  // Once the lesson is saved, build the Topic Card in the background so it's
-  // ready by the time the lesson has been read. after() is registered here,
-  // inside the request, and waits for the stream to report the save.
+  // Once the lesson is saved, build the rest in the background so it's ready
+  // by the time the lesson has been read: the glossary (needed while reading)
+  // alongside the Topic Card, then the Think deeper questions that build on
+  // the card. after() is registered here, inside the request, and waits for
+  // the stream to report the save.
   let reportSaved: (saved: boolean) => void = () => {};
   const lessonSaved = new Promise<boolean>((resolve) => (reportSaved = resolve));
   after(async () => {
     if (!(await lessonSaved)) return;
-    try {
-      await withRetry(() => ensureTopicCard(id));
-      await withRetry(() => ensureCriticalQuestions(id));
-    } catch (error) {
-      console.error(`background card ${id} failed:`, error);
-    }
+    await Promise.all([
+      withRetry(() => ensureGlossary(id)).catch((error) => console.error(`background glossary ${id} failed:`, error)),
+      (async () => {
+        await withRetry(() => ensureTopicCard(id));
+        await withRetry(() => ensureCriticalQuestions(id));
+      })().catch((error) => console.error(`background card ${id} failed:`, error)),
+    ]);
   });
 
   const encoder = new TextEncoder();
