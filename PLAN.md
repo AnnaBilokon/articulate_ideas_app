@@ -85,6 +85,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Brain dump with feedback (got right, missed, got wrong)
 - [x] Topic Card generated and saved, including recall questions with key points
 - [x] Think deeper: 5-6 open critical-thinking questions per topic with things to consider (added)
+- [x] Glossary: hard terms and abbreviations with plain definitions, explained inside the lesson on hover or tap; add your own terms (added)
 - [x] Delete a topic (added)
 - [x] Quiz: one question at a time, confidence 1-3, score out of 5, re-ask misses at the end
 - [ ] Teach-back (Explain mode) with the Claim/Why/Example/Limit/So what feedback and 1-2 follow-up questions on the gaps
@@ -250,6 +251,7 @@ These tables cover the MVP, V2 and later. Every table also has `id` and `created
 | topics | title, level, status (inbox, learning, learned), interest\_rating, mastery\_level, researched\_at, source\_text (your pasted material) | MVP |
 | pretest\_answers | topic\_id, position, question, answer | MVP |
 | critical\_questions | topic\_id, position, text, kind (assumptions, evidence, counterargument, implications, perspectives, transfer), considerations\[\] | MVP |
+| glossary\_terms | topic\_id, term (unique per topic, any case), full\_form (for abbreviations), definition, example, source (claude or user) | MVP |
 | tags | name (unique) | MVP |
 | topic\_tags | topic\_id, tag\_id | MVP |
 | user\_questions | topic\_id, text, is\_suggested, answer | MVP |
@@ -281,6 +283,8 @@ A small set of Claude calls runs the whole app. Each one has its own short syste
 | pretest | Before lesson | Title, level | 2-3 questions | Small |
 | build\_card | After lesson | Lesson, answers | Topic Card, 10-15 recall questions with key points, 3-5 tags | Strong |
 | build\_critical | After the card | Card, lesson | 5-6 Think deeper questions with kind and things to consider | Strong |
+| build\_glossary | After the lesson, alongside the card | Lesson, level | Up to 15 terms: term, full form, plain definition, example | Strong |
+| define\_term | You add a term | Lesson, your term | One glossary entry | Strong |
 | grade\_dump | After brain dump | Card + key points, your dump | right\[\], missed\[\], wrong\[\], short summary | Strong |
 | grade\_answer | Each quiz or review answer | Question, key points, your answer | score 0-5, points hit, points missed, feedback, mistake cause | Small |
 | grade\_explain | Teach-back | Card, your explanation, drill type | Claim/Why/Example/Limit/So what notes, vague parts, tighter version, score, 1-2 follow-up questions | Strong |
@@ -378,6 +382,7 @@ The MVP takes about 6 weeks part-time (10-15 hours a week), then 2-3 weeks of re
 ### Phase 3: Scheduling and Today (week 4)
 
 - [ ] review\_state per question with the step ladder, including the confident-miss rule
+- [ ] Optional: turn a few key glossary terms into review questions ("What does X mean, and why does it matter here?")
 - [ ] Today screen: due count, start review, continue unfinished topic
 - [ ] Review session with interleaving and the daily cap
 - [ ] Next review date shown at the end of every session

@@ -2,16 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Check, PartyPopper, PenLine } from "lucide-react";
+import { GlossaryText, type GlossaryEntry } from "@/components/glossary-text";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type Chunk = { title: string; content: string };
 
-// Paragraphs, plus "- " lines as bullet lists.
-function ChunkBody({ content }: { content: string }) {
+// Paragraphs, plus "- " lines as bullet lists. Glossary terms are marked at
+// their first appearance in each part.
+function ChunkBody({ content, terms }: { content: string; terms: GlossaryEntry[] }) {
   const blocks = content.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  const seen = new Set<string>();
   return (
     <div className="flex flex-col gap-4 text-base leading-7 sm:text-[1.0625rem]">
       {blocks.map((block, i) => {
@@ -21,36 +25,62 @@ function ChunkBody({ content }: { content: string }) {
             <ul key={i} className="flex flex-col gap-1.5 pl-5">
               {lines.map((l, j) => (
                 <li key={j} className="list-disc marker:text-primary">
-                  {l.slice(2)}
+                  <GlossaryText text={l.slice(2)} terms={terms} seen={seen} />
                 </li>
               ))}
             </ul>
           );
         }
-        return <p key={i}>{lines.join(" ")}</p>;
+        return (
+          <p key={i}>
+            <GlossaryText text={lines.join(" ")} terms={terms} seen={seen} />
+          </p>
+        );
       })}
     </div>
   );
 }
 
-export function LessonReader({ topicId, chunks }: { topicId: string; chunks: Chunk[] }) {
+export function LessonReader({
+  topicId,
+  chunks,
+  terms,
+}: {
+  topicId: string;
+  chunks: Chunk[];
+  terms: GlossaryEntry[];
+}) {
+  const router = useRouter();
   const [index, setIndex] = useState(0);
   const finished = index >= chunks.length;
   const chunk = chunks[Math.min(index, chunks.length - 1)];
 
+  function goTo(next: number) {
+    setIndex(next);
+    // Right after research the glossary may still be building; pick it up.
+    if (terms.length === 0) router.refresh();
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Progress: one segment per chunk */}
-      <div className="flex gap-1.5" aria-label={`Chunk ${Math.min(index + 1, chunks.length)} of ${chunks.length}`}>
-        {chunks.map((_, i) => (
-          <span
-            key={i}
-            className={cn(
-              "h-1.5 flex-1 rounded-full transition-colors",
-              i < index ? "bg-primary" : i === index ? "bg-sunflower" : "bg-border",
-            )}
-          />
-        ))}
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-1.5" aria-label={`Chunk ${Math.min(index + 1, chunks.length)} of ${chunks.length}`}>
+          {chunks.map((_, i) => (
+            <span
+              key={i}
+              className={cn(
+                "h-1.5 flex-1 rounded-full transition-colors",
+                i < index ? "bg-primary" : i === index ? "bg-sunflower" : "bg-border",
+              )}
+            />
+          ))}
+        </div>
+        {terms.length > 0 && !finished && (
+          <p className="text-xs text-muted-foreground">
+            Words with a dotted underline have an explanation: hover or tap them.
+          </p>
+        )}
       </div>
 
       {finished ? (
@@ -83,7 +113,7 @@ export function LessonReader({ topicId, chunks }: { topicId: string; chunks: Chu
               </span>
               <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">{chunk.title}</h2>
             </div>
-            <ChunkBody content={chunk.content} />
+            <ChunkBody key={index} content={chunk.content} terms={terms} />
           </CardContent>
           <div className="flex items-center justify-between gap-4 border-t bg-muted/50 px-5 py-4 sm:px-8">
             <Button variant="ghost" disabled={index === 0} onClick={() => setIndex((i) => i - 1)}>
@@ -93,7 +123,7 @@ export function LessonReader({ topicId, chunks }: { topicId: string; chunks: Chu
               size="lg"
               className="h-10 px-4"
               onClick={() => {
-                setIndex((i) => i + 1);
+                goTo(index + 1);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
             >

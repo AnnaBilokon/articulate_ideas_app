@@ -191,6 +191,47 @@ export type Database = {
           },
         ]
       }
+      glossary_terms: {
+        Row: {
+          created_at: string
+          definition: string
+          example: string | null
+          full_form: string | null
+          id: string
+          source: string
+          term: string
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          definition: string
+          example?: string | null
+          full_form?: string | null
+          id?: string
+          source?: string
+          term: string
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          definition?: string
+          example?: string | null
+          full_form?: string | null
+          id?: string
+          source?: string
+          term?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "glossary_terms_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_chunks: {
         Row: {
           content: string
