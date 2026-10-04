@@ -62,7 +62,8 @@ function TermHint({ text, entry }: { text: string; entry: GlossaryEntry }) {
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         onBlur={() => setOpen(false)}
-        className="cursor-help underline decoration-primary/60 decoration-dotted decoration-2 underline-offset-4 hover:decoration-primary"
+        // inline (not the default inline-block) so punctuation after a term can't wrap away from it
+        className="inline cursor-help underline decoration-primary/60 decoration-dotted decoration-2 underline-offset-4 hover:decoration-primary"
       >
         {text}
       </button>
