@@ -60,8 +60,15 @@ export async function POST(request: Request, { params }: RouteContext<"/api/expl
     });
     const feedback: ExplainRecord = { ...record.data, follow_ups: updated };
 
-    const { error } = await supabase.from("explanations").update({ feedback }).eq("id", id);
+    // Only if still unanswered, so two quick submits can't both save.
+    const { data: saved, error } = await supabase
+      .from("explanations")
+      .update({ feedback })
+      .eq("id", id)
+      .filter("feedback->follow_ups->0->>answer", "is", null)
+      .select("id");
     if (error) throw new Error("Could not save your answers. Try again.");
+    if (saved.length === 0) return Response.json({ error: "You've already answered these." }, { status: 409 });
 
     return Response.json({ follow_ups: updated });
   } catch (error) {

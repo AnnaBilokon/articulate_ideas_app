@@ -110,6 +110,7 @@ async function structuredCall<T>(options: {
     try {
       raw = JSON.parse(text?.type === "text" ? text.text : "");
     } catch {
+      console.warn(`${options.model} returned invalid JSON (stop reason ${message.stop_reason}); retrying`);
       continue;
     }
     const result = options.validate(raw);
@@ -117,6 +118,7 @@ async function structuredCall<T>(options: {
       usage.costUsd = (usage.inputTokens * options.price[0] + usage.outputTokens * options.price[1]) / 1_000_000;
       return { result, usage };
     }
+    console.warn(`${options.model} output didn't match the schema; retrying:`, JSON.stringify(raw).slice(0, 2000));
   }
   throw new Error("The feedback didn't come out in the expected shape. Try again.");
 }
