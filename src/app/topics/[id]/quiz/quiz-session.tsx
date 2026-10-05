@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, CircleDashed, Loader2, PartyPopper, Telescope, TriangleAlert } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  CircleDashed,
+  Loader2,
+  MessageSquareText,
+  PartyPopper,
+  Telescope,
+  TriangleAlert,
+} from "lucide-react";
 import type { GradeResponse } from "@/app/api/questions/[id]/grade/route";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -149,6 +158,9 @@ export function QuizSession({ topicId, questions }: { topicId: string; questions
                 </p>
               )}
               <div className="flex flex-wrap justify-center gap-2 pt-2">
+                <Link href={`/topics/${topicId}/teach`} className={buttonVariants({ variant: "outline" })}>
+                  <MessageSquareText className="size-4" /> Teach it back
+                </Link>
                 <Link href={`/topics/${topicId}/card#think-deeper`} className={buttonVariants({ variant: "outline" })}>
                   <Telescope className="size-4" /> Think deeper
                 </Link>

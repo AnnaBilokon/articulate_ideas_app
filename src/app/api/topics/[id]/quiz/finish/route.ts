@@ -1,11 +1,9 @@
 import { z } from "zod";
 import { requireSession } from "@/lib/auth";
+import { raisesMastery } from "@/lib/mastery";
 import { db } from "@/lib/supabase";
 
 const bodySchema = z.object({ attemptIds: z.array(z.uuid()).min(1).max(30) });
-
-// Mastery levels in order; a quiz can only raise mastery, never lower it.
-const ORDER = [null, "seen", "recalled", "explained", "applied"] as const;
 
 // Ends a quiz: the average of first-try scores decides whether the topic
 // reaches "Recalled" (average 3+, see "Mastery level per topic" in PLAN.md).
@@ -31,8 +29,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/topi
 
   const average = attempts.reduce((sum, a) => sum + a.score, 0) / attempts.length;
   let mastery = topic.mastery_level;
-  const rank = (level: string | null) => ORDER.indexOf(level as (typeof ORDER)[number]);
-  if (average >= 3 && rank(mastery) < rank("recalled")) {
+  if (average >= 3 && raisesMastery(mastery, "recalled")) {
     mastery = "recalled";
     await supabase.from("topics").update({ mastery_level: mastery }).eq("id", id);
   }

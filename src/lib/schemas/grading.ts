@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Outputs of the grade_dump, grade_answer and grade_explain calls.
+// Outputs of the grade_dump, grade_answer, grade_explain and follow-up calls.
 
 // 0-5 rubric score; see "Grading rubric for answers" in PLAN.md.
 export const scoreSchema = z.int().min(0).max(5);
@@ -51,6 +51,18 @@ export const explainPartSchema = z.object({
   note: z.string().min(1),
 });
 
+export const MIN_EXPLAIN_CHARS = 50;
+export const MAX_EXPLAIN_CHARS = 15_000;
+
+export const explainInputSchema = z
+  .string()
+  .trim()
+  .min(MIN_EXPLAIN_CHARS, "Write at least a few sentences: say what it is, and why.")
+  .max(MAX_EXPLAIN_CHARS, "That's longer than a teach-back needs. Keep it under about 2,500 words.");
+
+// The five parts of a good explanation, in the order they're shown.
+export const explainParts = ["claim", "why", "example", "limit", "so_what"] as const;
+
 export const gradeExplainSchema = z.object({
   claim: explainPartSchema,
   why: explainPartSchema,
@@ -60,6 +72,30 @@ export const gradeExplainSchema = z.object({
   vague_parts: z.array(quotedIssueSchema),
   tighter_version: z.string().min(1),
   score: scoreSchema,
+  // Questions a newcomer would ask about the explanation's biggest gaps.
+  follow_ups: z.array(z.string().min(1)).min(1).max(2),
+});
+
+export const MAX_FOLLOW_UP_CHARS = 3000;
+
+// A follow-up question, and once answered, the answer and the coach's reply.
+export const followUpSchema = z.object({
+  question: z.string().min(1),
+  answer: z.string().nullable(),
+  reply: z.string().nullable(),
+  // Whether the answer filled the gap; null until answered.
+  closed: z.boolean().nullable(),
+});
+
+// A saved explanation's feedback: Claude's grading, with the follow-ups
+// kept alongside their answers.
+export const explainRecordSchema = gradeExplainSchema.extend({
+  follow_ups: z.array(followUpSchema).min(1).max(2),
+});
+
+export const followUpReplySchema = z.object({
+  reply: z.string().min(1),
+  closed: z.boolean(),
 });
 
 export type Score = z.infer<typeof scoreSchema>;
@@ -69,3 +105,7 @@ export type GradeAnswerResult = z.infer<typeof gradeAnswerSchema>;
 export type QuotedIssue = z.infer<typeof quotedIssueSchema>;
 export type ExplainPart = z.infer<typeof explainPartSchema>;
 export type GradeExplainResult = z.infer<typeof gradeExplainSchema>;
+export type ExplainPartName = (typeof explainParts)[number];
+export type FollowUp = z.infer<typeof followUpSchema>;
+export type ExplainRecord = z.infer<typeof explainRecordSchema>;
+export type FollowUpReply = z.infer<typeof followUpReplySchema>;
