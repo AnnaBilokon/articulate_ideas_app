@@ -6,6 +6,7 @@ import { ArrowRight, Check, CircleDashed, Lightbulb, Loader2, PenLine, RotateCcw
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { noSubscribe, readStored, writeStored } from "@/lib/local-draft";
 import { MAX_DUMP_CHARS, type DumpRecord } from "@/lib/schemas/grading";
 import { cn } from "@/lib/utils";
 
@@ -17,23 +18,6 @@ const wordCount = (text: string) => (text.trim() ? text.trim().split(/\s+/).leng
 // closed tab doesn't lose them.
 const draftKey = (topicId: string) => `dump-draft:${topicId}`;
 const nudgesKey = (topicId: string) => `dump-nudges:${topicId}`;
-function readStored(key: string): string {
-  try {
-    return localStorage.getItem(key) ?? "";
-  } catch {
-    return "";
-  }
-}
-function writeStored(key: string, value: string) {
-  try {
-    if (value && value !== "0") localStorage.setItem(key, value);
-    else localStorage.removeItem(key);
-  } catch {
-    // Storage unavailable (private mode): drafts just aren't kept.
-  }
-}
-
-const noSubscribe = () => () => {};
 
 export function DumpSession({
   topicId,

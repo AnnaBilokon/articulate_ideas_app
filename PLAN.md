@@ -89,7 +89,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Glossary: hard terms and abbreviations with plain definitions, explained inside the lesson on hover or tap; add your own terms (added)
 - [x] Delete a topic (added)
 - [x] Quiz: one question at a time, confidence 1-3, score out of 5, re-ask misses at the end
-- [ ] Teach-back (Explain mode) with the Claim/Why/Example/Limit/So what feedback and 1-2 follow-up questions on the gaps
+- [x] Teach-back (Explain mode) with the Claim/Why/Example/Limit/So what feedback and 1-2 follow-up questions on the gaps
 - [ ] Per-question review schedule and a "Today" screen; confident misses come back sooner
 - [ ] Library: topic pages, tags, and search by keyword and by meaning (an embedding saved with each card)
 - [ ] Simple suggestions: "More like this" and "Try something new" (version 1, described below)
@@ -263,7 +263,7 @@ These tables cover the MVP, V2 and later. Every table also has `id` and `created
 | review\_state | question\_id, due\_at, interval\_days, step, stability, difficulty, last\_score | MVP |
 | attempts | question\_id, mode (quiz, review), answer, confidence, score, feedback (json), duration\_sec | MVP |
 | dumps | topic\_id, text, feedback (json) | MVP |
-| explanations | topic\_id, text, drill\_type, feedback (json), score | MVP |
+| explanations | topic\_id, text, drill\_type, feedback (json, includes the follow-up questions, your answers and the replies), score | MVP |
 | suggestions | title, mode, reason, tags\[\], starter\_questions\[\], status (shown, accepted, dismissed), dismiss\_reason | MVP |
 | topic\_links | topic\_a, topic\_b, relation, source (user or claude) | V2 |
 | critical\_answers | critical\_question\_id, answer, feedback (json), counterargument | V2 |
@@ -271,7 +271,7 @@ These tables cover the MVP, V2 and later. Every table also has `id` and `created
 | journal\_entries | date, kind (daily\_recall, decision), text, feedback (json) | V2 |
 | predictions | claim, probability, resolve\_by, outcome, brier\_score | Later |
 
-**V2 additions:** a `mistake_cause` column on `attempts`, `follow_ups` (json) on `explanations` for teach-back, and a full-text `tsvector` index across cards, notes and answers (this one is cheap enough to add in the MVP). A confident miss needs no new column: it's an attempt with confidence 3 and a score of 0-2.
+**V2 additions:** a `mistake_cause` column on `attempts` and a full-text `tsvector` index across cards, notes and answers (this one is cheap enough to add in the MVP). A confident miss needs no new column: it's an attempt with confidence 3 and a score of 0-2.
 
 ## AI pipeline
 
@@ -374,7 +374,7 @@ The MVP takes about 6 weeks part-time (10-15 hours a week), then 2-3 weeks of re
 
 - [x] Brain dump screen and grade\_dump; the card unlocks after the dump
 - [x] Quiz screen: one question, confidence 1-3, grade\_answer, re-ask misses; confident misses flagged
-- [ ] Teach-back screen and grade\_explain, with 1-2 follow-up questions on the gaps
+- [x] Teach-back screen and grade\_explain, with 1-2 follow-up questions on the gaps; answers get a short reply, and the tighter version opens after them
 - [ ] Save every attempt
 - [ ] Test the grader on 20 of your own sample answers
 
