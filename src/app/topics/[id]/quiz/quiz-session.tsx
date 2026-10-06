@@ -166,7 +166,9 @@ export function QuizSession({ topicId, questions }: { topicId: string; questions
               {summary?.nextDueAt && (
                 <p className="flex items-center gap-1.5 text-sm">
                   <CalendarClock className="size-4 text-primary" />
-                  Next review: <strong>{formatDue(summary.nextDueAt)}</strong>
+                  <span>
+                    Next review: <strong>{formatDue(summary.nextDueAt)}</strong>
+                  </span>
                 </p>
               )}
               <div className="flex flex-wrap justify-center gap-2 pt-2">
