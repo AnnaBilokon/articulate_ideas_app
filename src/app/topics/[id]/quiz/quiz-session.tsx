@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  CalendarClock,
   Check,
   CircleDashed,
   Loader2,
@@ -17,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { formatDue } from "@/lib/schedule";
 import { cn } from "@/lib/utils";
 
 type Question = { id: string; text: string };
@@ -46,7 +48,11 @@ export function QuizSession({ topicId, questions }: { topicId: string; questions
   const [graded, setGraded] = useState<GradeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [firstTries, setFirstTries] = useState<FirstTry[]>([]);
-  const [summary, setSummary] = useState<{ average: number; mastery: string | null } | null>(null);
+  const [summary, setSummary] = useState<{
+    average: number;
+    mastery: string | null;
+    nextDueAt: string | null;
+  } | null>(null);
   const [finishing, setFinishing] = useState(false);
 
   const turn = queue[pos];
@@ -155,6 +161,12 @@ export function QuizSession({ topicId, questions }: { topicId: string; questions
               {summary?.mastery === "recalled" && (
                 <p className="max-w-md text-sm">
                   Mastery: <strong>Recalled</strong>. Spaced reviews will keep it that way.
+                </p>
+              )}
+              {summary?.nextDueAt && (
+                <p className="flex items-center gap-1.5 text-sm">
+                  <CalendarClock className="size-4 text-primary" />
+                  Next review: <strong>{formatDue(summary.nextDueAt)}</strong>
                 </p>
               )}
               <div className="flex flex-wrap justify-center gap-2 pt-2">
@@ -315,6 +327,11 @@ function Feedback({ graded, answer }: { graded: GradeResponse; answer: string })
           </ul>
         </div>
       </div>
+
+      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <CalendarClock className="size-4" />
+        Back for review {formatDue(graded.dueAt)}
+      </p>
     </div>
   );
 }
