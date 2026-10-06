@@ -101,7 +101,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - Decision journal: log real decisions; bias-spotting drills and pre-mortems use them
 - Daily free-recall journal: "What did I learn today?" written without notes, compared with your cards
 - Sleep-aware reviews: optional bedtime review of today's topic, recall check the next morning
-- Dashboard: streak, retention per topic, weak spots, calibration chart (over- and underconfidence), review calendar
+- Dashboard: streak, retention per topic, weak spots, calibration chart (over- and underconfidence), review calendar, and what you learn: the tags and subjects you choose most, topics started and finished per month, most-reviewed topics, time spent learning
 - Smarter suggestions using the stored embeddings and your scores
 - Voice input for dumps and explanations
 - Constraint drills: one sentence, 60 seconds, explain to a 12-year-old, to a skeptic
@@ -207,7 +207,7 @@ The app has two main flows: learning a new topic and reviewing old ones. The hom
 | Discover | Suggestions in four modes, topic inbox | MVP (simple), V2 (smart) |
 | Weekly drill | Pre-mortem, argument map, steelman, bias spotting, with Claude's critique | V2 |
 | Journal | Daily "What did I learn today?" recall, decision log | V2 |
-| Dashboard | Stats, progress, calibration | V2 |
+| Dashboard | Stats (what you learn most, time spent), progress, calibration | V2 |
 | Settings | Daily cap, reminders, bedtime review, export, interests | V2 |
 
 ## Tech stack and architecture
@@ -375,14 +375,14 @@ The MVP takes about 6 weeks part-time (10-15 hours a week), then 2-3 weeks of re
 - [x] Brain dump screen and grade\_dump; the card unlocks after the dump
 - [x] Quiz screen: one question, confidence 1-3, grade\_answer, re-ask misses; confident misses flagged
 - [x] Teach-back screen and grade\_explain, with 1-2 follow-up questions on the gaps; answers get a short reply, and the tighter version opens after them
-- [ ] Save every attempt
+- [x] Save every attempt
 - [ ] Test the grader on 20 of your own sample answers
 
 **Done when:** you finish a full session and the scores feel fair.
 
 ### Phase 3: Scheduling and Today (week 4)
 
-- [ ] review\_state per question with the step ladder, including the confident-miss rule
+- [x] review\_state per question with the step ladder, including the confident-miss rule; reviews fall due at midnight (Stockholm time), and answering before a question is due never moves it up the ladder
 - [ ] Optional: turn a few key glossary terms into review questions ("What does X mean, and why does it matter here?")
 - [ ] Today screen: due count, start review, continue unfinished topic
 - [ ] Review session with interleaving and the daily cap
@@ -417,7 +417,7 @@ Critical thinking and metacognition first, since they build on what you'll alrea
 - [ ] Think deeper answers with critique\_critical feedback and Claude's strongest counterargument
 - [ ] Decision journal; bias-spotting drills and pre-mortems draw on it
 - [ ] Daily free-recall journal ("What did I learn today?")
-- [ ] Dashboard: streak, retention per topic and tag, weak spots, calibration chart (over- and underconfidence), review calendar
+- [ ] Dashboard: streak, retention per topic and tag, weak spots, calibration chart (over- and underconfidence), review calendar, learning statistics (tags and subjects you choose most, topics started and finished per month, most-reviewed topics, time spent); all from data already saved
 - [ ] Sleep-aware reviews: bedtime review and next-morning check
 
 Then the rest:

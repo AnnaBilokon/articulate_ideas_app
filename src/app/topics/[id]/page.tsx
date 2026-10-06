@@ -22,6 +22,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { dumpRecordSchema } from "@/lib/schemas/grading";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
+import { formatDue } from "@/lib/schedule";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { DeleteTopic } from "./delete-topic";
@@ -52,7 +53,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, level, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id, attempts(id)), critical_questions(id), dumps(feedback, created_at), explanations(score, created_at)",
+      "title, level, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id, attempts(id), review_state(due_at)), critical_questions(id), dumps(feedback, created_at), explanations(score, created_at)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "user_questions" })
@@ -70,6 +71,8 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const hasDump = topic.dumps.length > 0;
   const quizTaken = topic.recall_questions.some((q) => q.attempts.length > 0);
   const lastExplanation = topic.explanations[0];
+  const dueDates = topic.recall_questions.flatMap((q) => (q.review_state ? [q.review_state.due_at] : [])).sort();
+  const dueNow = dueDates.filter((d) => new Date(d) <= new Date()).length;
   const currentStep = !hasLesson ? LESSON : !hasDump ? DUMP : !quizTaken ? QUIZ : !lastExplanation ? TEACH : THINK;
 
   return (
@@ -225,6 +228,9 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                       <span className="block font-medium">{quizTaken ? "Quiz again" : "Quiz"}</span>
                       <span className="block text-sm text-muted-foreground">
                         {topic.recall_questions.length} recall questions, scored out of 5
+                        {dueNow > 0
+                          ? ` · ${dueNow} due for review`
+                          : dueDates.length > 0 && ` · next review ${formatDue(dueDates[0])}`}
                       </span>
                     </span>
                     <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />

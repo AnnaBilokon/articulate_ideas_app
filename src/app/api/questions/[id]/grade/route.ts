@@ -3,6 +3,7 @@ import { z } from "zod";
 import { gradeAnswer } from "@/lib/ai/grade-answer";
 import { requireSession } from "@/lib/auth";
 import type { GradeAnswerResult } from "@/lib/schemas";
+import { nextReview } from "@/lib/schedule";
 import { db } from "@/lib/supabase";
 
 export const maxDuration = 60;
@@ -19,9 +20,12 @@ export type GradeResponse = GradeAnswerResult & {
   keyPoints: string[];
   // Sure (confidence 3) but scored 0-2: the hypercorrection case.
   confidentMiss: boolean;
+  // When the question comes back for review.
+  dueAt: string;
 };
 
-// Grades one answer to a recall question and saves it as an attempt.
+// Grades one answer to a recall question, saves it as an attempt, and sets
+// when the question comes back for review.
 export async function POST(request: Request, { params }: RouteContext<"/api/questions/[id]/grade">) {
   await requireSession();
   const { id } = await params;
@@ -33,7 +37,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/ques
   const supabase = db();
   const { data: question } = await supabase
     .from("recall_questions")
-    .select("text, key_points")
+    .select("text, key_points, review_state(step, interval_days, due_at)")
     .eq("id", id)
     .maybeSingle();
   if (!question) return Response.json({ error: "Question not found." }, { status: 404 });
@@ -70,11 +74,18 @@ export async function POST(request: Request, { params }: RouteContext<"/api/ques
       .single();
     if (error) throw new Error("Could not save your answer. Try again.");
 
+    const schedule = nextReview(question.review_state, result.score, confidence);
+    const { error: scheduleError } = await supabase
+      .from("review_state")
+      .upsert({ question_id: id, ...schedule }, { onConflict: "question_id" });
+    if (scheduleError) console.error(`schedule ${id} failed:`, scheduleError);
+
     const response: GradeResponse = {
       ...result,
       attemptId: attempt.id,
       keyPoints: question.key_points,
       confidentMiss: confidence === 3 && result.score <= 2,
+      dueAt: schedule.due_at,
     };
     return Response.json(response);
   } catch (error) {
