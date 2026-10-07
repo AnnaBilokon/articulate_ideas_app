@@ -37,7 +37,7 @@ export function PracticeSession({ words }: { words: { id: string; word: string }
                         {summary.remaining} more {summary.remaining === 1 ? "word is" : "words are"} due.
                       </p>
                     ) : (
-                      summary?.nextDueAt && <NextReview dueAt={summary.nextDueAt} />
+                      summary?.nextDueAt && <NextReview dueAt={summary.nextDueAt} label="Next practice" />
                     )}
                     <div className="flex flex-wrap justify-center gap-2 pt-2">
                       {summary && summary.remaining > 0 && (

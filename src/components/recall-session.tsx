@@ -267,12 +267,12 @@ export function ScoreSummary({ firstTries }: { firstTries: FirstTry[] }) {
 }
 
 /** "Next review: tomorrow" line for an end screen. */
-export function NextReview({ dueAt }: { dueAt: string }) {
+export function NextReview({ dueAt, label = "Next review" }: { dueAt: string; label?: string }) {
   return (
     <p className="flex items-center gap-1.5 text-sm">
       <CalendarClock className="size-4 text-primary" />
       <span>
-        Next review: <strong>{formatDue(dueAt)}</strong>
+        {label}: <strong>{formatDue(dueAt)}</strong>
       </span>
     </p>
   );
