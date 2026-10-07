@@ -91,3 +91,38 @@ export function formatDue(dueAt: string, now: Date = new Date()): string {
   if (days === 1) return "tomorrow";
   return `in ${days} days (${weekdayFormat.format(due)})`;
 }
+
+/**
+ * Today's review from the questions that are due: the oldest first, up to
+ * what's left of the daily cap, so a missed week doesn't become one huge
+ * session; the rest wait for the next days, still oldest first. Topics are
+ * then spread apart (interleaving): each pick comes from the topic with the
+ * most questions left, never the same topic twice in a row if another is left.
+ */
+export function planTodaysReview<T extends { topicId: string }>(
+  dueOldestFirst: T[],
+  room: number,
+): { today: T[]; overflow: number } {
+  const picked = dueOldestFirst.slice(0, Math.max(0, room));
+  const byTopic = new Map<string, T[]>();
+  for (const item of picked) byTopic.set(item.topicId, [...(byTopic.get(item.topicId) ?? []), item]);
+
+  const today: T[] = [];
+  let previous: string | null = null;
+  while (today.length < picked.length) {
+    let best: string | null = null;
+    for (const [topicId, items] of byTopic) {
+      if (items.length === 0 || (topicId === previous && hasOther(byTopic, topicId))) continue;
+      if (best === null || items.length > byTopic.get(best)!.length) best = topicId;
+    }
+    best ??= previous!;
+    today.push(byTopic.get(best)!.shift()!);
+    previous = best;
+  }
+  return { today, overflow: dueOldestFirst.length - picked.length };
+}
+
+function hasOther<T>(byTopic: Map<string, T[]>, topicId: string): boolean {
+  for (const [id, items] of byTopic) if (id !== topicId && items.length > 0) return true;
+  return false;
+}
