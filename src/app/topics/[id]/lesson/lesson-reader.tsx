@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, PartyPopper, PenLine } from "lucide-react";
 import { GlossaryText, type GlossaryEntry } from "@/components/glossary-text";
+import { SelectionSaver, useSaveWord } from "@/components/save-word";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,15 @@ type Chunk = { title: string; content: string };
 
 // Paragraphs, plus "- " lines as bullet lists. Glossary terms are marked at
 // their first appearance in each part.
-function ChunkBody({ content, terms }: { content: string; terms: GlossaryEntry[] }) {
+function ChunkBody({
+  content,
+  terms,
+  onSave,
+}: {
+  content: string;
+  terms: GlossaryEntry[];
+  onSave: (term: string, context: string) => void;
+}) {
   const blocks = content.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
   const seen = new Set<string>();
   return (
@@ -25,7 +34,7 @@ function ChunkBody({ content, terms }: { content: string; terms: GlossaryEntry[]
             <ul key={i} className="flex flex-col gap-1.5 pl-5">
               {lines.map((l, j) => (
                 <li key={j} className="list-disc marker:text-primary">
-                  <GlossaryText text={l.slice(2)} terms={terms} seen={seen} />
+                  <GlossaryText text={l.slice(2)} terms={terms} seen={seen} onSave={onSave} />
                 </li>
               ))}
             </ul>
@@ -33,7 +42,7 @@ function ChunkBody({ content, terms }: { content: string; terms: GlossaryEntry[]
         }
         return (
           <p key={i}>
-            <GlossaryText text={lines.join(" ")} terms={terms} seen={seen} />
+            <GlossaryText text={lines.join(" ")} terms={terms} seen={seen} onSave={onSave} />
           </p>
         );
       })}
@@ -52,6 +61,7 @@ export function LessonReader({
 }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
+  const { save, saving, toast } = useSaveWord(topicId);
   const finished = index >= chunks.length;
   const chunk = chunks[Math.min(index, chunks.length - 1)];
 
@@ -76,9 +86,10 @@ export function LessonReader({
             />
           ))}
         </div>
-        {terms.length > 0 && !finished && (
+        {!finished && (
           <p className="text-xs text-muted-foreground">
-            Words with a dotted underline have an explanation: hover or tap them.
+            {terms.length > 0 && "Words with a dotted underline have an explanation: hover or tap them. "}
+            Select any word to add it to your vocabulary.
           </p>
         )}
       </div>
@@ -113,7 +124,9 @@ export function LessonReader({
               </span>
               <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">{chunk.title}</h2>
             </div>
-            <ChunkBody key={index} content={chunk.content} terms={terms} />
+            <SelectionSaver onSave={save} disabled={saving}>
+              <ChunkBody key={index} content={chunk.content} terms={terms} onSave={save} />
+            </SelectionSaver>
           </CardContent>
           <div className="flex items-center justify-between gap-4 border-t bg-muted/50 px-5 py-4 sm:px-8">
             <Button variant="ghost" disabled={index === 0} onClick={() => setIndex((i) => i - 1)}>
@@ -140,6 +153,7 @@ export function LessonReader({
           </div>
         </Card>
       )}
+      {toast}
     </div>
   );
 }

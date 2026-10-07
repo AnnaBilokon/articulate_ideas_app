@@ -648,6 +648,106 @@ export type Database = {
           },
         ]
       }
+      vocabulary_attempts: {
+        Row: {
+          answer: string
+          confidence: number
+          created_at: string
+          duration_sec: number | null
+          feedback: Json
+          id: string
+          score: number
+          word_id: string
+        }
+        Insert: {
+          answer: string
+          confidence: number
+          created_at?: string
+          duration_sec?: number | null
+          feedback: Json
+          id?: string
+          score: number
+          word_id: string
+        }
+        Update: {
+          answer?: string
+          confidence?: number
+          created_at?: string
+          duration_sec?: number | null
+          feedback?: Json
+          id?: string
+          score?: number
+          word_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocabulary_attempts_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "vocabulary_words"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vocabulary_words: {
+        Row: {
+          context: string | null
+          created_at: string
+          definition: string
+          due_at: string
+          examples: string[]
+          id: string
+          interval_days: number
+          last_score: number | null
+          part_of_speech: string | null
+          step: number
+          topic_id: string | null
+          translation: string | null
+          usage_note: string | null
+          word: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          definition: string
+          due_at?: string
+          examples?: string[]
+          id?: string
+          interval_days?: number
+          last_score?: number | null
+          part_of_speech?: string | null
+          step?: number
+          topic_id?: string | null
+          translation?: string | null
+          usage_note?: string | null
+          word: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          definition?: string
+          due_at?: string
+          examples?: string[]
+          id?: string
+          interval_days?: number
+          last_score?: number | null
+          part_of_speech?: string | null
+          step?: number
+          topic_id?: string | null
+          translation?: string | null
+          usage_note?: string | null
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocabulary_words_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

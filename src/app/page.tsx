@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowRight, BookOpen, CheckCircle2, ChevronRight, GraduationCap, Repeat, Sprout } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, ChevronRight, Dumbbell, GraduationCap, Repeat, Sprout } from "lucide-react";
 import { NextReviewLine } from "@/components/next-review-line";
 import { PageHeader } from "@/components/page-header";
 import { TagBadge, tagColorClass } from "@/components/tag-badge";
@@ -11,12 +11,13 @@ import { LEARN_STEPS, currentLearnStep } from "@/lib/learn-flow";
 import { reviewOverview } from "@/lib/reviews";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
+import { practiceOverview } from "@/lib/vocabulary";
 import { cn } from "@/lib/utils";
 
 export default async function Home() {
   await connection(); // Read fresh data on every visit, not once at build.
   const supabase = db();
-  const [{ data: learning }, { count: learnedCount }, review] = await Promise.all([
+  const [{ data: learning }, { count: learnedCount }, review, words] = await Promise.all([
     supabase
       .from("topics")
       .select(
@@ -26,6 +27,7 @@ export default async function Home() {
       .order("created_at", { ascending: false }),
     supabase.from("topics").select("id", { count: "exact", head: true }).eq("status", "learned"),
     reviewOverview(),
+    practiceOverview(),
   ]);
   const topics = learning ?? [];
 
@@ -99,6 +101,24 @@ export default async function Home() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {words.due > 0 && (
+        <Link
+          href="/vocabulary/practice"
+          className="group -mt-4 flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted"
+        >
+          <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
+            <Dumbbell className="size-4" />
+          </span>
+          <span className="flex-1">
+            <span className="block font-medium">
+              {words.due} {words.due === 1 ? "word" : "words"} to practice
+            </span>
+            <span className="block text-sm text-muted-foreground">From your vocabulary</span>
+          </span>
+          <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </Link>
       )}
 
       <section className="flex flex-col gap-3">

@@ -11,8 +11,8 @@ import { formatDue } from "@/lib/schedule";
 import { cn } from "@/lib/utils";
 
 // One recall question at a time: confidence, answer, grade, and misses asked
-// again at the end. Used by the quiz and by reviews, which differ only in
-// where the questions come from and what the end screen shows.
+// again at the end. Used by the quiz, reviews and word practice, which differ
+// only in where the questions come from and what the end screen shows.
 
 export type SessionQuestion = { id: string; text: string; topicId?: string; topicTitle?: string };
 export type FirstTry = { question: SessionQuestion; attemptId: string; score: number; confidentMiss: boolean };
@@ -31,14 +31,19 @@ export function scoreTone(score: number) {
   return "bg-coral-soft text-coral-foreground";
 }
 
+const finishLabels = { quiz: "Finish quiz", review: "Finish review", practice: "Finish practice" };
+
 export function RecallSession<Summary>({
   mode,
   questions,
+  gradeUrl = (id) => `/api/questions/${id}/grade`,
   finishUrl,
   renderEnd,
 }: {
-  mode: "quiz" | "review";
+  mode: "quiz" | "review" | "practice";
   questions: SessionQuestion[];
+  // Where each answer is graded; recall questions by default.
+  gradeUrl?: (questionId: string) => string;
   // Called once at the end with the first-try attempt ids; its JSON is the summary.
   finishUrl: string;
   renderEnd: (end: { firstTries: FirstTry[]; summary: Summary | null; finishing: boolean }) => React.ReactNode;
@@ -71,7 +76,7 @@ export function RecallSession<Summary>({
     setPhase("grading");
     setError(null);
     try {
-      const response = await fetch(`/api/questions/${turn.question.id}/grade`, {
+      const response = await fetch(gradeUrl(turn.question.id), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -222,7 +227,7 @@ export function RecallSession<Summary>({
         {phase === "feedback" && (
           <div className="flex justify-end border-t bg-muted/50 px-5 py-4 sm:px-7">
             <Button size="lg" className="h-10 px-4" onClick={next} autoFocus>
-              {pos + 1 >= queue.length ? (mode === "quiz" ? "Finish quiz" : "Finish review") : "Next question"}{" "}
+              {pos + 1 >= queue.length ? finishLabels[mode] : "Next question"}{" "}
               <ArrowRight className="size-4" />
             </Button>
           </div>

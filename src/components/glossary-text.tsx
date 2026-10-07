@@ -2,6 +2,9 @@
 
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { BookmarkPlus } from "lucide-react";
+import { sentenceAround } from "@/components/save-word";
+import { cn } from "@/lib/utils";
 
 export type GlossaryEntry = {
   term: string;
@@ -42,11 +45,26 @@ function segments(text: string, terms: GlossaryEntry[], seen: Set<string>) {
   return out;
 }
 
-export function GlossaryText({ text, terms, seen }: { text: string; terms: GlossaryEntry[]; seen: Set<string> }) {
+export function GlossaryText({
+  text,
+  terms,
+  seen,
+  onSave,
+}: {
+  text: string;
+  terms: GlossaryEntry[];
+  seen: Set<string>;
+  // Saves a term to the vocabulary, with the sentence it's in.
+  onSave?: (term: string, context: string) => void;
+}) {
   return (
     <>
       {segments(text, terms, seen).map((part, i) =>
-        typeof part === "string" ? <Fragment key={i}>{part}</Fragment> : <TermHint key={i} text={part.text} entry={part.entry} />,
+        typeof part === "string" ? (
+          <Fragment key={i}>{part}</Fragment>
+        ) : (
+          <TermHint key={i} text={part.text} entry={part.entry} onSave={onSave} />
+        ),
       )}
     </>
   );
@@ -73,8 +91,17 @@ function placeNear(anchor: HTMLElement): Placement {
  * Dotted-underlined term; the definition shows on hover, or on tap on a
  * phone. The tooltip is drawn at the top level of the page (a portal with
  * fixed positioning), so cards that clip their contents can't cut it off.
+ * Opened by a tap or click, it also offers to save the term to the vocabulary.
  */
-function TermHint({ text, entry }: { text: string; entry: GlossaryEntry }) {
+function TermHint({
+  text,
+  entry,
+  onSave,
+}: {
+  text: string;
+  entry: GlossaryEntry;
+  onSave?: (term: string, context: string) => void;
+}) {
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [pinned, setPinned] = useState(false); // opened by a tap or click
   const [hovered, setHovered] = useState(false);
@@ -130,7 +157,10 @@ function TermHint({ text, entry }: { text: string; entry: GlossaryEntry }) {
             id={tooltipId}
             role="tooltip"
             style={placement}
-            className="pointer-events-none fixed z-50 flex flex-col gap-1 rounded-xl border bg-popover p-3 text-left text-sm leading-6 font-normal text-popover-foreground shadow-lg"
+            className={cn(
+              "fixed z-50 flex flex-col gap-1 rounded-xl border bg-popover p-3 text-left text-sm leading-6 font-normal text-popover-foreground shadow-lg",
+              !(pinned && onSave) && "pointer-events-none",
+            )}
           >
             <span>
               <strong>{entry.term}</strong>
@@ -138,6 +168,22 @@ function TermHint({ text, entry }: { text: string; entry: GlossaryEntry }) {
             </span>
             <span>{entry.definition}</span>
             {entry.example && <span className="text-muted-foreground italic">e.g. {entry.example}</span>}
+            {pinned && onSave && (
+              <button
+                type="button"
+                // Keep focus on the term, so the tooltip doesn't close before the click.
+                onPointerDown={(e) => e.preventDefault()}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  const block = anchorRef.current?.closest("p, li");
+                  onSave(entry.term, sentenceAround(block?.textContent ?? "", text));
+                  setPinned(false);
+                }}
+                className="mt-1 flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <BookmarkPlus className="size-3.5" /> Save to vocabulary
+              </button>
+            )}
           </span>,
           document.body,
         )}

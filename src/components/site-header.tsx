@@ -5,7 +5,13 @@ import { usePathname } from "next/navigation";
 import { Plus, Sprout } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const nav = [{ href: "/", label: "Today" }];
+const nav = [
+  { href: "/", label: "Today" },
+  { href: "/vocabulary", label: "Vocabulary" },
+];
+
+const isActive = (pathname: string, href: string) =>
+  href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
 export function Logo({ className, compact }: { className?: string; compact?: boolean }) {
   return (
@@ -36,7 +42,7 @@ export function SiteHeader() {
               href={item.href}
               className={cn(
                 "rounded-full px-3 py-1.5 font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                isActive(pathname, item.href) ? "bg-accent text-accent-foreground" : "text-muted-foreground",
               )}
             >
               {item.label}

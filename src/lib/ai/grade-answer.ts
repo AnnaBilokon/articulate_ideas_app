@@ -1,7 +1,7 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, GRADING_MODEL, claude } from "@/lib/claude";
+import { FALLBACK_BETA, SMALL_MODEL, claude } from "@/lib/claude";
 import { gradeAnswerSchema, type GradeAnswerResult } from "@/lib/schemas";
 
 // grade_answer: score one recall answer 0-5 against its key points.
@@ -49,7 +49,7 @@ export async function gradeAnswer(
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const stream = claude().beta.messages.stream({
-      model: GRADING_MODEL,
+      model: SMALL_MODEL,
       max_tokens: 4000,
       betas: [FALLBACK_BETA],
       fallbacks: "default",

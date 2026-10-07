@@ -1,7 +1,7 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, GRADING_MODEL, STRONG_MODEL, claude } from "@/lib/claude";
+import { FALLBACK_BETA, SMALL_MODEL, STRONG_MODEL, claude } from "@/lib/claude";
 import {
   followUpReplySchema,
   gradeExplainSchema,
@@ -186,7 +186,7 @@ export async function replyToFollowUps(input: FollowUpInput): Promise<{ result: 
   ].join("\n\n");
 
   return structuredCall({
-    model: GRADING_MODEL,
+    model: SMALL_MODEL,
     effort: "low",
     maxTokens: 4000,
     format: replyOutputSchema,
