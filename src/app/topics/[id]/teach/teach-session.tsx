@@ -29,7 +29,7 @@ import {
   type FollowUp,
 } from "@/lib/schemas/grading";
 import { cn } from "@/lib/utils";
-import { scoreTone } from "../quiz/quiz-session";
+import { scoreTone } from "@/components/recall-session";
 
 type Explanation = { id: string; text: string; feedback: ExplainRecord };
 

@@ -20,6 +20,7 @@ import { TagBadge } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { currentLearnStep } from "@/lib/learn-flow";
 import { dumpRecordSchema } from "@/lib/schemas/grading";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { formatDue } from "@/lib/schedule";
@@ -38,11 +39,6 @@ const steps = [
   { label: "Teach-back", hint: "Explain it in your own words", icon: MessageSquareText, soon: false },
   { label: "Think deeper", hint: "Open questions with no single right answer", icon: Telescope, soon: false },
 ];
-const LESSON = 1;
-const DUMP = 2;
-const QUIZ = 4;
-const TEACH = 5;
-const THINK = 6;
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
@@ -73,7 +69,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const lastExplanation = topic.explanations[0];
   const dueDates = topic.recall_questions.flatMap((q) => (q.review_state ? [q.review_state.due_at] : [])).sort();
   const dueNow = dueDates.filter((d) => new Date(d) <= new Date()).length;
-  const currentStep = !hasLesson ? LESSON : !hasDump ? DUMP : !quizTaken ? QUIZ : !lastExplanation ? TEACH : THINK;
+  const currentStep = currentLearnStep({ hasLesson, hasDump, quizTaken, explained: Boolean(lastExplanation) });
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">

@@ -90,7 +90,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Delete a topic (added)
 - [x] Quiz: one question at a time, confidence 1-3, score out of 5, re-ask misses at the end
 - [x] Teach-back (Explain mode) with the Claim/Why/Example/Limit/So what feedback and 1-2 follow-up questions on the gaps
-- [ ] Per-question review schedule and a "Today" screen; confident misses come back sooner
+- [x] Per-question review schedule and a "Today" screen; confident misses come back sooner
 - [ ] Library: topic pages, tags, and search by keyword and by meaning (an embedding saved with each card)
 - [ ] Simple suggestions: "More like this" and "Try something new" (version 1, described below)
 
@@ -105,7 +105,6 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - Smarter suggestions using the stored embeddings and your scores
 - Voice input for dumps and explanations
 - Constraint drills: one sentence, 60 seconds, explain to a 12-year-old, to a skeptic
-- Interleaved reviews and a daily review cap
 - Simpler and Deeper buttons on lesson chunks
 - Markdown export
 
@@ -384,9 +383,9 @@ The MVP takes about 6 weeks part-time (10-15 hours a week), then 2-3 weeks of re
 
 - [x] review\_state per question with the step ladder, including the confident-miss rule; reviews fall due at midnight (Stockholm time), and answering before a question is due never moves it up the ladder
 - [ ] Optional: turn a few key glossary terms into review questions ("What does X mean, and why does it matter here?")
-- [ ] Today screen: due count, start review, continue unfinished topic
-- [ ] Review session with interleaving and the daily cap
-- [ ] Next review date shown at the end of every session
+- [x] Today screen: due count, start review, continue unfinished topic (with each topic's next step)
+- [x] Review session with interleaving and the daily cap; weak spots on the end screen
+- [x] Next review date shown at the end of every session (quiz and review)
 
 **Done when:** questions come back on the right days and you've used it 5 days in a row.
 
