@@ -9,6 +9,7 @@ import { SelectionSaver, useSaveWord } from "@/components/save-word";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { DOUBTS_CHUNK_TITLE } from "@/lib/schemas/lesson";
 import {
   MAX_CHUNK_RECALL_CHARS,
   MIN_DUMP_CHARS,
@@ -205,7 +206,7 @@ export function LessonReader({
             <Button variant="ghost" disabled={index === 0} onClick={() => show(index - 1)}>
               Back
             </Button>
-            {passed.has(index) ? (
+            {passed.has(index) || chunk.title === DOUBTS_CHUNK_TITLE ? (
               <Button size="lg" className="h-10 px-4" onClick={moveOn}>
                 {nextLabel}
               </Button>

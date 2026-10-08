@@ -4,6 +4,10 @@ import { z } from "zod";
 
 export const MAX_CHUNK_WORDS = 400;
 
+// The extra part a lesson from the learner's own material gets for doubtful
+// statements. It's a list to check, not an idea to recall.
+export const DOUBTS_CHUNK_TITLE = "Worth double-checking";
+
 const wordCount = (text: string) => text.trim().split(/\s+/).length;
 
 export const answeredQuestionSchema = z.object({

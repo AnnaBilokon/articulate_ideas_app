@@ -2,7 +2,9 @@
 // giving any of it away. General prompts frame it; the lesson's own part
 // titles say which areas to cover.
 
-const SKIP_TITLES = new Set(["Worth double-checking"]);
+import { DOUBTS_CHUNK_TITLE } from "@/lib/schemas/lesson";
+
+const SKIP_TITLES = new Set([DOUBTS_CHUNK_TITLE]);
 
 export function dumpCues(chunkTitles: string[]): string[] {
   const parts = chunkTitles.filter((t) => !SKIP_TITLES.has(t)).map((t) => `What do you remember about “${t}”?`);
