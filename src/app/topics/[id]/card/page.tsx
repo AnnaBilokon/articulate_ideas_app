@@ -136,12 +136,12 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
             <Brain className="size-4 text-primary" /> Recall questions
           </CardTitle>
           <CardDescription>
-            {topic.recall_questions.length} questions for your quiz and reviews. The answer keys stay hidden until you
-            answer.
+            {topic.recall_questions.length} questions. They come back in your reviews, starting the day after your brain
+            dump; a quiz now is optional. The answer keys stay hidden until you answer.
           </CardDescription>
           <CardAction>
             <Link href={`/topics/${id}/quiz`} className={buttonVariants({ size: "sm" })}>
-              Start quiz
+              Quiz now
             </Link>
           </CardAction>
         </CardHeader>

@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { ArrowRight, BookOpen, CheckCircle2, ChevronRight, Dumbbell, GraduationCap, Repeat, Sprout } from "lucide-react";
+import { LightDayButton } from "@/components/light-day-button";
 import { NextReviewLine } from "@/components/next-review-line";
 import { PageHeader } from "@/components/page-header";
 import { TagBadge, tagColorClass } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LEARN_STEPS, currentLearnStep } from "@/lib/learn-flow";
-import { reviewOverview } from "@/lib/reviews";
+import { nextLearnStep, progressLine } from "@/lib/learn-flow";
+import { LIGHT_DAY_CAP, reviewOverview } from "@/lib/reviews";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
 import { practiceOverview } from "@/lib/vocabulary";
@@ -21,7 +22,7 @@ export default async function Home() {
     supabase
       .from("topics")
       .select(
-        "id, title, level, topic_tags(tags(name)), lesson_chunks(id), dumps(id), recall_questions(attempts(id)), explanations(id)",
+        "id, title, level, created_at, topic_tags(tags(name)), lesson_chunks(id), dumps(id), recall_questions(attempts(score, created_at))",
       )
       .eq("status", "learning")
       .order("created_at", { ascending: false }),
@@ -66,6 +67,7 @@ export default async function Home() {
                 {review.today.length} {review.today.length === 1 ? "question" : "questions"} to review
               </div>
               <div className="text-sm text-muted-foreground">
+                {review.lightDay && "Light day. "}
                 From {formatList([...new Set(review.today.map((q) => q.topicTitle))])}
                 {review.overflow > 0 && `. ${review.overflow} more wait for the next days (${review.cap} a day)`}.
               </div>
@@ -73,6 +75,11 @@ export default async function Home() {
             <Link href="/review" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4")}>
               Start review <ArrowRight className="size-4" />
             </Link>
+            {(review.lightDay || review.today.length > LIGHT_DAY_CAP) && (
+              <div className="basis-full">
+                <LightDayButton lightDay={review.lightDay} cap={LIGHT_DAY_CAP} />
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -97,6 +104,11 @@ export default async function Home() {
                 </div>
               ) : (
                 <NextReviewLine dueAt={review.nextDueAt} />
+              )}
+              {review.lightDay && review.overflow > 0 && (
+                <div className="-ml-2 pt-1">
+                  <LightDayButton lightDay cap={LIGHT_DAY_CAP} />
+                </div>
               )}
             </div>
           </CardContent>
@@ -127,12 +139,10 @@ export default async function Home() {
           <ul className="flex flex-col gap-2">
             {topics.map((topic) => {
               const tags = topic.topic_tags.flatMap((tt) => (tt.tags ? [tt.tags.name] : []));
-              const step = currentLearnStep({
-                hasLesson: topic.lesson_chunks.length > 0,
-                hasDump: topic.dumps.length > 0,
-                quizTaken: topic.recall_questions.some((q) => q.attempts.length > 0),
-                explained: topic.explanations.length > 0,
-              });
+              const next = nextLearnStep({ hasLesson: topic.lesson_chunks.length > 0, hasDump: topic.dumps.length > 0 });
+              const status = next
+                ? `Next: ${next}`
+                : (progressLine(topic.recall_questions, topic.created_at) ?? "Learned · in your reviews");
               return (
                 <li key={topic.id}>
                   <Link href={`/topics/${topic.id}`} className="group block">
@@ -149,7 +159,7 @@ export default async function Home() {
                         </span>
                         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                           <div className="truncate font-medium">{topic.title}</div>
-                          <div className="text-sm text-muted-foreground">Next: {LEARN_STEPS[step]}</div>
+                          <div className="text-sm text-muted-foreground">{status}</div>
                           <div className="flex flex-wrap gap-1.5">
                             {isTopicLevel(topic.level) && (
                               <Badge variant="secondary">{topicLevelLabels[topic.level]}</Badge>

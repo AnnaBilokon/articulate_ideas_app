@@ -93,6 +93,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Quiz: one question at a time, confidence 1-3, score out of 5, re-ask misses at the end
 - [x] Teach-back (Explain mode) with the Claim/Why/Example/Limit/So what feedback and 1-2 follow-up questions on the gaps
 - [x] Per-question review schedule and a "Today" screen; confident misses come back sooner
+- [x] A topic split across days: day 1 is the lesson, part recalls, brain dump and card (about 15 minutes); the questions come back in the next day's review; quiz, teach-back and think deeper are optional, with time estimates; a light-day button and a warm-up in reviews; progress shown as what you can now answer (added)
 - [x] Vocabulary: save words while reading (select any word, or from a glossary explanation) or add your own; each gets a plain definition, how to use it, examples and a Ukrainian translation; separate word practice ("what does it mean? use it in a sentence") on its own spaced schedule (added)
 - [ ] Library: topic pages, tags, and search by keyword and by meaning (an embedding saved with each card)
 - [ ] Simple suggestions: "More like this" and "Try something new" (version 1, described below)
@@ -183,8 +184,8 @@ The app has two main flows: learning a new topic and reviewing old ones. The hom
 3. **Research or your material:** Claude searches the web and builds the lesson (sources shown), or builds it from the notes, article or transcript you pasted, flagging doubtful statements in a "Worth double-checking" part.
 4. **Lesson:** answers to your questions plus up to 3 "Suggested" questions, in 300-400 word chunks. After each chunk, "Before you move on": the chunk is hidden, you write its main idea in a sentence or a few, and get quick feedback (got it, partly, not yet; what you missed; the main idea in one sentence). "Show me again" and "Skip" keep it from blocking you. Simpler and Deeper buttons on each chunk (V2).
 5. **Brain dump:** the lesson is hidden. Put the whole topic together: write everything you remember and how the parts connect. Stuck? Ask for a nudge: a cue (main idea, a lesson part's title, why, example, where it applies, what confused you), never an answer; the nudges used are saved. Get feedback: right, missed, wrong.
-6. **Topic Card:** unlocks after the dump. Read it once.
-7. **Quiz:** at most 10 recall questions (unanswered ones first), one at a time, short answers are enough, confidence 1-3 before answering, score out of 5, misses re-asked at the end. A confident miss is flagged and shown clearly.
+6. **Topic Card:** unlocks after the dump. Read it once. **Day 1 ends here** (about 15 minutes): the recall questions go into the next day's review, and the steps below are optional.
+7. **Quiz (optional):** at most 10 recall questions (unanswered ones first), one at a time, short answers are enough, confidence 1-3 before answering, score out of 5, misses re-asked at the end. A confident miss is flagged and shown clearly.
 8. **Teach-back (optional):** explain the whole topic as if to a learner. Get structured feedback, a tighter version, and 1-2 follow-up questions about the gaps; answer them.
 9. **Think deeper (optional):** open questions on assumptions, evidence, counterarguments, implications, perspectives and transfer. Think first, then open the hints. (V2: write an answer, get feedback, and Claude argues the other side.)
 10. **Finish:** rate interest 1-3, confirm tags, see your next review date.
@@ -340,7 +341,7 @@ Each recall question has its own schedule. A topic review is just the set of tha
 | Score 4-5 but confidence 1 | Stay on the same step (a lucky guess) |
 | Score 0-2 with confidence 3 (confident miss) | Back to step 1, shown with the correct answer side by side with yours, re-asked at the end of the session and again the next day (hypercorrection) |
 
-**Daily cap:** show at most 20 questions a day (setting). Overflow moves to the next days, oldest first, so a missed week doesn't create an 80-question wall.
+**Daily cap:** show at most 10 questions a day (setting). "Too much?" makes today a light day of 5, until midnight. Each review starts with up to two questions answered well last time, as a warm-up. Overflow moves to the next days, oldest first, so a missed week doesn't create an 80-question wall.
 
 **Interleaving:** when building today's review, mix topics instead of grouping them.
 
