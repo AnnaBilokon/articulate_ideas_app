@@ -83,6 +83,38 @@ export type Database = {
           },
         ]
       }
+      chunk_recalls: {
+        Row: {
+          chunk_id: string
+          created_at: string
+          feedback: Json
+          id: string
+          text: string
+        }
+        Insert: {
+          chunk_id: string
+          created_at?: string
+          feedback: Json
+          id?: string
+          text: string
+        }
+        Update: {
+          chunk_id?: string
+          created_at?: string
+          feedback?: Json
+          id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chunk_recalls_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_chunks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       critical_questions: {
         Row: {
           considerations: string[]

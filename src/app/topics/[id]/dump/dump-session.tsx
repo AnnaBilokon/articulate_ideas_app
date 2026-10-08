@@ -99,8 +99,9 @@ export function DumpSession({
               <PenLine className="size-4 text-primary" /> What do you remember?
             </span>
             <p className="text-sm text-muted-foreground">
-              Start on your own and write whatever comes: rough notes are fine. Struggling a little is what makes it
-              stick. If you get stuck, ask for a nudge: each one is a cue, never an answer.
+              Put the whole topic together: the main idea of each part, how the parts connect, and why it matters.
+              Rough notes are fine, and struggling a little is what makes it stick. If you get stuck, ask for a nudge:
+              each one is a cue, never an answer.
             </p>
           </div>
 
