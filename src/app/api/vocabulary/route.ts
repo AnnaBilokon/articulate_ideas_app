@@ -16,7 +16,9 @@ export async function POST(request: Request) {
   try {
     return Response.json({ word: await saveWord(parsed.data) });
   } catch (error) {
-    if (error instanceof WordError) return Response.json({ error: error.message }, { status: error.status });
+    if (error instanceof WordError) {
+      return Response.json({ error: error.message, existing: error.existing }, { status: error.status });
+    }
     console.error(`save word "${parsed.data.word}" failed:`, error);
     const message =
       error instanceof Anthropic.RateLimitError
