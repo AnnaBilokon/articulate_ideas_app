@@ -21,11 +21,11 @@ type AnsweredQuestion = { attempts: { score: number; created_at: string }[] };
 export function progressLine(questions: AnsweredQuestion[], learnedAt: string, now: Date = new Date()): string | null {
   const tried = questions.filter((q) => q.attempts.length > 0);
   if (tried.length === 0) return null;
-  const can = questions.filter((q) => {
+  const can = tried.filter((q) => {
     const latest = q.attempts.reduce((a, b) => (a.created_at > b.created_at ? a : b));
     return latest.score >= 4;
   }).length;
   const days = Math.round((startOfDay(now).getTime() - startOfDay(new Date(learnedAt)).getTime()) / 86_400_000);
   const after = days >= 1 ? `, ${days} ${days === 1 ? "day" : "days"} after you learned it` : "";
-  return `You can answer ${can} of ${questions.length} questions${after}`;
+  return `You can answer ${can} of ${questions.length} ${questions.length === 1 ? "question" : "questions"}${after}`;
 }
