@@ -4,3 +4,4 @@ export * from "./critical";
 export * from "./glossary";
 export * from "./grading";
 export * from "./topic";
+export * from "./vocabulary";

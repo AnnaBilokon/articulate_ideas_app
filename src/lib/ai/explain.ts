@@ -1,7 +1,8 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, GRADING_MODEL, STRONG_MODEL, claude } from "@/lib/claude";
+import { withWholeScore } from "@/lib/ai/grade-answer";
+import { FALLBACK_BETA, SMALL_MODEL, STRONG_MODEL, claude } from "@/lib/claude";
 import {
   followUpReplySchema,
   gradeExplainSchema,
@@ -43,7 +44,7 @@ vague_parts: at most 4 places where the wording is vague, hand-wavy or wrong. qu
 
 tighter_version: rewrite their explanation so it's clearer and tighter. Keep their order, voice and good phrases; fix errors; fill the gaps so all five parts are there; cut filler. Plain language, short sentences, at most about 200 words, and no longer than theirs unless theirs is very short.
 
-score (0-5):
+score (0-5, whole numbers only):
 - 5: all five parts, accurate, clear enough that a newcomer would get it
 - 4: four parts, or all five with some vagueness; the main idea is right
 - 3: the claim and why are mostly right, but the rest is thin or vague
@@ -157,7 +158,7 @@ export async function gradeExplain(input: ExplainInput): Promise<{ result: Grade
       // One question too many isn't worth a retry.
       const followUps = (raw as { follow_ups?: unknown } | null)?.follow_ups;
       const parsed = gradeExplainSchema.safeParse(
-        Array.isArray(followUps) ? { ...(raw as object), follow_ups: followUps.slice(0, 2) } : raw,
+        withWholeScore(Array.isArray(followUps) ? { ...(raw as object), follow_ups: followUps.slice(0, 2) } : raw),
       );
       if (!parsed.success) return null;
       // Keep only quotes that really are the learner's words.
@@ -186,7 +187,7 @@ export async function replyToFollowUps(input: FollowUpInput): Promise<{ result: 
   ].join("\n\n");
 
   return structuredCall({
-    model: GRADING_MODEL,
+    model: SMALL_MODEL,
     effort: "low",
     maxTokens: 4000,
     format: replyOutputSchema,

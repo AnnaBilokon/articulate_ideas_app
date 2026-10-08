@@ -91,6 +91,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Quiz: one question at a time, confidence 1-3, score out of 5, re-ask misses at the end
 - [x] Teach-back (Explain mode) with the Claim/Why/Example/Limit/So what feedback and 1-2 follow-up questions on the gaps
 - [x] Per-question review schedule and a "Today" screen; confident misses come back sooner
+- [x] Vocabulary: save words while reading (select any word, or from a glossary explanation) or add your own; each gets a plain definition, how to use it, examples and a Ukrainian translation; separate word practice ("what does it mean? use it in a sentence") on its own spaced schedule (added)
 - [ ] Library: topic pages, tags, and search by keyword and by meaning (an embedding saved with each card)
 - [ ] Simple suggestions: "More like this" and "Try something new" (version 1, described below)
 
@@ -201,6 +202,7 @@ The app has two main flows: learning a new topic and reviewing old ones. The hom
 | New topic | Title, research or your own material, questions, level, tags | MVP |
 | Learning session | Pretest, lesson chunks, dump, card, quiz, teach-back, think deeper | MVP |
 | Review session | Mixed due questions | MVP |
+| Vocabulary | Your words, add a word, word practice | MVP (added) |
 | Library | Browse and search topics, filter by tag and mastery | MVP |
 | Topic page | Card, notes, history, test me now | MVP |
 | Discover | Suggestions in four modes, topic inbox | MVP (simple), V2 (smart) |
@@ -263,6 +265,8 @@ These tables cover the MVP, V2 and later. Every table also has `id` and `created
 | attempts | question\_id, mode (quiz, review), answer, confidence, score, feedback (json), duration\_sec | MVP |
 | dumps | topic\_id, text, feedback (json) | MVP |
 | explanations | topic\_id, text, drill\_type, feedback (json, includes the follow-up questions, your answers and the replies), score | MVP |
+| vocabulary\_words | word (unique, any case), part\_of\_speech, definition, usage\_note, examples\[\], translation (Ukrainian), topic\_id and context (where it was saved from), due\_at, interval\_days, step, last\_score | MVP (added) |
+| vocabulary\_attempts | word\_id, answer, confidence, score, feedback (json), duration\_sec | MVP (added) |
 | suggestions | title, mode, reason, tags\[\], starter\_questions\[\], status (shown, accepted, dismissed), dismiss\_reason | MVP |
 | topic\_links | topic\_a, topic\_b, relation, source (user or claude) | V2 |
 | critical\_answers | critical\_question\_id, answer, feedback (json), counterargument | V2 |
@@ -285,6 +289,7 @@ A small set of Claude calls runs the whole app. Each one has its own short syste
 | build\_critical | After the card | Card, lesson | 5-6 Think deeper questions with kind and things to consider | Strong |
 | build\_glossary | After the lesson, alongside the card | Lesson, level | Up to 15 terms: term, full form, plain definition, example | Strong |
 | define\_term | You add a term | Lesson, your term | One glossary entry | Strong |
+| define\_word | You save or add a vocabulary word | The word, the sentence it was in | Dictionary form, part of speech, plain definition, how to use it, 3 examples, Ukrainian translation (or "not a word") | Small |
 | grade\_dump | After brain dump | Card + key points, your dump | right\[\], missed\[\], wrong\[\], short summary | Strong |
 | grade\_answer | Each quiz or review answer | Question, key points, your answer | score 0-5, points hit, points missed, feedback, mistake cause | Small |
 | grade\_explain | Teach-back | Card, your explanation, drill type | Claim/Why/Example/Limit/So what notes, vague parts, tighter version, score, 1-2 follow-up questions | Strong |
@@ -386,6 +391,7 @@ The MVP takes about 6 weeks part-time (10-15 hours a week), then 2-3 weeks of re
 - [x] Today screen: due count, start review, continue unfinished topic (with each topic's next step)
 - [x] Review session with interleaving and the daily cap; weak spots on the end screen
 - [x] Next review date shown at the end of every session (quiz and review)
+- [x] Vocabulary screen and word practice, with define\_word; word answers graded with grade\_answer and scheduled on the same ladder (added)
 
 **Done when:** questions come back on the right days and you've used it 5 days in a row.
 
