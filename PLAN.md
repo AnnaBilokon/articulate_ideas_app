@@ -28,7 +28,7 @@ Every feature should make you recall or explain more. If it doesn't, it's decora
 | Retrieval practice | Testing yourself beats rereading | Brain dump, quiz and explain are the core loop; the dump is required before the card unlocks |
 | Spaced repetition | Reviews at growing intervals | Day 1/3/7/14/30/60 by default, adaptive per question, FSRS later |
 | Generation effect | Writing an answer beats recognizing it | Free-text answers, not multiple choice |
-| Chunking | Small pieces prevent overload | Lessons in 300-400 word chunks; after each, recall its main idea and get quick feedback before the next opens |
+| Chunking | Small pieces prevent overload | Lessons in 3-5 chunks of 150-250 words, one idea each with a "because" and an example; after each, recall its main idea and get quick feedback before the next opens |
 | Self-explanation | Explaining builds understanding | Teach-back (Explain mode) graded on Claim, Why, Example, Limit, So what; Claude then asks 1-2 follow-up questions about the gaps (protégé effect) |
 | Pretesting | Guessing first makes answers stick | 2-3 questions before the lesson starts |
 | Interleaving | Mixing topics improves retention | Daily review mixes questions from several topics |
@@ -288,7 +288,7 @@ A small set of Claude calls runs the whole app. Each one has its own short syste
 | research\_and\_lesson | New topic | Title, your questions, level | Answers, up to 3 suggested questions, lesson chunks, sources | Strong + web search |
 | lesson\_from\_material | New topic with pasted material | Your material, questions, level | Same as above, plus doubtful statements (shown as a "Worth double-checking" chunk) | Strong |
 | pretest | Before lesson | Title, level | 2-3 questions | Small |
-| build\_card | After lesson | Lesson, answers | Topic Card, 8-10 recall questions with key points (core answer first, then details), 3-5 tags | Strong |
+| build\_card | After lesson | Lesson, answers | Topic Card, 1-2 recall questions per chunk (about 5-8) with key points (core answer first, then details), 3-5 tags | Strong |
 | build\_critical | After the card | Card, lesson | 5-6 Think deeper questions with kind and things to consider | Strong |
 | build\_glossary | After the lesson, alongside the card | Lesson, level | Up to 15 terms: term, full form, plain definition, example | Strong |
 | define\_term | You add a term | Lesson, your term | One glossary entry | Strong |

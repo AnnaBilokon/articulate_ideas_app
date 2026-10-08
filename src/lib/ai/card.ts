@@ -47,7 +47,7 @@ Output (JSON matching the schema):
 - card.analogy: one vivid everyday analogy, 1-2 sentences.
 - card.counterpoint: the most common mistake or misconception, or the strongest counterpoint, and why it's wrong or where it holds. 1-3 sentences.
 - card.connects_to: 2-4 related ideas or fields, each a short phrase.
-- recall_questions: 8 to 10 questions that test understanding, not wording. Cover the most important ideas; skip minor details.
+- recall_questions: 1 or 2 per lesson chunk, about 5 to 8 in total, that test understanding, not wording. Cover each chunk's main idea; skip minor details. No questions on a "Worth double-checking" chunk.
   - Mix the types: "why" (explain a cause), "how" (explain a mechanism or process), "compare" (contrast with a related idea), "apply" (use it in a new, concrete situation).
   - Each question asks for one clear thing and is answerable in 1-3 sentences from the lesson. If it needs two things, say so in the question ("name two", "color and taste").
   - key_points: 2 to 4 short points. First the core answer to the question, then supporting details or examples (these are extras the grader won't require). Each point is one specific idea, stated plainly. No vague points like "explains it well".
