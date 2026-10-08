@@ -175,7 +175,7 @@ export function LessonReader({
             <div className="text-lg font-semibold">Lesson done</div>
             <p className="max-w-md text-muted-foreground">
               {recallsDone > 0
-                ? `You recalled ${recallsDone === chunks.length ? "every part" : `${recallsDone} of ${chunks.length} parts`} on its own. Now put them together: close the lesson and write what you remember about the whole topic. It unlocks your Topic Card.`
+                ? `${recallsDone === chunks.length ? "You recalled every part on its own." : `You recalled ${recallsDone} of ${chunks.length} parts.`} Now put them together: close the lesson and write what you remember about the whole topic. It unlocks your Topic Card.`
                 : "Now close the lesson and write down everything you remember. Recalling it while it's fresh is what makes it stick, and it unlocks your Topic Card."}
             </p>
             <div className="flex flex-wrap justify-center gap-2 pt-2">
