@@ -15,6 +15,8 @@ export class WordError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    // The saved entry, when the word is already in the vocabulary.
+    readonly existing?: VocabularyWord,
   ) {
     super(message);
   }
@@ -24,7 +26,7 @@ export class WordError extends Error {
 const exactly = (word: string) => word.replace(/[\\%_*]/g, (c) => `\\${c}`);
 
 async function findWord(word: string) {
-  const { data } = await db().from("vocabulary_words").select("id, word").ilike("word", exactly(word)).maybeSingle();
+  const { data } = await db().from("vocabulary_words").select("*").ilike("word", exactly(word)).maybeSingle();
   return data;
 }
 
@@ -32,7 +34,7 @@ async function findWord(word: string) {
 export async function saveWord(input: SaveWordInput): Promise<VocabularyWord> {
   // Check before asking Claude, and again after, since Claude may change the form.
   const before = await findWord(input.word);
-  if (before) throw new WordError(`"${before.word}" is already in your vocabulary.`, 409);
+  if (before) throw new WordError(`"${before.word}" is already in your vocabulary.`, 409, before);
 
   const { result, usage } = await defineWord({ word: input.word, context: input.context });
   console.log(`define_word "${input.word}":`, usage);
@@ -55,7 +57,8 @@ export async function saveWord(input: SaveWordInput): Promise<VocabularyWord> {
     .select("*")
     .single();
   if (error?.code === UNIQUE_VIOLATION) {
-    throw new WordError(`"${result.word}" is already in your vocabulary.`, 409);
+    const existing = await findWord(result.word);
+    throw new WordError(`"${result.word}" is already in your vocabulary.`, 409, existing ?? undefined);
   }
   if (error) throw new Error("Could not save the word. Try again.");
   return data;

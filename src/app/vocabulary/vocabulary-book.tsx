@@ -56,7 +56,14 @@ export function VocabularyBook({ words, due, nextDueAt }: { words: Word[]; due: 
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ word: newWord }),
       });
-      const body = (await response.json()) as { word?: { id: string }; error?: string };
+      const body = (await response.json()) as { word?: { id: string }; existing?: { id: string }; error?: string };
+      if (response.status === 409 && body.existing) {
+        // Already saved: open its entry instead.
+        const id = body.existing.id;
+        setQuery("");
+        setJustAdded(id);
+        requestAnimationFrame(() => document.getElementById(`word-${id}`)?.scrollIntoView({ block: "center" }));
+      }
       if (!response.ok || !body.word) throw new Error(body.error ?? "Could not add the word. Try again.");
       setNewWord("");
       setQuery("");
