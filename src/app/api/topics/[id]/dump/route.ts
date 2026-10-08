@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { gradeDump } from "@/lib/ai/dump";
 import { requireSession } from "@/lib/auth";
+import { scheduleTopicQuestions } from "@/lib/reviews";
 import { MAX_DUMP_NUDGES, dumpInputSchema, type DumpRecord } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
@@ -39,6 +40,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/topi
 
     // Lesson read and recalled: the first mastery level.
     if (!topic.mastery_level) await supabase.from("topics").update({ mastery_level: "seen" }).eq("id", id);
+
+    // Day 1 is done: the questions come back in tomorrow's review.
+    await scheduleTopicQuestions(id);
 
     return Response.json({ feedback });
   } catch (error) {

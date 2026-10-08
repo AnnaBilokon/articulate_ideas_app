@@ -1,5 +1,6 @@
 import "server-only";
 import { buildTopicCard } from "@/lib/ai/card";
+import { scheduleTopicQuestions } from "@/lib/reviews";
 import { MAX_TAGS, isTopicLevel } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
@@ -17,7 +18,7 @@ export async function ensureTopicCard(topicId: string): Promise<"created" | "exi
     supabase
       .from("topics")
       .select(
-        "title, level, topic_cards(id), lesson_chunks(title, content, position), user_questions(text, answer, position), topic_tags(tag_id)",
+        "title, level, topic_cards(id), dumps(id), lesson_chunks(title, content, position), user_questions(text, answer, position), topic_tags(tag_id)",
       )
       .eq("id", topicId)
       .order("position", { referencedTable: "lesson_chunks" })
@@ -67,6 +68,8 @@ export async function ensureTopicCard(topicId: string): Promise<"created" | "exi
       await supabase.from("topic_tags").insert(newLinks.map((t) => ({ topic_id: topicId, tag_id: t.id })));
     }
   }
+
+  if (topic.dumps.length > 0) await scheduleTopicQuestions(topicId);
 
   return "created";
 }
