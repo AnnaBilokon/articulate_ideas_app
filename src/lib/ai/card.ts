@@ -2,7 +2,13 @@ import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { FALLBACK_BETA, STRONG_MODEL, claude } from "@/lib/claude";
-import { buildCardSchema, normalizeTag, recallQuestionTypes, type BuildCardResult } from "@/lib/schemas";
+import {
+  MAX_QUIZ_QUESTIONS,
+  buildCardSchema,
+  normalizeTag,
+  recallQuestionTypes,
+  type BuildCardResult,
+} from "@/lib/schemas";
 import { topicLevelLabels, type TopicLevel } from "@/lib/schemas/topic";
 
 // build_card: Topic Card, recall questions with key points, and tags.
@@ -41,10 +47,10 @@ Output (JSON matching the schema):
 - card.analogy: one vivid everyday analogy, 1-2 sentences.
 - card.counterpoint: the most common mistake or misconception, or the strongest counterpoint, and why it's wrong or where it holds. 1-3 sentences.
 - card.connects_to: 2-4 related ideas or fields, each a short phrase.
-- recall_questions: 10 to 15 questions that test understanding, not wording.
+- recall_questions: 8 to 10 questions that test understanding, not wording. Cover the most important ideas; skip minor details.
   - Mix the types: "why" (explain a cause), "how" (explain a mechanism or process), "compare" (contrast with a related idea), "apply" (use it in a new, concrete situation).
-  - Each question must be answerable in 2-5 sentences from the lesson.
-  - key_points: 2 to 5 short points a full answer must contain. Each point is one specific idea, stated plainly, gradable on its own. No vague points like "explains it well".
+  - Each question asks for one clear thing and is answerable in 1-3 sentences from the lesson. If it needs two things, say so in the question ("name two", "color and taste").
+  - key_points: 2 to 4 short points. First the core answer to the question, then supporting details or examples (these are extras the grader won't require). Each point is one specific idea, stated plainly. No vague points like "explains it well".
   - Don't ask yes/no questions or ask for definitions word for word.
 - tags: 3 to 5 broad, reusable tags, lowercase words joined by hyphens (e.g. "decision-making"). Reuse the learner's existing tags whenever one fits instead of making a near-duplicate.`;
 
@@ -112,7 +118,11 @@ export async function buildTopicCard(input: CardInput): Promise<CardResult> {
     if (!shaped.success) continue;
 
     const tags = [...new Set(shaped.data.tags.map(normalizeTag).filter(Boolean))].slice(0, 5);
-    const parsed = buildCardSchema.safeParse({ ...shaped.data, tags });
+    const parsed = buildCardSchema.safeParse({
+      ...shaped.data,
+      recall_questions: shaped.data.recall_questions.slice(0, MAX_QUIZ_QUESTIONS),
+      tags,
+    });
     if (parsed.success) {
       // Opus 5.5: $4 / $20 per million tokens.
       usage.costUsd = (usage.inputTokens * 4 + usage.outputTokens * 20) / 1_000_000;

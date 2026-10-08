@@ -22,6 +22,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { currentLearnStep } from "@/lib/learn-flow";
 import { dumpRecordSchema } from "@/lib/schemas/grading";
+import { MAX_QUIZ_QUESTIONS } from "@/lib/schemas/card";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { formatDue } from "@/lib/schedule";
 import { db } from "@/lib/supabase";
@@ -223,7 +224,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                     <span className="flex-1">
                       <span className="block font-medium">{quizTaken ? "Quiz again" : "Quiz"}</span>
                       <span className="block text-sm text-muted-foreground">
-                        {topic.recall_questions.length} recall questions, scored out of 5
+                        {Math.min(topic.recall_questions.length, MAX_QUIZ_QUESTIONS)} questions, scored out of 5
                         {dueNow > 0
                           ? ` · ${dueNow} due for review`
                           : dueDates.length > 0 && ` · next review ${formatDue(dueDates[0])}`}

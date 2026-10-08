@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, CalendarClock, Check, CircleDashed, Loader2, TriangleAlert } from "lucide-react";
+import { ArrowRight, CalendarClock, Check, CircleDashed, Loader2, Plus, TriangleAlert } from "lucide-react";
 import type { GradeResponse } from "@/app/api/questions/[id]/grade/route";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -188,7 +188,7 @@ export function RecallSession<Summary>({
                 maxLength={5000}
                 autoFocus
                 disabled={phase === "grading"}
-                placeholder="Answer from memory, in your own words…"
+                placeholder="Answer from memory. A sentence or two is enough."
                 aria-label="Your answer"
                 className="min-h-32 bg-background px-3 py-2.5 md:text-base"
               />
@@ -293,7 +293,7 @@ function Feedback({ graded, answer }: { graded: GradeResponse; answer: string })
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-coral-foreground" />
           <span>
             <strong className="text-coral-foreground">Confident miss.</strong> You were sure, but this one missed.
-            Compare your answer with the key points below; corrections like this stick best. It will come back sooner.
+            Compare your answer with what it needed below; corrections like this stick best. It will come back sooner.
           </span>
         </div>
       )}
@@ -305,23 +305,40 @@ function Feedback({ graded, answer }: { graded: GradeResponse; answer: string })
             <p className="text-sm leading-6 whitespace-pre-wrap">{answer}</p>
           </div>
         )}
-        <div className="flex flex-col gap-1.5 rounded-xl border bg-background p-3">
-          <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Key points</span>
-          <ul className="flex flex-col gap-1.5">
-            {graded.keyPoints.map((point) => {
-              const hit = graded.points_hit.includes(point);
-              return (
-                <li key={point} className="flex items-start gap-2 text-sm leading-6">
-                  {hit ? (
+        <div className="flex flex-col gap-3 rounded-xl border bg-background p-3">
+          {graded.points_hit.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">You got</span>
+              <ul className="flex flex-col gap-1.5">
+                {graded.points_hit.map((point) => (
+                  <li key={point} className="flex items-start gap-2 text-sm leading-6">
                     <Check className="mt-1 size-4 shrink-0 text-success" />
-                  ) : (
-                    <CircleDashed className="mt-1 size-4 shrink-0 text-sunflower-foreground" />
-                  )}
-                  <span className={cn(!hit && "font-medium")}>{point}</span>
-                </li>
-              );
-            })}
-          </ul>
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {graded.points_missed.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              {/* A right answer can leave out details; they're extras, not misses. */}
+              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                {graded.score >= 4 ? "Also worth knowing" : "What the answer needed"}
+              </span>
+              <ul className="flex flex-col gap-1.5">
+                {graded.points_missed.map((point) => (
+                  <li key={point} className="flex items-start gap-2 text-sm leading-6">
+                    {graded.score >= 4 ? (
+                      <Plus className="mt-1 size-4 shrink-0 text-info-foreground" />
+                    ) : (
+                      <CircleDashed className="mt-1 size-4 shrink-0 text-sunflower-foreground" />
+                    )}
+                    <span className={cn(graded.score < 4 && "font-medium")}>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 

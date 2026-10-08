@@ -25,9 +25,12 @@ export const recallQuestionSchema = z.object({
   type: z.enum(recallQuestionTypes),
 });
 
+// A quiz asks at most this many questions; new cards get 8 to 10.
+export const MAX_QUIZ_QUESTIONS = 10;
+
 export const buildCardSchema = z.object({
   card: topicCardSchema,
-  recall_questions: z.array(recallQuestionSchema).min(10).max(15),
+  recall_questions: z.array(recallQuestionSchema).min(6).max(MAX_QUIZ_QUESTIONS),
   tags: z.array(tagSchema).min(3).max(5),
 });
 

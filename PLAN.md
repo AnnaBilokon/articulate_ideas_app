@@ -184,7 +184,7 @@ The app has two main flows: learning a new topic and reviewing old ones. The hom
 4. **Lesson:** answers to your questions plus up to 3 "Suggested" questions, in 300-400 word chunks. After each chunk, "Before you move on": the chunk is hidden, you write its main idea in a sentence or a few, and get quick feedback (got it, partly, not yet; what you missed; the main idea in one sentence). "Show me again" and "Skip" keep it from blocking you. Simpler and Deeper buttons on each chunk (V2).
 5. **Brain dump:** the lesson is hidden. Put the whole topic together: write everything you remember and how the parts connect. Stuck? Ask for a nudge: a cue (main idea, a lesson part's title, why, example, where it applies, what confused you), never an answer; the nudges used are saved. Get feedback: right, missed, wrong.
 6. **Topic Card:** unlocks after the dump. Read it once.
-7. **Quiz:** recall questions one at a time, confidence 1-3 before answering, score out of 5, misses re-asked at the end. A confident miss is flagged and shown clearly.
+7. **Quiz:** at most 10 recall questions (unanswered ones first), one at a time, short answers are enough, confidence 1-3 before answering, score out of 5, misses re-asked at the end. A confident miss is flagged and shown clearly.
 8. **Teach-back (optional):** explain the whole topic as if to a learner. Get structured feedback, a tighter version, and 1-2 follow-up questions about the gaps; answer them.
 9. **Think deeper (optional):** open questions on assumptions, evidence, counterarguments, implications, perspectives and transfer. Think first, then open the hints. (V2: write an answer, get feedback, and Claude argues the other side.)
 10. **Finish:** rate interest 1-3, confirm tags, see your next review date.
@@ -288,7 +288,7 @@ A small set of Claude calls runs the whole app. Each one has its own short syste
 | research\_and\_lesson | New topic | Title, your questions, level | Answers, up to 3 suggested questions, lesson chunks, sources | Strong + web search |
 | lesson\_from\_material | New topic with pasted material | Your material, questions, level | Same as above, plus doubtful statements (shown as a "Worth double-checking" chunk) | Strong |
 | pretest | Before lesson | Title, level | 2-3 questions | Small |
-| build\_card | After lesson | Lesson, answers | Topic Card, 10-15 recall questions with key points, 3-5 tags | Strong |
+| build\_card | After lesson | Lesson, answers | Topic Card, 8-10 recall questions with key points (core answer first, then details), 3-5 tags | Strong |
 | build\_critical | After the card | Card, lesson | 5-6 Think deeper questions with kind and things to consider | Strong |
 | build\_glossary | After the lesson, alongside the card | Lesson, level | Up to 15 terms: term, full form, plain definition, example | Strong |
 | define\_term | You add a term | Lesson, your term | One glossary entry | Strong |
@@ -315,11 +315,13 @@ One extra non-Claude call, embed\_card, runs whenever a card is created or edite
 
 ### Grading rubric for answers (0-5)
 
-- **5:** all key points, accurate, clear
-- **4:** most key points, small gaps
-- **3:** about half the key points, or right idea stated vaguely
-- **2:** one key point, or partly wrong
-- **1:** attempted but mostly wrong
+The grader judges whether the answer does what the question asks. Key points describe a complete answer: some are the core the question asks for, the rest are details and examples. Leaving out details never costs points; they're shown as "Also worth knowing". For a "why" or "how" question, the reason or mechanism is the answer; when a question asks for several separate things ("name two", "color and taste", "use it in a sentence"), each is required.
+
+- **5:** answers what the question asks, correctly and clearly; short is fine
+- **4:** correct, but a little vague or with a small gap in what was asked
+- **3:** on the right track, but vague, or covers only part of what was asked
+- **2:** mostly misses what was asked, or partly wrong
+- **1:** attempted but wrong
 - **0:** blank or "I don't know"
 
 Give the grader the rubric and the key points every time. Test it on 20 sample answers you write yourself before trusting it.
