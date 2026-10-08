@@ -12,7 +12,7 @@ export default async function LessonPage({ params }: PageProps<"/topics/[id]/les
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, researched_at, lesson_chunks(title, content, position), glossary_terms(term, full_form, definition, example)",
+      "title, researched_at, lesson_chunks(id, title, content, position), glossary_terms(term, full_form, definition, example)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "lesson_chunks" })
@@ -36,7 +36,7 @@ export default async function LessonPage({ params }: PageProps<"/topics/[id]/les
       </PageHeader>
       <LessonReader
         topicId={id}
-        chunks={topic.lesson_chunks.map(({ title, content }) => ({ title, content }))}
+        chunks={topic.lesson_chunks.map(({ id: chunkId, title, content }) => ({ id: chunkId, title, content }))}
         terms={topic.glossary_terms}
       />
     </main>

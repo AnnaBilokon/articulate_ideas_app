@@ -32,7 +32,7 @@ import { ResearchPanel } from "./research-panel";
 // The learn flow from PLAN.md. "soon" steps aren't built yet.
 const steps = [
   { label: "Pretest", hint: "Guess first; it makes answers stick", icon: HelpCircle, soon: true },
-  { label: "Lesson", hint: "Short chunks, one at a time", icon: BookOpen, soon: false },
+  { label: "Lesson", hint: "Short parts, with a quick recall after each", icon: BookOpen, soon: false },
   { label: "Brain dump", hint: "Write everything you remember", icon: PenLine, soon: false },
   { label: "Topic card", hint: "The essentials, unlocked after the dump", icon: Layers, soon: false },
   { label: "Quiz", hint: "Recall questions, scored out of 5", icon: Brain, soon: false },

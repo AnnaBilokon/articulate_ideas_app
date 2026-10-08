@@ -28,7 +28,7 @@ Every feature should make you recall or explain more. If it doesn't, it's decora
 | Retrieval practice | Testing yourself beats rereading | Brain dump, quiz and explain are the core loop; the dump is required before the card unlocks |
 | Spaced repetition | Reviews at growing intervals | Day 1/3/7/14/30/60 by default, adaptive per question, FSRS later |
 | Generation effect | Writing an answer beats recognizing it | Free-text answers, not multiple choice |
-| Chunking | Small pieces prevent overload | Lessons in 300-400 word chunks with a "Ready for next?" gate |
+| Chunking | Small pieces prevent overload | Lessons in 300-400 word chunks; after each, recall its main idea and get quick feedback before the next opens |
 | Self-explanation | Explaining builds understanding | Teach-back (Explain mode) graded on Claim, Why, Example, Limit, So what; Claude then asks 1-2 follow-up questions about the gaps (protégé effect) |
 | Pretesting | Guessing first makes answers stick | 2-3 questions before the lesson starts |
 | Interleaving | Mixing topics improves retention | Daily review mixes questions from several topics |
@@ -48,6 +48,7 @@ The features come from learning science and cognitive psychology, grouped by str
 | 1 | Spaced repetition | Ebbinghaus; Cepeda et al., 2006 | Phase 3 step ladder, FSRS later |
 | 1 | Active recall, "answer first, then reveal" | Testing effect (Roediger & Karpicke, 2006) | Brain dump, quiz, reviews; the card stays locked until the dump |
 | 1 | Interleaving | Rohrer; Bjork | Mixed daily reviews (Phase 3) |
+| 1 | Interpolated testing | Szpunar, Khan & Schacter, 2013 | Recall after each lesson part (added) |
 | 1 | Self-explanation and "why" questions | Dunlosky et al., 2013 | "Why" recall questions; teach-back |
 | 1 | Teach-back (Feynman technique) | Generation and protégé effects | Explain mode with follow-up questions (Phase 2) |
 | 1 | Confidence ratings and calibration | Metacognition research; hypercorrection effect | Confidence 1-3 (Phase 2), confident misses re-asked sooner (Phase 3), calibration chart (V2) |
@@ -82,6 +83,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Learn from your own material: paste notes, an article or a transcript instead of web research; doubtful statements are flagged (pulled forward from V2)
 - [x] Edit your material later: update the lesson only (keeps card and history) or rebuild everything (added)
 - [x] Chunked lesson with "Ready for next?"
+- [x] Recall after each lesson part: write its main idea from memory, get quick feedback, then the next part opens (interpolated testing; added)
 - [ ] Pretest: 2-3 guesses before the lesson
 - [x] Brain dump with feedback (got right, missed, got wrong)
 - [x] Topic Card generated and saved, including recall questions with key points
@@ -179,8 +181,8 @@ The app has two main flows: learning a new topic and reviewing old ones. The hom
 1. **Start:** type a topic, or pick one from suggestions or your inbox. Add your questions, level and tags.
 2. **Pretest:** answer 2-3 quick questions before learning (guessing is fine).
 3. **Research or your material:** Claude searches the web and builds the lesson (sources shown), or builds it from the notes, article or transcript you pasted, flagging doubtful statements in a "Worth double-checking" part.
-4. **Lesson:** answers to your questions plus up to 3 "Suggested" questions, in 300-400 word chunks. "Ready for next?" between chunks. Simpler and Deeper buttons on each chunk.
-5. **Brain dump:** the lesson is hidden. Write everything you remember. Stuck? Ask for a nudge: a cue (main idea, a lesson part's title, why, example, where it applies, what confused you), never an answer; the nudges used are saved. Get feedback: right, missed, wrong.
+4. **Lesson:** answers to your questions plus up to 3 "Suggested" questions, in 300-400 word chunks. After each chunk, "Before you move on": the chunk is hidden, you write its main idea in a sentence or a few, and get quick feedback (got it, partly, not yet; what you missed; the main idea in one sentence). "Show me again" and "Skip" keep it from blocking you. Simpler and Deeper buttons on each chunk (V2).
+5. **Brain dump:** the lesson is hidden. Put the whole topic together: write everything you remember and how the parts connect. Stuck? Ask for a nudge: a cue (main idea, a lesson part's title, why, example, where it applies, what confused you), never an answer; the nudges used are saved. Get feedback: right, missed, wrong.
 6. **Topic Card:** unlocks after the dump. Read it once.
 7. **Quiz:** recall questions one at a time, confidence 1-3 before answering, score out of 5, misses re-asked at the end. A confident miss is flagged and shown clearly.
 8. **Teach-back (optional):** explain the whole topic as if to a learner. Get structured feedback, a tighter version, and 1-2 follow-up questions about the gaps; answer them.
@@ -264,6 +266,7 @@ These tables cover the MVP, V2 and later. Every table also has `id` and `created
 | review\_state | question\_id, due\_at, interval\_days, step, stability, difficulty, last\_score | MVP |
 | attempts | question\_id, mode (quiz, review), answer, confidence, score, feedback (json), duration\_sec | MVP |
 | dumps | topic\_id, text, feedback (json) | MVP |
+| chunk\_recalls | chunk\_id, text, feedback (json: verdict, feedback, missed\[\], main\_idea) | MVP (added) |
 | explanations | topic\_id, text, drill\_type, feedback (json, includes the follow-up questions, your answers and the replies), score | MVP |
 | vocabulary\_words | word (unique, any case), part\_of\_speech, definition, usage\_note, examples\[\], translation (Ukrainian), topic\_id and context (where it was saved from), due\_at, interval\_days, step, last\_score | MVP (added) |
 | vocabulary\_attempts | word\_id, answer, confidence, score, feedback (json), duration\_sec | MVP (added) |
@@ -290,6 +293,7 @@ A small set of Claude calls runs the whole app. Each one has its own short syste
 | build\_glossary | After the lesson, alongside the card | Lesson, level | Up to 15 terms: term, full form, plain definition, example | Strong |
 | define\_term | You add a term | Lesson, your term | One glossary entry | Strong |
 | define\_word | You save or add a vocabulary word | The word, the sentence it was in | Dictionary form, part of speech, plain definition, how to use it, 3 examples, Ukrainian translation (or "not a word") | Small |
+| grade\_chunk\_recall | After each lesson part | The part, your recall of its main idea | Verdict (got it, partly, not yet), 1-2 sentences of feedback, up to 2 missed ideas, the main idea in one sentence | Small |
 | grade\_dump | After brain dump | Card + key points, your dump | right\[\], missed\[\], wrong\[\], short summary | Strong |
 | grade\_answer | Each quiz or review answer | Question, key points, your answer | score 0-5, points hit, points missed, feedback, mistake cause | Small |
 | grade\_explain | Teach-back | Card, your explanation, drill type | Claim/Why/Example/Limit/So what notes, vague parts, tighter version, score, 1-2 follow-up questions | Strong |

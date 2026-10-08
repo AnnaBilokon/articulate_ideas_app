@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Outputs of the grade_dump, grade_answer, grade_explain and follow-up calls.
+// Outputs of the grade_dump, grade_chunk_recall, grade_answer, grade_explain and follow-up calls.
 
 // 0-5 rubric score; see "Grading rubric for answers" in PLAN.md.
 export const scoreSchema = z.int().min(0).max(5);
@@ -35,6 +35,26 @@ export const MAX_DUMP_NUDGES = 20;
 // A saved dump's feedback: Claude's grading plus how many nudges were used.
 export const dumpRecordSchema = gradeDumpSchema.extend({
   nudges: z.int().min(0).max(MAX_DUMP_NUDGES).default(0),
+});
+
+export const MAX_CHUNK_RECALL_CHARS = 3000;
+
+// A recall after one lesson part: its main idea in a few sentences.
+export const chunkRecallInputSchema = z
+  .string()
+  .trim()
+  .min(MIN_DUMP_CHARS, "Write a sentence, even a rough one.")
+  .max(MAX_CHUNK_RECALL_CHARS, "Keep it short: the main idea in a few sentences.");
+
+export const chunkRecallVerdicts = ["got_it", "partly", "missed"] as const;
+
+export const gradeChunkRecallSchema = z.object({
+  verdict: z.enum(chunkRecallVerdicts),
+  feedback: z.string().min(1),
+  // At most two important ideas from the part they left out.
+  missed: z.array(z.string().min(1)).max(2),
+  // The part's main idea in one sentence, shown after the attempt.
+  main_idea: z.string().min(1),
 });
 
 export const gradeAnswerSchema = z.object({
@@ -102,6 +122,8 @@ export type Score = z.infer<typeof scoreSchema>;
 export type GradeDumpResult = z.infer<typeof gradeDumpSchema>;
 export type DumpRecord = z.infer<typeof dumpRecordSchema>;
 export type GradeAnswerResult = z.infer<typeof gradeAnswerSchema>;
+export type ChunkRecallVerdict = (typeof chunkRecallVerdicts)[number];
+export type GradeChunkRecallResult = z.infer<typeof gradeChunkRecallSchema>;
 export type QuotedIssue = z.infer<typeof quotedIssueSchema>;
 export type ExplainPart = z.infer<typeof explainPartSchema>;
 export type GradeExplainResult = z.infer<typeof gradeExplainSchema>;
