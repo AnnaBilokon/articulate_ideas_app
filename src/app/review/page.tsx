@@ -2,15 +2,16 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { LightDayButton } from "@/components/light-day-button";
 import { NextReviewLine } from "@/components/next-review-line";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { reviewOverview } from "@/lib/reviews";
+import { LIGHT_DAY_CAP, reviewOverview } from "@/lib/reviews";
 import { ReviewSession } from "./review-session";
 
 export default async function ReviewPage() {
   await connection(); // What's due changes every day, and with every answer.
-  const { today, overflow, cap, nextDueAt } = await reviewOverview();
+  const { today, overflow, cap, nextDueAt, lightDay } = await reviewOverview();
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
@@ -20,9 +21,11 @@ export default async function ReviewPage() {
             ? `${today.length} ${today.length === 1 ? "question" : "questions"} due, from all your topics, mixed.`
             : "Questions come back here on the day they're due."}
         </p>
+        {(lightDay || today.length > LIGHT_DAY_CAP) && <LightDayButton lightDay={lightDay} cap={LIGHT_DAY_CAP} />}
       </PageHeader>
       {today.length > 0 ? (
-        <ReviewSession questions={today} />
+        // Keyed by the questions, so switching to a light day starts the new set.
+        <ReviewSession key={today.map((q) => q.id).join()} questions={today} />
       ) : (
         <Card className="bg-success-soft/60 ring-success/25">
           <CardContent className="flex items-center gap-4">

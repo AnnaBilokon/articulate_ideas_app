@@ -98,8 +98,9 @@ export function formatDue(dueAt: string, now: Date = new Date()): string {
  * session; the rest wait for the next days, still oldest first. Topics are
  * then spread apart (interleaving): each pick comes from the topic with the
  * most questions left, never the same topic twice in a row if another is left.
+ * Up to two questions answered well last time go first, as a warm-up.
  */
-export function planTodaysReview<T extends { topicId: string }>(
+export function planTodaysReview<T extends { topicId: string; lastScore?: number | null }>(
   dueOldestFirst: T[],
   room: number,
 ): { today: T[]; overflow: number } {
@@ -119,8 +120,16 @@ export function planTodaysReview<T extends { topicId: string }>(
     today.push(byTopic.get(best)!.shift()!);
     previous = best;
   }
-  return { today, overflow: dueOldestFirst.length - picked.length };
+  // Warm-up: start with up to two questions answered well last time, so the
+  // session opens with a win.
+  const warmUp = today.filter((q) => (q.lastScore ?? 0) >= 4).slice(0, WARM_UP);
+  return {
+    today: [...warmUp, ...today.filter((q) => !warmUp.includes(q))],
+    overflow: dueOldestFirst.length - picked.length,
+  };
 }
+
+const WARM_UP = 2;
 
 function hasOther<T>(byTopic: Map<string, T[]>, topicId: string): boolean {
   for (const [id, items] of byTopic) if (id !== topicId && items.length > 0) return true;

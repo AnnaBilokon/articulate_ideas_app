@@ -2,7 +2,7 @@
 
 import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, CircleDashed, Lightbulb, Loader2, PenLine, RotateCcw, X } from "lucide-react";
+import { ArrowRight, CalendarCheck, Check, CircleDashed, Lightbulb, Loader2, PenLine, RotateCcw, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -180,6 +180,10 @@ export function DumpSession({
 
   return (
     <div className="flex flex-col gap-5">
+      <p className="flex items-center gap-2 rounded-xl bg-info-soft/60 px-4 py-3 text-sm text-info-foreground">
+        <CalendarCheck className="size-4 shrink-0" />
+        Done for today. Your questions come back in tomorrow&apos;s review; the quiz is optional.
+      </p>
       <Card className="bg-success-soft/50 ring-success/25">
         <CardContent className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2 text-sm font-medium">

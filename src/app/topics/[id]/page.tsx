@@ -20,7 +20,7 @@ import { TagBadge } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { currentLearnStep } from "@/lib/learn-flow";
+import { nextLearnStep, progressLine } from "@/lib/learn-flow";
 import { dumpRecordSchema } from "@/lib/schemas/grading";
 import { MAX_QUIZ_QUESTIONS } from "@/lib/schemas/card";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
@@ -30,16 +30,20 @@ import { cn } from "@/lib/utils";
 import { DeleteTopic } from "./delete-topic";
 import { ResearchPanel } from "./research-panel";
 
-// The learn flow from PLAN.md. "soon" steps aren't built yet.
+// The learn flow from PLAN.md. Day 1 is the lesson and the brain dump; the
+// questions then come back in the next day's review, and the last three steps
+// are optional. "soon" steps aren't built yet.
 const steps = [
   { label: "Pretest", hint: "Guess first; it makes answers stick", icon: HelpCircle, soon: true },
-  { label: "Lesson", hint: "Short parts, with a quick recall after each", icon: BookOpen, soon: false },
-  { label: "Brain dump", hint: "Write everything you remember", icon: PenLine, soon: false },
-  { label: "Topic card", hint: "The essentials, unlocked after the dump", icon: Layers, soon: false },
-  { label: "Quiz", hint: "Recall questions, scored out of 5", icon: Brain, soon: false },
-  { label: "Teach-back", hint: "Explain it in your own words", icon: MessageSquareText, soon: false },
-  { label: "Think deeper", hint: "Open questions with no single right answer", icon: Telescope, soon: false },
+  { label: "Lesson", hint: "Short parts, with a quick recall after each · about 10 min", icon: BookOpen },
+  { label: "Brain dump", hint: "Put the whole topic together · about 5 min", icon: PenLine },
+  { label: "Topic card", hint: "The essentials, unlocked after the dump · 2 min", icon: Layers },
+  { label: "Quiz", hint: "The questions come back in tomorrow's review anyway · about 10 min", icon: Brain, optional: true },
+  { label: "Teach-back", hint: "Explain it in your own words · about 10 min", icon: MessageSquareText, optional: true },
+  { label: "Think deeper", hint: "Open questions with no single right answer · about 10 min", icon: Telescope, optional: true },
 ];
+const LESSON = 1;
+const DUMP = 2;
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
@@ -50,7 +54,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, level, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id, attempts(id), review_state(due_at)), critical_questions(id), dumps(feedback, created_at), explanations(score, created_at)",
+      "title, level, created_at, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id, attempts(score, created_at), review_state(due_at)), critical_questions(id), dumps(feedback, created_at), explanations(score, created_at)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "user_questions" })
@@ -70,7 +74,11 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const lastExplanation = topic.explanations[0];
   const dueDates = topic.recall_questions.flatMap((q) => (q.review_state ? [q.review_state.due_at] : [])).sort();
   const dueNow = dueDates.filter((d) => new Date(d) <= new Date()).length;
-  const currentStep = currentLearnStep({ hasLesson, hasDump, quizTaken, explained: Boolean(lastExplanation) });
+  // Day 1 needs the lesson, then the dump; after that nothing is "up next".
+  const next = nextLearnStep({ hasLesson, hasDump });
+  const currentStep = next === "Lesson" ? LESSON : next === "Brain dump" ? DUMP : -1;
+  const doneSteps = [false, hasLesson, hasDump, hasDump, quizTaken, Boolean(lastExplanation), false];
+  const progress = progressLine(topic.recall_questions, topic.created_at);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
@@ -82,6 +90,28 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
           ))}
         </div>
       </PageHeader>
+
+      {hasDump && (
+        <Card className="bg-success-soft/60 ring-success/25">
+          <CardContent className="flex items-center gap-4">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success text-white">
+              <Check className="size-5" />
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <div className="font-medium">
+                {dueNow > 0
+                  ? `${dueNow} ${dueNow === 1 ? "question is" : "questions are"} due: review on Today`
+                  : dueDates.length > 0
+                    ? `Learned. The questions come back ${formatDue(dueDates[0])}`
+                    : "Learned"}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {progress ? `${progress}.` : "The quiz, teach-back and think deeper are optional extras."}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className={cn(!hasLesson && "ring-sunflower/60")}>
         <CardHeader>
@@ -204,25 +234,15 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                   />
                 )}
                 {hasDump && topic.recall_questions.length > 0 && (
-                  <Link
-                    href={`/topics/${id}/quiz`}
-                    className={cn(
-                      "group flex items-center gap-3 rounded-xl p-3 transition-colors",
-                      quizTaken
-                        ? "bg-muted/60 hover:bg-muted"
-                        : "bg-sunflower-soft ring-1 ring-sunflower/60 hover:bg-sunflower-soft/70",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex size-9 items-center justify-center rounded-lg",
-                        quizTaken ? "bg-background text-primary" : "bg-sunflower text-sunflower-foreground",
-                      )}
-                    >
+                  <Link href={`/topics/${id}/quiz`} className="group flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted">
+                    <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
                       <Brain className="size-4" />
                     </span>
                     <span className="flex-1">
-                      <span className="block font-medium">{quizTaken ? "Quiz again" : "Quiz"}</span>
+                      <span className="block font-medium">
+                        {quizTaken ? "Quiz again" : "Quiz now"}{" "}
+                        <span className="font-normal text-muted-foreground">· optional</span>
+                      </span>
                       <span className="block text-sm text-muted-foreground">
                         {Math.min(topic.recall_questions.length, MAX_QUIZ_QUESTIONS)} questions, scored out of 5
                         {dueNow > 0
@@ -234,27 +254,14 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                   </Link>
                 )}
                 {hasDump && hasCard && (
-                  <Link
-                    href={`/topics/${id}/teach`}
-                    className={cn(
-                      "group flex items-center gap-3 rounded-xl p-3 transition-colors",
-                      quizTaken && !lastExplanation
-                        ? "bg-sunflower-soft ring-1 ring-sunflower/60 hover:bg-sunflower-soft/70"
-                        : "bg-muted/60 hover:bg-muted",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex size-9 items-center justify-center rounded-lg",
-                        quizTaken && !lastExplanation
-                          ? "bg-sunflower text-sunflower-foreground"
-                          : "bg-background text-primary",
-                      )}
-                    >
+                  <Link href={`/topics/${id}/teach`} className="group flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted">
+                    <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
                       <MessageSquareText className="size-4" />
                     </span>
                     <span className="flex-1">
-                      <span className="block font-medium">Teach-back</span>
+                      <span className="block font-medium">
+                        Teach-back <span className="font-normal text-muted-foreground">· optional</span>
+                      </span>
                       <span className="block text-sm text-muted-foreground">
                         {lastExplanation?.score != null
                           ? `Last explanation: ${lastExplanation.score}/5`
@@ -275,13 +282,13 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
       <Card>
         <CardHeader>
           <CardTitle>Learning path</CardTitle>
-          <CardDescription>Steps marked &quot;soon&quot; open as they&apos;re built.</CardDescription>
+          <CardDescription>Day 1 is the lesson and the brain dump, about 15 minutes. The rest is optional.</CardDescription>
         </CardHeader>
         <CardContent>
           <ol className="isolate flex flex-col">
-            {steps.map(({ label, hint, icon: Icon, soon }, i) => {
+            {steps.map(({ label, hint, icon: Icon, soon, optional }, i) => {
               const isCurrent = i === currentStep;
-              const isDone = !soon && i < currentStep;
+              const isDone = doneSteps[i];
               return (
                 <li key={label} className="relative flex gap-3 pb-5 last:pb-0">
                   {i < steps.length - 1 && (
@@ -311,9 +318,9 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                         {label}
                       </span>
                       {isCurrent && <Badge className="bg-sunflower text-sunflower-foreground">Up next</Badge>}
-                      {soon && (
+                      {(soon || optional) && (
                         <Badge variant="outline" className="text-muted-foreground">
-                          soon
+                          {soon ? "soon" : "optional"}
                         </Badge>
                       )}
                     </div>
