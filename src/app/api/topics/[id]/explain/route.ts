@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { gradeExplain } from "@/lib/ai/explain";
 import { requireSession } from "@/lib/auth";
 import { raisesMastery } from "@/lib/mastery";
-import { explainInputSchema, type ExplainRecord } from "@/lib/schemas";
+import { explainInputSchema, isTopicLevel, type ExplainRecord } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
 export const maxDuration = 120;
@@ -23,7 +23,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/topi
   const { data: topic } = await supabase
     .from("topics")
     .select(
-      "title, mastery_level, dumps(id), topic_cards(one_sentence, paragraph, analogy, counterpoint), lesson_chunks(title, content, position)",
+      "title, level, mastery_level, dumps(id), topic_cards(one_sentence, paragraph, analogy, counterpoint), lesson_chunks(title, content, position)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "lesson_chunks" })
@@ -37,6 +37,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/topi
   try {
     const { result, usage } = await gradeExplain({
       title: topic.title,
+      level: isTopicLevel(topic.level) ? topic.level : null,
       card: topic.topic_cards,
       chunks: topic.lesson_chunks,
       explanation: parsed.data,

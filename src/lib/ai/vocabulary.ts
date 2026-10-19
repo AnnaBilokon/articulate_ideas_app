@@ -1,7 +1,7 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, SMALL_MODEL, claude } from "@/lib/claude";
+import { LIGHT_MODEL, claude, costUsd } from "@/lib/claude";
 import { TRANSLATION_LANGUAGE, defineWordSchema, type DefineWordResult } from "@/lib/schemas";
 
 // define_word: explain a word or phrase for the learner's vocabulary list.
@@ -45,10 +45,8 @@ export async function defineWord(
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const stream = claude().beta.messages.stream({
-      model: SMALL_MODEL,
+      model: LIGHT_MODEL,
       max_tokens: 3000,
-      betas: [FALLBACK_BETA],
-      fallbacks: "default",
       output_config: { effort: "low", format: zodOutputFormat(wordOutputSchema) },
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: prompt }],
@@ -70,8 +68,7 @@ export async function defineWord(
     } catch {
       continue;
     }
-    // Sonnet 5.5: $2 / $10 per million tokens.
-    const cost = () => (usage.inputTokens * 2 + usage.outputTokens * 10) / 1_000_000;
+    const cost = () => costUsd(LIGHT_MODEL, usage.inputTokens, usage.outputTokens);
     if ((raw as { recognized?: unknown } | null)?.recognized === false) {
       return { result: null, usage: { ...usage, costUsd: cost() } };
     }

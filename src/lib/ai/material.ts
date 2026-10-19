@@ -1,7 +1,7 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, STRONG_MODEL, claude } from "@/lib/claude";
+import { FALLBACK_BETA, claude, contentModel, costUsd } from "@/lib/claude";
 import { DOUBTS_CHUNK_TITLE, MAX_CHUNK_WORDS, lessonSchema, sourceSchema } from "@/lib/schemas";
 import { topicLevelLabels } from "@/lib/schemas/topic";
 import { CHUNK_RULES } from "./chunk-rules";
@@ -87,7 +87,7 @@ export async function lessonFromMaterial(
     onEvent(attempt === 0 ? { type: "reading" } : { type: "retry" });
 
     const stream = claude().beta.messages.stream({
-      model: STRONG_MODEL,
+      model: contentModel(input.level),
       max_tokens: 32000,
       betas: [FALLBACK_BETA],
       fallbacks: "default",
@@ -131,8 +131,7 @@ export async function lessonFromMaterial(
       sources: lesson.sources.filter((s) => materialUrls.has(normalizeUrl(s.url))),
     });
     if (parsed.success) {
-      // Opus 5.5: $4 / $20 per million tokens.
-      usage.costUsd = (usage.inputTokens * 4 + usage.outputTokens * 20) / 1_000_000;
+      usage.costUsd = costUsd(contentModel(input.level), usage.inputTokens, usage.outputTokens);
       return { lesson: parsed.data, usage };
     }
   }

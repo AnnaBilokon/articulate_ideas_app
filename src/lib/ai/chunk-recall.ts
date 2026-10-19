@@ -1,7 +1,7 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, SMALL_MODEL, claude } from "@/lib/claude";
+import { LIGHT_MODEL, claude, costUsd } from "@/lib/claude";
 import { gradeChunkRecallSchema, type GradeChunkRecallResult } from "@/lib/schemas";
 
 // grade_chunk_recall: quick feedback on the main idea of one lesson part,
@@ -37,10 +37,8 @@ export async function gradeChunkRecall(
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const stream = claude().beta.messages.stream({
-      model: SMALL_MODEL,
+      model: LIGHT_MODEL,
       max_tokens: 3000,
-      betas: [FALLBACK_BETA],
-      fallbacks: "default",
       output_config: { effort: "low", format: zodOutputFormat(recallOutputSchema) },
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: prompt }],
@@ -68,8 +66,7 @@ export async function gradeChunkRecall(
       Array.isArray(missed) ? { ...(raw as object), missed: missed.slice(0, 2) } : raw,
     );
     if (parsed.success) {
-      // Sonnet 5.5: $2 / $10 per million tokens.
-      usage.costUsd = (usage.inputTokens * 2 + usage.outputTokens * 10) / 1_000_000;
+      usage.costUsd = costUsd(LIGHT_MODEL, usage.inputTokens, usage.outputTokens);
       return { result: parsed.data, usage };
     }
   }
