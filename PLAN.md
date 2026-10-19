@@ -94,6 +94,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Teach-back (Explain mode) with the Claim/Why/Example/Limit/So what feedback and 1-2 follow-up questions on the gaps
 - [x] Per-question review schedule and a "Today" screen; confident misses come back sooner
 - [x] Vocabulary: save words while reading (select any word, or from a glossary explanation) or add your own; each gets a plain definition, how to use it, examples and a Ukrainian translation; separate word practice ("what does it mean? use it in a sentence") on its own spaced schedule (added)
+- [x] Colours: light, dark or system mode, and three colour palettes (Orchard, Lagoon, Rose mist), picked from the header menu or Settings; every text colour passes a WCAG AA contrast check (`npm run check:contrast`) (added)
 - [ ] Library: topic pages, tags, and search by keyword and by meaning (an embedding saved with each card)
 - [ ] Simple suggestions: "More like this" and "Try something new" (version 1, described below)
 
@@ -211,7 +212,7 @@ The app has two main flows: learning a new topic and reviewing old ones. The hom
 | Weekly drill | Pre-mortem, argument map, steelman, bias spotting, with Claude's critique | V2 |
 | Journal | Daily "What did I learn today?" recall, decision log | V2 |
 | Dashboard | Stats (what you learn most, time spent), progress, calibration | V2 |
-| Settings | Daily cap, reminders, bedtime review, export, interests | V2 |
+| Settings | Mode and colours (MVP, added); daily cap, reminders, bedtime review, export, interests | V2 |
 
 ## Tech stack and architecture
 

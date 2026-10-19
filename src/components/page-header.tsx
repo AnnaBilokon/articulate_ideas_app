@@ -24,7 +24,7 @@ export function PageHeader({
         </Link>
       )}
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance">{title}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-balance text-heading">{title}</h1>
         {description && <div className="text-muted-foreground">{description}</div>}
       </div>
       {children}
