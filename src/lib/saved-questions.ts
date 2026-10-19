@@ -7,6 +7,9 @@ import { db } from "@/lib/supabase";
 export type SavedQuestion = {
   id: string;
   text: string;
+  // Labelled by Claude when saved; null if labelling failed.
+  area: string | null;
+  title: string | null;
   createdAt: string;
   startedAt: string | null;
   // The topic it came from, if any; its level and tags fill in "Learn this".
@@ -19,13 +22,15 @@ export async function savedQuestions(): Promise<SavedQuestion[]> {
   const { data, error } = await db()
     .from("saved_questions")
     .select(
-      "id, text, created_at, started_at, source:topics!saved_questions_topic_id_fkey(id, title, level, topic_tags(tags(name))), started:topics!saved_questions_started_topic_id_fkey(id, title)",
+      "id, text, area, title, created_at, started_at, source:topics!saved_questions_topic_id_fkey(id, title, level, topic_tags(tags(name))), started:topics!saved_questions_started_topic_id_fkey(id, title)",
     )
     .order("created_at", { ascending: false });
   if (error) throw new Error("Could not read your saved questions. Try again.");
   return (data ?? []).map((q) => ({
     id: q.id,
     text: q.text,
+    area: q.area,
+    title: q.title,
     createdAt: q.created_at,
     startedAt: q.started_at,
     source: q.source

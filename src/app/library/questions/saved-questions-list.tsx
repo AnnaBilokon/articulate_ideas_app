@@ -4,24 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowRight, Check, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { learnIdeaHref } from "@/lib/ideas";
 import type { SavedQuestion } from "@/lib/saved-questions";
 import { MAX_SAVED_QUESTION_CHARS } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
-
-// Opens the New topic form with the question as the title and as a question
-// for the lesson to answer, at the level and with the tags of the topic it
-// came from. The topic, once created, marks the question as started.
-function learnHref(q: SavedQuestion): string {
-  const params = new URLSearchParams({ title: q.text.slice(0, 200), q: q.text, saved: q.id });
-  if (q.source?.level) params.set("level", q.source.level);
-  if (q.source && q.source.tags.length > 0) params.set("tags", q.source.tags.join(", "));
-  return `/topics/new?${params}`;
-}
 
 export function SavedQuestionsList({ questions }: { questions: SavedQuestion[] }) {
   const router = useRouter();
@@ -99,7 +91,10 @@ export function SavedQuestionsList({ questions }: { questions: SavedQuestion[] }
                 <Card size="sm">
                   <CardContent className="flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-3">
-                      <p className="font-medium leading-6">{q.text}</p>
+                      <div className="flex flex-col gap-1">
+                        {q.title && <p className="font-semibold text-heading">{q.title}</p>}
+                        <p className={cn("leading-6", q.title ? "text-sm text-muted-foreground" : "font-medium")}>{q.text}</p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => remove(q.id)}
@@ -111,7 +106,8 @@ export function SavedQuestionsList({ questions }: { questions: SavedQuestion[] }
                       </button>
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-sm text-muted-foreground">
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                        {q.area && <Badge variant="secondary">{q.area}</Badge>}
                         {q.source ? (
                           <>
                             From{" "}
@@ -124,7 +120,7 @@ export function SavedQuestionsList({ questions }: { questions: SavedQuestion[] }
                         )}{" "}
                         · saved {dateFormat.format(new Date(q.createdAt))}
                       </span>
-                      <Link href={learnHref(q)} className={cn(buttonVariants({ size: "sm" }), "h-8 px-3")}>
+                      <Link href={learnIdeaHref(q)} className={cn(buttonVariants({ size: "sm" }), "h-8 px-3")}>
                         Learn this <ArrowRight className="size-3.5" />
                       </Link>
                     </div>

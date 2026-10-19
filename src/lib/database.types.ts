@@ -450,30 +450,36 @@ export type Database = {
       }
       saved_questions: {
         Row: {
+          area: string | null
           created_at: string
           critical_question_id: string | null
           id: string
           started_at: string | null
           started_topic_id: string | null
           text: string
+          title: string | null
           topic_id: string | null
         }
         Insert: {
+          area?: string | null
           created_at?: string
           critical_question_id?: string | null
           id?: string
           started_at?: string | null
           started_topic_id?: string | null
           text: string
+          title?: string | null
           topic_id?: string | null
         }
         Update: {
+          area?: string | null
           created_at?: string
           critical_question_id?: string | null
           id?: string
           started_at?: string | null
           started_topic_id?: string | null
           text?: string
+          title?: string | null
           topic_id?: string | null
         }
         Relationships: [

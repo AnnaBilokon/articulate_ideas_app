@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Dumbbell,
+  Flame,
   GraduationCap,
   Repeat,
   Sparkles,
@@ -23,6 +24,7 @@ import { favoriteAreas } from "@/lib/discover";
 import { nextLearnStep } from "@/lib/learn-flow";
 import { LIGHT_DAY_CAP, reviewOverview } from "@/lib/reviews";
 import { savedQuestionsToLearn } from "@/lib/saved-questions";
+import { learningStreak } from "@/lib/streak";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
 import { practiceOverview } from "@/lib/vocabulary";
@@ -31,7 +33,7 @@ import { cn } from "@/lib/utils";
 export default async function Home() {
   await connection(); // Read fresh data on every visit, not once at build.
   const supabase = db();
-  const [{ data: all }, review, words, areas, savedCount] = await Promise.all([
+  const [{ data: all }, review, words, areas, savedCount, streak] = await Promise.all([
     supabase
       .from("topics")
       .select("id, title, level, created_at, topic_tags(tags(name)), lesson_chunks(id), dumps(id)")
@@ -41,12 +43,20 @@ export default async function Home() {
     practiceOverview(),
     favoriteAreas(),
     savedQuestionsToLearn(),
+    learningStreak(),
   ]);
   // Learned once day 1 is done; the rest are still in progress.
   const topics = (all ?? []).filter((t) => nextLearnStep({ hasLesson: t.lesson_chunks.length > 0, hasDump: t.dumps.length > 0 }));
   const learnedCount = (all ?? []).length - topics.length;
 
   const stats = [
+    {
+      label: streak.today || streak.current === 0 ? "Day streak" : "Day streak · keep it today",
+      value: streak.current,
+      icon: Flame,
+      tone: "bg-tag-3 text-tag-3-foreground",
+      title: `Days in a row with recall. Best: ${streak.best}.`,
+    },
     { label: "Due today", value: review.today.length, icon: Repeat, tone: "bg-sunflower-soft text-sunflower-foreground" },
     { label: "In progress", value: topics.length, icon: BookOpen, tone: "bg-info-soft text-info-foreground" },
     { label: "Learned", value: learnedCount, icon: GraduationCap, tone: "bg-success-soft text-success-foreground" },
@@ -56,9 +66,9 @@ export default async function Home() {
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
       <PageHeader title="Today" description="Recall what's due, then keep learning." />
 
-      <div className="grid grid-cols-3 gap-3">
-        {stats.map(({ label, value, icon: Icon, tone }) => (
-          <Card key={label} size="sm">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {stats.map(({ label, value, icon: Icon, tone, title }) => (
+          <Card key={label} size="sm" title={title}>
             <CardContent className="flex flex-col gap-2">
               <span className={cn("flex size-8 items-center justify-center rounded-lg", tone)}>
                 <Icon className="size-4" />

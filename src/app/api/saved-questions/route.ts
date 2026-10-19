@@ -1,10 +1,15 @@
+import { labelIdea } from "@/lib/ai/label-idea";
 import { requireSession } from "@/lib/auth";
+import { favoriteAreas } from "@/lib/discover";
 import { savedQuestionInputSchema } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
-// Saves a question to learn later: a Think deeper question (its own text and
-// topic are used) or one typed in. Saving the same Think deeper question
-// twice returns the existing one.
+export const maxDuration = 60;
+
+// Saves an idea or question to learn later: a Think deeper question (its own
+// text and topic are used) or one typed in, labelled with a favourite area
+// and a short topic title. Saving the same Think deeper question twice
+// returns the existing one.
 export async function POST(request: Request) {
   await requireSession();
 
@@ -31,10 +36,25 @@ export async function POST(request: Request) {
     if (existing) return Response.json({ id: existing.id });
   }
 
-  const { data, error } = await supabase.from("saved_questions").insert(row).select("id").single();
+  // Label it with an area and a short title. Saving never waits on this
+  // succeeding: an unlabelled idea is still kept.
+  let label: { area: string | null; title: string | null } = { area: null, title: null };
+  try {
+    const result = await labelIdea(row.text, await favoriteAreas());
+    console.log(`label idea:`, result.usage);
+    label = result.label;
+  } catch (error) {
+    console.error("label idea failed:", error);
+  }
+
+  const { data, error } = await supabase
+    .from("saved_questions")
+    .insert({ ...row, ...label })
+    .select("id, area, title")
+    .single();
   if (error) {
     console.error("save question failed:", error);
     return Response.json({ error: "Could not save the question. Try again." }, { status: 500 });
   }
-  return Response.json({ id: data.id });
+  return Response.json(data);
 }
