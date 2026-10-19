@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { favoriteAreas } from "@/lib/discover";
-import { nextLearnStep, progressLine } from "@/lib/learn-flow";
+import { nextLearnStep } from "@/lib/learn-flow";
 import { LIGHT_DAY_CAP, reviewOverview } from "@/lib/reviews";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
@@ -29,25 +29,24 @@ import { cn } from "@/lib/utils";
 export default async function Home() {
   await connection(); // Read fresh data on every visit, not once at build.
   const supabase = db();
-  const [{ data: learning }, { count: learnedCount }, review, words, areas] = await Promise.all([
+  const [{ data: all }, review, words, areas] = await Promise.all([
     supabase
       .from("topics")
-      .select(
-        "id, title, level, created_at, topic_tags(tags(name)), lesson_chunks(id), dumps(id), recall_questions(attempts(score, created_at))",
-      )
-      .eq("status", "learning")
+      .select("id, title, level, created_at, topic_tags(tags(name)), lesson_chunks(id), dumps(id)")
+      .neq("status", "inbox")
       .order("created_at", { ascending: false }),
-    supabase.from("topics").select("id", { count: "exact", head: true }).eq("status", "learned"),
     reviewOverview(),
     practiceOverview(),
     favoriteAreas(),
   ]);
-  const topics = learning ?? [];
+  // Learned once day 1 is done; the rest are still in progress.
+  const topics = (all ?? []).filter((t) => nextLearnStep({ hasLesson: t.lesson_chunks.length > 0, hasDump: t.dumps.length > 0 }));
+  const learnedCount = (all ?? []).length - topics.length;
 
   const stats = [
     { label: "Due today", value: review.today.length, icon: Repeat, tone: "bg-sunflower-soft text-sunflower-foreground" },
     { label: "In progress", value: topics.length, icon: BookOpen, tone: "bg-info-soft text-info-foreground" },
-    { label: "Learned", value: learnedCount ?? 0, icon: GraduationCap, tone: "bg-success-soft text-success-foreground" },
+    { label: "Learned", value: learnedCount, icon: GraduationCap, tone: "bg-success-soft text-success-foreground" },
   ];
 
   return (
@@ -146,15 +145,19 @@ export default async function Home() {
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold tracking-tight">Continue learning</h2>
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold tracking-tight">Continue learning</h2>
+          {learnedCount > 0 && (
+            <Link href="/library" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              All {learnedCount + topics.length} topics
+            </Link>
+          )}
+        </div>
         {topics.length > 0 ? (
           <ul className="flex flex-col gap-2">
             {topics.map((topic) => {
               const tags = topic.topic_tags.flatMap((tt) => (tt.tags ? [tt.tags.name] : []));
               const next = nextLearnStep({ hasLesson: topic.lesson_chunks.length > 0, hasDump: topic.dumps.length > 0 });
-              const status = next
-                ? `Next: ${next}`
-                : (progressLine(topic.recall_questions, topic.created_at) ?? "Learned · in your reviews");
               return (
                 <li key={topic.id}>
                   <Link href={`/topics/${topic.id}`} className="group block">
@@ -171,7 +174,7 @@ export default async function Home() {
                         </span>
                         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                           <div className="truncate font-medium">{topic.title}</div>
-                          <div className="text-sm text-muted-foreground">{status}</div>
+                          <div className="text-sm text-muted-foreground">Next: {next}</div>
                           <div className="flex flex-wrap gap-1.5">
                             {isTopicLevel(topic.level) && (
                               <Badge variant="secondary">{topicLevelLabels[topic.level]}</Badge>
@@ -189,6 +192,15 @@ export default async function Home() {
               );
             })}
           </ul>
+        ) : learnedCount > 0 ? (
+          <p className="text-muted-foreground">
+            Nothing half-finished. Your {learnedCount} learned {learnedCount === 1 ? "topic is" : "topics are"} in
+            the{" "}
+            <Link href="/library" className="font-medium text-foreground underline-offset-4 hover:underline">
+              Library
+            </Link>
+            .
+          </p>
         ) : (
           <Card className="border-dashed">
             <CardHeader className="items-center text-center">
