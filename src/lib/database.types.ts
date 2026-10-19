@@ -115,6 +115,38 @@ export type Database = {
           },
         ]
       }
+      critical_answers: {
+        Row: {
+          answer: string
+          created_at: string
+          critical_question_id: string
+          feedback: Json
+          id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          critical_question_id: string
+          feedback: Json
+          id?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          critical_question_id?: string
+          feedback?: Json
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "critical_answers_critical_question_id_fkey"
+            columns: ["critical_question_id"]
+            isOneToOne: false
+            referencedRelation: "critical_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       critical_questions: {
         Row: {
           considerations: string[]
@@ -412,6 +444,58 @@ export type Database = {
             columns: ["question_id"]
             isOneToOne: true
             referencedRelation: "recall_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_questions: {
+        Row: {
+          created_at: string
+          critical_question_id: string | null
+          id: string
+          started_at: string | null
+          started_topic_id: string | null
+          text: string
+          topic_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          critical_question_id?: string | null
+          id?: string
+          started_at?: string | null
+          started_topic_id?: string | null
+          text: string
+          topic_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          critical_question_id?: string | null
+          id?: string
+          started_at?: string | null
+          started_topic_id?: string | null
+          text?: string
+          topic_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_questions_critical_question_id_fkey"
+            columns: ["critical_question_id"]
+            isOneToOne: true
+            referencedRelation: "critical_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_questions_started_topic_id_fkey"
+            columns: ["started_topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_questions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
             referencedColumns: ["id"]
           },
         ]

@@ -68,5 +68,16 @@ export async function createTopic(_prev: NewTopicState, formData: FormData): Pro
     if (error) return fail();
   }
 
+  // Started from a saved question ("Learn this"): mark it as started. Not
+  // worth failing the new topic over.
+  const savedId = formData.get("savedQuestionId");
+  if (typeof savedId === "string" && /^[0-9a-f-]{36}$/i.test(savedId)) {
+    const { error } = await supabase
+      .from("saved_questions")
+      .update({ started_topic_id: topic.id, started_at: new Date().toISOString() })
+      .eq("id", savedId);
+    if (error) console.error(`mark saved question ${savedId} started failed:`, error);
+  }
+
   redirect(`/topics/${topic.id}`);
 }

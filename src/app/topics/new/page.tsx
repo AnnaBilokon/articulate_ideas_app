@@ -9,8 +9,8 @@ export default async function NewTopicPage({ searchParams }: PageProps<"/topics/
   // Existing tags first, so "psych" doesn't sneak in next to "psychology".
   const { data: tags } = await db().from("tags").select("name").order("name");
 
-  // A suggestion from Discover opens the form filled in.
-  const { title, level, q, tags: initialTags } = await searchParams;
+  // A Discover suggestion or a saved question opens the form filled in.
+  const { title, level, q, tags: initialTags, saved } = await searchParams;
   const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
   const initialLevel = first(level);
   const initial = {
@@ -18,6 +18,7 @@ export default async function NewTopicPage({ searchParams }: PageProps<"/topics/
     level: isTopicLevel(initialLevel) ? initialLevel : "beginner",
     questions: (Array.isArray(q) ? q : q ? [q] : []).slice(0, MAX_USER_QUESTIONS).join("\n"),
     tags: first(initialTags),
+    savedQuestionId: /^[0-9a-f-]{36}$/i.test(first(saved)) ? first(saved) : null,
   } satisfies NewTopicInitial;
 
   return (

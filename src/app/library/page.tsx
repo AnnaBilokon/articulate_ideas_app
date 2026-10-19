@@ -4,18 +4,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { topicStanding } from "@/lib/knowledge";
 import { nextLearnStep } from "@/lib/learn-flow";
 import { isTopicLevel } from "@/lib/schemas";
+import { savedQuestionsToLearn } from "@/lib/saved-questions";
 import { db } from "@/lib/supabase";
 import { LibraryList, type LibraryTopic } from "./library-list";
+import { LibraryTabs } from "./library-tabs";
 
 export default async function LibraryPage() {
   await connection(); // Fresh on every visit: scores and due dates change.
-  const { data } = await db()
-    .from("topics")
-    .select(
-      "id, title, level, created_at, mastery_level, topic_tags(tags(name)), topic_cards(one_sentence), lesson_chunks(id), dumps(id), recall_questions(attempts(score, created_at), review_state(due_at))",
-    )
-    .neq("status", "inbox")
-    .order("created_at", { ascending: false });
+  const supabase = db();
+  const [{ data }, savedCount] = await Promise.all([
+    supabase
+      .from("topics")
+      .select(
+        "id, title, level, created_at, mastery_level, topic_tags(tags(name)), topic_cards(one_sentence), lesson_chunks(id), dumps(id), recall_questions(attempts(score, created_at), review_state(due_at))",
+      )
+      .neq("status", "inbox")
+      .order("created_at", { ascending: false }),
+    savedQuestionsToLearn(),
+  ]);
 
   const now = new Date();
   const topics: LibraryTopic[] = (data ?? []).map((t) => ({
@@ -48,6 +54,7 @@ export default async function LibraryPage() {
         title="Library"
         description="Everything you've studied: how well you know it, and when it comes back."
       />
+      <LibraryTabs current="topics" savedCount={savedCount} />
       <div className="grid grid-cols-3 gap-3">
         {stats.map(({ label, value }) => (
           <Card key={label} size="sm">

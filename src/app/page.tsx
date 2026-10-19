@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import {
   ArrowRight,
   BookOpen,
+  BookmarkCheck,
   CheckCircle2,
   ChevronRight,
   Dumbbell,
@@ -21,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { favoriteAreas } from "@/lib/discover";
 import { nextLearnStep } from "@/lib/learn-flow";
 import { LIGHT_DAY_CAP, reviewOverview } from "@/lib/reviews";
+import { savedQuestionsToLearn } from "@/lib/saved-questions";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
 import { practiceOverview } from "@/lib/vocabulary";
@@ -29,7 +31,7 @@ import { cn } from "@/lib/utils";
 export default async function Home() {
   await connection(); // Read fresh data on every visit, not once at build.
   const supabase = db();
-  const [{ data: all }, review, words, areas] = await Promise.all([
+  const [{ data: all }, review, words, areas, savedCount] = await Promise.all([
     supabase
       .from("topics")
       .select("id, title, level, created_at, topic_tags(tags(name)), lesson_chunks(id), dumps(id)")
@@ -38,6 +40,7 @@ export default async function Home() {
     reviewOverview(),
     practiceOverview(),
     favoriteAreas(),
+    savedQuestionsToLearn(),
   ]);
   // Learned once day 1 is done; the rest are still in progress.
   const topics = (all ?? []).filter((t) => nextLearnStep({ hasLesson: t.lesson_chunks.length > 0, hasDump: t.dumps.length > 0 }));
@@ -260,6 +263,23 @@ export default async function Home() {
               <span className="block text-sm text-muted-foreground">
                 Then get topic ideas that build on what you&apos;ve learned
               </span>
+            </span>
+            <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        )}
+        {savedCount > 0 && (
+          <Link
+            href="/library/questions"
+            className="group flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted"
+          >
+            <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
+              <BookmarkCheck className="size-4" />
+            </span>
+            <span className="flex-1">
+              <span className="block font-medium">
+                {savedCount} saved {savedCount === 1 ? "question" : "questions"} to explore
+              </span>
+              <span className="block text-sm text-muted-foreground">Pick one and learn it as a new topic</span>
             </span>
             <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
           </Link>
