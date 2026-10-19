@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowRight, BookOpen, CheckCircle2, ChevronRight, Dumbbell, GraduationCap, Repeat, Sprout } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  ChevronRight,
+  Dumbbell,
+  GraduationCap,
+  Repeat,
+  Sparkles,
+  Sprout,
+} from "lucide-react";
 import { LightDayButton } from "@/components/light-day-button";
 import { NextReviewLine } from "@/components/next-review-line";
 import { PageHeader } from "@/components/page-header";
@@ -8,6 +18,7 @@ import { TagBadge, tagColorClass } from "@/components/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { favoriteAreas } from "@/lib/discover";
 import { nextLearnStep, progressLine } from "@/lib/learn-flow";
 import { LIGHT_DAY_CAP, reviewOverview } from "@/lib/reviews";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
@@ -18,7 +29,7 @@ import { cn } from "@/lib/utils";
 export default async function Home() {
   await connection(); // Read fresh data on every visit, not once at build.
   const supabase = db();
-  const [{ data: learning }, { count: learnedCount }, review, words] = await Promise.all([
+  const [{ data: learning }, { count: learnedCount }, review, words, areas] = await Promise.all([
     supabase
       .from("topics")
       .select(
@@ -29,6 +40,7 @@ export default async function Home() {
     supabase.from("topics").select("id", { count: "exact", head: true }).eq("status", "learned"),
     reviewOverview(),
     practiceOverview(),
+    favoriteAreas(),
   ]);
   const topics = learning ?? [];
 
@@ -194,6 +206,51 @@ export default async function Home() {
               </Link>
             </CardContent>
           </Card>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold tracking-tight">Learn something new</h2>
+          {areas.length > 0 && (
+            <Link href="/discover" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              Edit areas
+            </Link>
+          )}
+        </div>
+        {areas.length > 0 ? (
+          <>
+            <p className="-mt-1 text-sm text-muted-foreground">
+              Pick an area for ideas that build on what you&apos;ve learned.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {areas.map((area) => (
+                <Link
+                  key={area}
+                  href={`/discover?area=${encodeURIComponent(area)}`}
+                  className="rounded-full bg-muted px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-highlight hover:text-highlight-foreground"
+                >
+                  {area}
+                </Link>
+              ))}
+            </div>
+          </>
+        ) : (
+          <Link
+            href="/discover"
+            className="group flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted"
+          >
+            <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
+              <Sparkles className="size-4" />
+            </span>
+            <span className="flex-1">
+              <span className="block font-medium">Add your favourite areas</span>
+              <span className="block text-sm text-muted-foreground">
+                Then get topic ideas that build on what you&apos;ve learned
+              </span>
+            </span>
+            <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          </Link>
         )}
       </section>
     </main>
