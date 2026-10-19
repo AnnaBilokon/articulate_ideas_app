@@ -2,7 +2,7 @@ import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, STRONG_MODEL, claude } from "@/lib/claude";
+import { FALLBACK_BETA, claude, contentModel, costUsd } from "@/lib/claude";
 import { lessonSchema, type Lesson } from "@/lib/schemas";
 import { topicLevelLabels, type TopicLevel } from "@/lib/schemas/topic";
 import { CHUNK_RULES } from "./chunk-rules";
@@ -30,6 +30,7 @@ How to write:
 - Teach for understanding: explain why things are true, not only what is true.
 
 Research:
+- Search the web before you write, even for a topic you know well: at least 2 searches. Build the lesson on current sources you found, not on your training knowledge.
 - Use web search to check facts, find current understanding, and find good sources. Prefer primary, academic, and well-known reference sources.
 - Only list sources you actually found in your search results, with their exact URLs.
 
@@ -69,11 +70,6 @@ function userPrompt({ title, level, questions }: ResearchInput): string {
   return lines.join("\n\n");
 }
 
-// Opus 5.5 prices: $4 / $20 per million tokens; web search $10 per 1,000 searches.
-function estimateCost(input: number, output: number, searches: number): number {
-  return (input * 4 + output * 20) / 1_000_000 + searches * 0.01;
-}
-
 /**
  * Runs the research call, reporting progress through onEvent. Retries once if
  * the output fails validation. Throws on API errors, refusals, or a second
@@ -93,18 +89,28 @@ export async function researchLesson(
     try {
       raw = JSON.parse(text);
     } catch {
+      console.warn(`research returned invalid JSON; retrying:`, text.slice(0, 500));
       continue;
     }
     const shaped = lessonOutputSchema.safeParse(raw);
-    if (!shaped.success) continue;
+    if (!shaped.success) {
+      console.warn(`research output didn't match the schema; retrying:`, shaped.error.issues.slice(0, 3));
+      continue;
+    }
 
     // Keep only sources that really appeared in the search results.
     const sources = shaped.data.sources.filter((s) => foundUrls.has(normalizeUrl(s.url)));
     const parsed = lessonSchema.safeParse({ ...shaped.data, sources });
     if (parsed.success) {
-      usage.costUsd = estimateCost(usage.inputTokens, usage.outputTokens, usage.searches);
+      // Web search: $10 per 1,000 searches, on top of the tokens.
+      usage.costUsd =
+        costUsd(contentModel(input.level), usage.inputTokens, usage.outputTokens) + usage.searches * 0.01;
       return { lesson: parsed.data, usage };
     }
+    console.warn(
+      `research lesson failed validation (${sources.length} of ${shaped.data.sources.length} sources found in search results); retrying:`,
+      parsed.error.issues.slice(0, 3),
+    );
   }
   throw new Error("The lesson didn't come out in the expected shape. Try again.");
 }
@@ -124,7 +130,7 @@ async function runConversation(
   // A long server-tool turn can pause; resume it by sending the turn back.
   for (let turn = 0; turn < 4; turn++) {
     const stream = claude().beta.messages.stream({
-      model: STRONG_MODEL,
+      model: contentModel(input.level),
       max_tokens: 32000,
       betas: [FALLBACK_BETA],
       fallbacks: "default",

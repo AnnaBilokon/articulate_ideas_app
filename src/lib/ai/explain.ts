@@ -2,13 +2,14 @@ import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { withWholeScore } from "@/lib/ai/grade-answer";
-import { FALLBACK_BETA, SMALL_MODEL, STRONG_MODEL, claude } from "@/lib/claude";
+import { FALLBACK_BETA, LIGHT_MODEL, claude, contentModel, costUsd, type Model } from "@/lib/claude";
 import {
   followUpReplySchema,
   gradeExplainSchema,
   type FollowUpReply,
   type GradeExplainResult,
   type TopicCard,
+  type TopicLevel,
 } from "@/lib/schemas";
 
 // grade_explain: feedback on a teach-back, plus 1-2 follow-up questions on
@@ -74,14 +75,12 @@ function lessonText(chunks: { title: string; content: string }[]): string {
 
 // Runs one structured call, with one retry if the JSON doesn't validate.
 async function structuredCall<T>(options: {
-  model: string;
+  model: Model;
   effort: "low" | "medium";
   maxTokens: number;
   format: z.ZodType;
   system: string;
   prompt: string;
-  // Per million tokens: input, output.
-  price: [number, number];
   validate: (raw: unknown) => T | null;
 }): Promise<{ result: T; usage: Usage }> {
   const usage: Usage = { inputTokens: 0, outputTokens: 0, costUsd: 0 };
@@ -90,8 +89,8 @@ async function structuredCall<T>(options: {
     const stream = claude().beta.messages.stream({
       model: options.model,
       max_tokens: options.maxTokens,
-      betas: [FALLBACK_BETA],
-      fallbacks: "default",
+      // Haiku has no server-side fallback, so its requests go without one.
+      ...(options.model === LIGHT_MODEL ? {} : { betas: [FALLBACK_BETA], fallbacks: "default" as const }),
       output_config: { effort: options.effort, format: zodOutputFormat(options.format) },
       system: [{ type: "text", text: options.system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: options.prompt }],
@@ -116,7 +115,7 @@ async function structuredCall<T>(options: {
     }
     const result = options.validate(raw);
     if (result) {
-      usage.costUsd = (usage.inputTokens * options.price[0] + usage.outputTokens * options.price[1]) / 1_000_000;
+      usage.costUsd = costUsd(options.model, usage.inputTokens, usage.outputTokens);
       return { result, usage };
     }
     console.warn(`${options.model} output didn't match the schema; retrying:`, JSON.stringify(raw).slice(0, 2000));
@@ -130,6 +129,7 @@ const normalize = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/g
 
 export type ExplainInput = {
   title: string;
+  level: TopicLevel | null;
   card: Pick<TopicCard, "one_sentence" | "paragraph" | "analogy" | "counterpoint">;
   chunks: { title: string; content: string }[];
   explanation: string;
@@ -146,14 +146,12 @@ export async function gradeExplain(input: ExplainInput): Promise<{ result: Grade
   const explanation = normalize(input.explanation);
 
   return structuredCall({
-    model: STRONG_MODEL,
+    model: contentModel(input.level),
     effort: "medium",
     maxTokens: 10000,
     format: explainOutputSchema,
     system: EXPLAIN_PROMPT,
     prompt,
-    // Opus 5.5: $4 / $20 per million tokens.
-    price: [4, 20],
     validate: (raw) => {
       // One question too many isn't worth a retry.
       const followUps = (raw as { follow_ups?: unknown } | null)?.follow_ups;
@@ -187,14 +185,12 @@ export async function replyToFollowUps(input: FollowUpInput): Promise<{ result: 
   ].join("\n\n");
 
   return structuredCall({
-    model: SMALL_MODEL,
+    model: LIGHT_MODEL,
     effort: "low",
     maxTokens: 4000,
     format: replyOutputSchema,
     system: REPLY_PROMPT,
     prompt,
-    // Sonnet 5.5: $2 / $10 per million tokens.
-    price: [2, 10],
     validate: (raw) => {
       const parsed = z.array(followUpReplySchema).safeParse((raw as { replies?: unknown } | null)?.replies);
       return parsed.success && parsed.data.length === input.answered.length ? parsed.data : null;

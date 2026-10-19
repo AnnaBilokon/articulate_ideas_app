@@ -1,7 +1,7 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, STRONG_MODEL, claude } from "@/lib/claude";
+import { FALLBACK_BETA, claude, contentModel, costUsd, type Model } from "@/lib/claude";
 import {
   MAX_GLOSSARY_TERMS,
   buildGlossarySchema,
@@ -55,6 +55,7 @@ function contextPrompt({ title, level, chunks }: GlossaryContext): string {
 }
 
 async function callStructured<T>(
+  model: Model,
   system: string,
   prompt: string,
   outputSchema: z.ZodType,
@@ -63,7 +64,7 @@ async function callStructured<T>(
   const usage: Usage = { inputTokens: 0, outputTokens: 0, costUsd: 0 };
   for (let attempt = 0; attempt < 2; attempt++) {
     const stream = claude().beta.messages.stream({
-      model: STRONG_MODEL,
+      model,
       max_tokens: 8000,
       betas: [FALLBACK_BETA],
       fallbacks: "default",
@@ -90,8 +91,7 @@ async function callStructured<T>(
     }
     const value = validate(raw);
     if (value !== null) {
-      // Opus 5.5: $4 / $20 per million tokens.
-      usage.costUsd = (usage.inputTokens * 4 + usage.outputTokens * 20) / 1_000_000;
+      usage.costUsd = costUsd(model, usage.inputTokens, usage.outputTokens);
       return { value, usage };
     }
   }
@@ -100,6 +100,7 @@ async function callStructured<T>(
 
 export async function buildGlossary(context: GlossaryContext): Promise<{ terms: GlossaryTerm[]; usage: Usage }> {
   const { value, usage } = await callStructured(
+    contentModel(context.level),
     BUILD_PROMPT,
     contextPrompt(context),
     z.object({ terms: z.array(termOutputSchema) }),
@@ -118,6 +119,7 @@ export async function defineTerm(
   term: string,
 ): Promise<{ entry: GlossaryTerm; usage: Usage }> {
   const { value, usage } = await callStructured(
+    contentModel(context.level),
     DEFINE_PROMPT,
     `${contextPrompt(context)}\n\n<term>${term}</term>`,
     termOutputSchema,
