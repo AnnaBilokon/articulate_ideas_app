@@ -429,7 +429,8 @@ The MVP takes about 6 weeks part-time (10-15 hours a week), then 2-3 weeks of re
 Critical thinking and metacognition first, since they build on what you'll already have:
 
 - [ ] Weekly critical-thinking drill: pre-mortem, argument map, steelman, bias spotting, with grade\_drill feedback
-- [ ] Think deeper answers with critique\_critical feedback and Claude's strongest counterargument
+- [x] Think deeper answers with critique\_critical feedback and Claude's strongest counterargument, plus a fuller answer (pulled forward)
+- [x] Saved questions: save a Think deeper question (or type one in) to learn later; a Library tab lists them, and "Learn this" starts a topic from one (pulled forward, in place of the topic inbox)
 - [ ] Decision journal; bias-spotting drills and pre-mortems draw on it
 - [ ] Daily free-recall journal ("What did I learn today?")
 - [ ] Dashboard: streak, retention per topic and tag, weak spots, calibration chart (over- and underconfidence), review calendar, learning statistics (tags and subjects you choose most, topics started and finished per month, most-reviewed topics, time spent); all from data already saved
