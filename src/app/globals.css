@@ -10,14 +10,11 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-geist-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
+  --color-heading: var(--heading);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-logo: var(--logo);
+  --color-logo-foreground: var(--logo-foreground);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -63,6 +60,14 @@
   --color-tag-5-foreground: var(--tag-5-foreground);
   --color-tag-6: var(--tag-6);
   --color-tag-6-foreground: var(--tag-6-foreground);
+  /* Shadows take the palette's tint in light mode and are black in dark mode. */
+  --shadow-2xs: 0 1px rgb(var(--shadow-rgb) / 0.1);
+  --shadow-xs: 0 1px 2px 0 rgb(var(--shadow-rgb) / 0.12);
+  --shadow-sm: 0 1px 3px 0 rgb(var(--shadow-rgb) / 0.16), 0 1px 2px -1px rgb(var(--shadow-rgb) / 0.16);
+  --shadow-md: 0 4px 6px -1px rgb(var(--shadow-rgb) / 0.2), 0 2px 4px -2px rgb(var(--shadow-rgb) / 0.2);
+  --shadow-lg: 0 10px 15px -3px rgb(var(--shadow-rgb) / 0.26), 0 4px 6px -4px rgb(var(--shadow-rgb) / 0.26);
+  --shadow-xl: 0 20px 25px -5px rgb(var(--shadow-rgb) / 0.32), 0 8px 10px -6px rgb(var(--shadow-rgb) / 0.32);
+  --shadow-2xl: 0 25px 50px -12px rgb(var(--shadow-rgb) / 0.38);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -72,37 +77,239 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Light green theme: green-tinted neutrals, a fresh leaf-green primary. */
+/* ---- Palettes ---------------------------------------------------------------
+
+   Each palette defines every role below, once for light mode and once for dark.
+   Components only use these roles (bg-primary, text-heading, bg-highlight...),
+   never colour values, so a new palette never touches a component.
+
+   background, foreground      page surface and body text (a tinted off-white in light mode)
+   card, popover (+ foreground) raised surfaces, menus and dialogs
+   heading                     page titles and big numbers: the palette's dark colour in light
+                               mode, near-white in dark mode
+   primary (+ foreground)      buttons, "done" states, focus; the light accent in dark mode
+   secondary, muted (+ fg)     quiet fills and secondary text
+   accent (+ foreground)       a faintly tinted band: hovers, featured sections
+   highlight (+ foreground)    the palette's signature light accent: active nav item, chips
+   destructive                 #b42318 light, #f28b82 dark, in every palette
+   border, input, ring         ring = primary
+   chart-1 ... chart-5         series colours from the palette
+   shadow-rgb                  the shadow tint as "r g b": the foreground in light mode, black in dark
+
+   The first palette in src/lib/palettes.ts is the base one, on :root and .dark.
+   Every other palette uses :root[data-palette="<id>"] and .dark[data-palette="<id>"].
+
+   To add a palette:
+   1. Copy a light and dark block pair below, change the id and every colour.
+   2. Add { id, name, swatches } to PALETTES in src/lib/palettes.ts.
+   3. Run npm run check:contrast and adjust colours until every check passes.
+   ------------------------------------------------------------------------- */
+
+/* Orchard (base): cream #f3f9d2, tea green #cbeaa6, willow green #c0d684,
+   midnight violet #3d0b37, blackberry cream #63264a */
 :root {
-  --background: oklch(0.982 0.012 150);
-  --foreground: oklch(0.26 0.03 160);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.26 0.03 160);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.26 0.03 160);
-  --primary: oklch(0.56 0.13 155);
-  --primary-foreground: oklch(0.99 0.01 150);
-  --secondary: oklch(0.95 0.035 150);
-  --secondary-foreground: oklch(0.36 0.07 158);
-  --muted: oklch(0.96 0.02 150);
-  --muted-foreground: oklch(0.52 0.03 160);
-  --accent: oklch(0.93 0.05 150);
-  --accent-foreground: oklch(0.32 0.07 158);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.91 0.025 150);
-  --input: oklch(0.89 0.03 150);
-  --ring: oklch(0.72 0.12 155);
-  --chart-1: oklch(0.82 0.1 150);
-  --chart-2: oklch(0.7 0.13 155);
-  --chart-3: oklch(0.58 0.13 158);
-  --chart-4: oklch(0.47 0.1 160);
-  --chart-5: oklch(0.37 0.07 162);
+  --background: #f8faee;
+  --foreground: #2a1a28;
+  --card: #fdfef8;
+  --card-foreground: #2a1a28;
+  --popover: #fdfef8;
+  --popover-foreground: #2a1a28;
+  --heading: #3d0b37;
+  --primary: #3d0b37;
+  --primary-foreground: #f3f9d2;
+  --secondary: #edf2dc;
+  --secondary-foreground: #3d0b37;
+  --muted: #eef1e2;
+  --muted-foreground: #645766;
+  --accent: #e8f3d6;
+  --accent-foreground: #3d0b37;
+  --highlight: #cbeaa6;
+  --highlight-foreground: #3d0b37;
+  --destructive: #b42318;
+  --border: #e2e6cf;
+  --input: #d3d9bb;
+  --ring: #3d0b37;
+  --chart-1: #3f0d3d;
+  --chart-2: #7a9938;
+  --chart-3: #841c58;
+  --chart-4: #3179a6;
+  --chart-5: #8d5406;
+  --shadow-rgb: 42 26 40;
+}
+
+.dark {
+  --background: #110a10;
+  --foreground: #ece9dc;
+  --card: #1b1219;
+  --card-foreground: #ece9dc;
+  --popover: #1f1520;
+  --popover-foreground: #ece9dc;
+  --heading: #f6f9e6;
+  --primary: #cbeaa6;
+  --primary-foreground: #1a0b18;
+  --secondary: #3d0b37;
+  --secondary-foreground: #f3f9d2;
+  --muted: #251a23;
+  --muted-foreground: #b3a7b0;
+  --accent: #1e2417;
+  --accent-foreground: #dcefc4;
+  --highlight: #cbeaa6;
+  --highlight-foreground: #1a0b18;
+  --destructive: #f28b82;
+  --border: #33262f;
+  --input: #45363f;
+  --ring: #cbeaa6;
+  --chart-1: #cbeba3;
+  --chart-2: #ca5e96;
+  --chart-3: #61afda;
+  --chart-4: #eeb563;
+  --chart-5: #7e61ae;
+  --shadow-rgb: 0 0 0;
+}
+
+/* Lagoon: khaki beige #b2aa8e, prussian blue #0c1b33, royal plum #7a306c,
+   light sea green #03b5aa, lime cream #dbfe87 */
+:root[data-palette="lagoon"] {
+  --background: #f6f5f0;
+  --foreground: #1a2333;
+  --card: #fcfbf8;
+  --card-foreground: #1a2333;
+  --popover: #fcfbf8;
+  --popover-foreground: #1a2333;
+  --heading: #0c1b33;
+  --primary: #0c1b33;
+  --primary-foreground: #dbfe87;
+  --secondary: #ebe9e1;
+  --secondary-foreground: #0c1b33;
+  --muted: #eeece5;
+  --muted-foreground: #5c606b;
+  --accent: #e2f3f1;
+  --accent-foreground: #0c1b33;
+  --highlight: #dbfe87;
+  --highlight-foreground: #0c1b33;
+  --destructive: #b42318;
+  --border: #e3e0d6;
+  --input: #d3cfc2;
+  --ring: #0c1b33;
+  --chart-1: #091a36;
+  --chart-2: #008479;
+  --chart-3: #642560;
+  --chart-4: #928967;
+  --chart-5: #98370c;
+  --shadow-rgb: 26 35 51;
+}
+
+.dark[data-palette="lagoon"] {
+  --background: #070b12;
+  --foreground: #e6e9ee;
+  --card: #0f1520;
+  --card-foreground: #e6e9ee;
+  --popover: #121927;
+  --popover-foreground: #e6e9ee;
+  --heading: #f4f7fb;
+  --primary: #dbfe87;
+  --primary-foreground: #0a1220;
+  --secondary: #0c1b33;
+  --secondary-foreground: #e6e9ee;
+  --muted: #161e2b;
+  --muted-foreground: #a3aab8;
+  --accent: #0b2526;
+  --accent-foreground: #b8efe9;
+  --highlight: #dbfe87;
+  --highlight-foreground: #0a1220;
+  --destructive: #f28b82;
+  --border: #222c3b;
+  --input: #2d3849;
+  --ring: #dbfe87;
+  --chart-1: #d7ff8c;
+  --chart-2: #00b0a2;
+  --chart-3: #b156a0;
+  --chart-4: #bcb498;
+  --chart-5: #fcc687;
+  --shadow-rgb: 0 0 0;
+}
+
+/* Rose mist: evergreen #1a281f, taupe grey #635255, old rose #ce7b91,
+   pale sky #c0e8f9, light blue #b8d3d1 */
+:root[data-palette="rose-mist"] {
+  --background: #f4f7f6;
+  --foreground: #1f2a23;
+  --card: #fbfcfc;
+  --card-foreground: #1f2a23;
+  --popover: #fbfcfc;
+  --popover-foreground: #1f2a23;
+  --heading: #1a281f;
+  --primary: #1a281f;
+  --primary-foreground: #e9f7fc;
+  --secondary: #e7eeec;
+  --secondary-foreground: #1a281f;
+  --muted: #ebf0ef;
+  --muted-foreground: #5b5255;
+  --accent: #e6f4fa;
+  --accent-foreground: #1a281f;
+  --highlight: #c0e8f9;
+  --highlight-foreground: #1a281f;
+  --destructive: #b42318;
+  --border: #dbe4e2;
+  --input: #c9d6d4;
+  --ring: #1a281f;
+  --chart-1: #17261a;
+  --chart-2: #af4f71;
+  --chart-3: #00576b;
+  --chart-4: #44363a;
+  --chart-5: #a18b32;
+  --shadow-rgb: 31 42 35;
+}
+
+.dark[data-palette="rose-mist"] {
+  --background: #0a0f0c;
+  --foreground: #e7eeea;
+  --card: #121a15;
+  --card-foreground: #e7eeea;
+  --popover: #151e18;
+  --popover-foreground: #e7eeea;
+  --heading: #f3f8f5;
+  --primary: #c0e8f9;
+  --primary-foreground: #0b1210;
+  --secondary: #1a281f;
+  --secondary-foreground: #e7eeea;
+  --muted: #19221d;
+  --muted-foreground: #a9b5ae;
+  --accent: #10212a;
+  --accent-foreground: #cfeefb;
+  --highlight: #c0e8f9;
+  --highlight-foreground: #0b1210;
+  --destructive: #f28b82;
+  --border: #26302a;
+  --input: #323d36;
+  --ring: #c0e8f9;
+  --chart-1: #bae7f5;
+  --chart-2: #d88aa2;
+  --chart-3: #5a9a68;
+  --chart-4: #836c72;
+  --chart-5: #dcbe69;
+  --shadow-rgb: 0 0 0;
+}
+
+/* ---- Colours that stay the same in every palette ----------------------------
+
+   Feedback colours: each has a solid fill, a foreground for text on the soft
+   tint, and a soft tint for backgrounds.
+   sunflower: attention (due, up next, streaks) · success: correct, mastered
+   info: new, in progress · coral: mistakes, kept gentle on purpose
+   Tag colours: a soft tint and readable text; a tag always maps to the same pair.
+   ------------------------------------------------------------------------- */
+:root {
   --radius: 0.75rem;
 
-  /* Accent and feedback colors. Each has a solid fill, a dark foreground for
-     text on the soft tint, and a soft tint for backgrounds.
-     sunflower: attention (due, up next, streaks) · success: correct, mastered
-     info: new, in progress · coral: mistakes, kept gentle on purpose */
+  /* The logo follows the palette through its roles. */
+  --logo: var(--primary);
+  --logo-foreground: var(--primary-foreground);
+
+  /* The soft glow at the top of every page. */
+  --glow-1: color-mix(in oklab, var(--highlight) 60%, transparent);
+  --glow-2: color-mix(in oklab, var(--accent) 90%, transparent);
+
   --sunflower: oklch(0.87 0.16 92);
   --sunflower-foreground: oklch(0.42 0.09 75);
   --sunflower-soft: oklch(0.965 0.055 95);
@@ -116,7 +323,6 @@
   --coral-foreground: oklch(0.48 0.13 28);
   --coral-soft: oklch(0.955 0.03 28);
 
-  /* Tag colors: soft tint + readable text. A tag always maps to the same pair. */
   --tag-1: oklch(0.94 0.04 230); /* sky */
   --tag-1-foreground: oklch(0.42 0.1 240);
   --tag-2: oklch(0.94 0.045 300); /* violet */
@@ -129,49 +335,37 @@
   --tag-5-foreground: oklch(0.42 0.08 195);
   --tag-6: oklch(0.95 0.06 130); /* lime */
   --tag-6-foreground: oklch(0.42 0.1 135);
-
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --glow-1: color-mix(in oklab, var(--highlight) 8%, transparent);
+  --glow-2: color-mix(in oklab, var(--accent) 70%, transparent);
+
+  --sunflower: oklch(0.5 0.11 80);
+  --sunflower-foreground: oklch(0.88 0.12 92);
+  --sunflower-soft: oklch(0.3 0.06 85);
+  --success: oklch(0.55 0.13 155);
+  --success-foreground: oklch(0.85 0.1 155);
+  --success-soft: oklch(0.29 0.05 155);
+  --info: oklch(0.7 0.11 235);
+  --info-foreground: oklch(0.85 0.08 235);
+  --info-soft: oklch(0.29 0.05 240);
+  --coral: oklch(0.72 0.14 28);
+  --coral-foreground: oklch(0.85 0.09 28);
+  --coral-soft: oklch(0.3 0.06 28);
+
+  --tag-1: oklch(0.3 0.05 230);
+  --tag-1-foreground: oklch(0.87 0.07 230);
+  --tag-2: oklch(0.3 0.06 300);
+  --tag-2-foreground: oklch(0.87 0.08 300);
+  --tag-3: oklch(0.3 0.06 355);
+  --tag-3-foreground: oklch(0.87 0.07 355);
+  --tag-4: oklch(0.31 0.06 85);
+  --tag-4-foreground: oklch(0.88 0.1 90);
+  --tag-5: oklch(0.3 0.05 190);
+  --tag-5-foreground: oklch(0.87 0.07 190);
+  --tag-6: oklch(0.3 0.06 130);
+  --tag-6-foreground: oklch(0.88 0.1 130);
 }
 
 @layer base {
@@ -180,10 +374,9 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* A soft green glow at the top of every page, warmed by a touch of sunflower. */
     background-image:
-      radial-gradient(ellipse 40% 35% at 85% -5%, oklch(0.95 0.08 95 / 0.8), transparent),
-      radial-gradient(ellipse 80% 50% at 40% -10%, oklch(0.93 0.06 150 / 0.7), transparent);
+      radial-gradient(ellipse 40% 35% at 85% -5%, var(--glow-1), transparent),
+      radial-gradient(ellipse 80% 50% at 40% -10%, var(--glow-2), transparent);
     background-repeat: no-repeat;
   }
   html {

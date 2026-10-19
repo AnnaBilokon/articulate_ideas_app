@@ -48,7 +48,7 @@ export default async function Home() {
               <span className={cn("flex size-8 items-center justify-center rounded-lg", tone)}>
                 <Icon className="size-4" />
               </span>
-              <div className="text-2xl font-semibold tabular-nums">{value}</div>
+              <div className="text-2xl font-semibold tabular-nums text-heading">{value}</div>
               <div className="text-xs text-muted-foreground">{label}</div>
             </CardContent>
           </Card>
