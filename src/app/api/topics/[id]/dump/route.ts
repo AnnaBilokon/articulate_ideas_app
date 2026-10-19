@@ -3,7 +3,7 @@ import { z } from "zod";
 import { gradeDump } from "@/lib/ai/dump";
 import { requireSession } from "@/lib/auth";
 import { scheduleTopicQuestions } from "@/lib/reviews";
-import { MAX_DUMP_NUDGES, dumpInputSchema, type DumpRecord } from "@/lib/schemas";
+import { MAX_DUMP_NUDGES, dumpInputSchema, isTopicLevel, type DumpRecord } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
 export const maxDuration = 120;
@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/topi
   const supabase = db();
   const { data: topic } = await supabase
     .from("topics")
-    .select("title, mastery_level, lesson_chunks(title, content, position)")
+    .select("title, level, mastery_level, lesson_chunks(title, content, position)")
     .eq("id", id)
     .order("position", { referencedTable: "lesson_chunks" })
     .maybeSingle();
@@ -31,7 +31,12 @@ export async function POST(request: Request, { params }: RouteContext<"/api/topi
   }
 
   try {
-    const graded = await gradeDump({ title: topic.title, chunks: topic.lesson_chunks, dump: parsed.data });
+    const graded = await gradeDump({
+      title: topic.title,
+      level: isTopicLevel(topic.level) ? topic.level : null,
+      chunks: topic.lesson_chunks,
+      dump: parsed.data,
+    });
     console.log(`dump ${id}:`, graded.usage);
     const feedback: DumpRecord = { ...graded.feedback, nudges };
 

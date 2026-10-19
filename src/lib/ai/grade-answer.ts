@@ -1,7 +1,7 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, SMALL_MODEL, claude } from "@/lib/claude";
+import { FALLBACK_BETA, GRADING_MODEL, claude, costUsd } from "@/lib/claude";
 import { gradeAnswerSchema, type GradeAnswerResult } from "@/lib/schemas";
 
 // grade_answer: score one recall answer 0-5 against its key points.
@@ -59,7 +59,7 @@ export async function gradeAnswer(
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const stream = claude().beta.messages.stream({
-      model: SMALL_MODEL,
+      model: GRADING_MODEL,
       max_tokens: 4000,
       betas: [FALLBACK_BETA],
       fallbacks: "default",
@@ -92,8 +92,7 @@ export async function gradeAnswer(
     const hit = parsed.data.points_hit.filter((p) => keySet.has(p));
     const missed = input.keyPoints.filter((p) => !hit.includes(p));
 
-    // Sonnet 5.5: $2 / $10 per million tokens.
-    usage.costUsd = (usage.inputTokens * 2 + usage.outputTokens * 10) / 1_000_000;
+    usage.costUsd = costUsd(GRADING_MODEL, usage.inputTokens, usage.outputTokens);
     return { result: { ...parsed.data, points_hit: hit, points_missed: missed }, usage };
   }
   throw new Error("The grade didn't come out in the expected shape. Try again.");

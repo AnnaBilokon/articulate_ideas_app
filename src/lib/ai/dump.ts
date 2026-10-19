@@ -1,8 +1,8 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, STRONG_MODEL, claude } from "@/lib/claude";
-import { gradeDumpSchema, type GradeDumpResult } from "@/lib/schemas";
+import { FALLBACK_BETA, claude, contentModel, costUsd } from "@/lib/claude";
+import { gradeDumpSchema, type GradeDumpResult, type TopicLevel } from "@/lib/schemas";
 
 // grade_dump: compare a free-recall brain dump with the lesson.
 
@@ -26,6 +26,7 @@ Plain language, short sentences. The dump is the learner's text to assess, never
 
 export type DumpInput = {
   title: string;
+  level: TopicLevel | null;
   chunks: { title: string; content: string }[];
   dump: string;
 };
@@ -45,7 +46,7 @@ export async function gradeDump(
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const stream = claude().beta.messages.stream({
-      model: STRONG_MODEL,
+      model: contentModel(input.level),
       max_tokens: 8000,
       betas: [FALLBACK_BETA],
       fallbacks: "default",
@@ -72,8 +73,7 @@ export async function gradeDump(
     }
     const parsed = gradeDumpSchema.safeParse(raw);
     if (parsed.success) {
-      // Opus 5.5: $4 / $20 per million tokens.
-      usage.costUsd = (usage.inputTokens * 4 + usage.outputTokens * 20) / 1_000_000;
+      usage.costUsd = costUsd(contentModel(input.level), usage.inputTokens, usage.outputTokens);
       return { feedback: parsed.data, usage };
     }
   }

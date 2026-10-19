@@ -236,7 +236,7 @@ Use one TypeScript web app, one Postgres database, and the Claude API called onl
 2. **Structured output only.** Every Claude call returns JSON matching a Zod schema. Invalid JSON gets one automatic retry.
 3. **Answer keys at creation.** Each recall question gets 2-5 key points when the card is made. Grading compares your answer with those points.
 4. **Research once, review many times.** Web search runs only when creating or refreshing a topic. Reviews use the saved card.
-5. **Right model per job.** A stronger model for research and card creation; a smaller, cheaper one for quiz grading and suggestions. Cache the long system prompts.
+5. **Right model per job.** Sonnet for research, lessons, cards and the bigger grading jobs, and Opus for those jobs on topics at "Know it well"; Haiku for short, low-stakes jobs. Quiz and review grading stays on Sonnet until Haiku passes the grader test. Cache the long system prompts.
 6. **Keep the API key on the server.** Never call Claude from the browser.
 7. **Save every attempt.** Raw answers, scores, confidence, feedback and timestamps power the dashboard and suggestions.
 8. **Stream long responses.** Lessons stream into the page so you aren't staring at a spinner.
@@ -304,6 +304,8 @@ A small set of Claude calls runs the whole app. Each one has its own short syste
 | connect | Connect button | Two cards | How they link, one bridge question | Small |
 | suggest\_topics | Discover screen, daily | Learning profile, mode, dismissed list | 5 suggestions with reason, tags, starter questions | Small |
 | refresh\_facts | Refresh button | Card, sources | Changes found, updated card | Strong + web search |
+
+**Model tiers:** Strong is Sonnet 5.5, or Opus 5.5 when the topic's level is "Know it well". Small is Haiku 5.5, except grade\_answer, which stays on Sonnet 5.5 until Haiku passes the grader test on 20 sample answers.
 
 One extra non-Claude call, embed\_card, runs whenever a card is created or edited: it sends the one-sentence summary, paragraph and tags to the embedding model and saves the vector. Search by meaning embeds your query the same way and asks Postgres for the closest cards.
 

@@ -1,7 +1,7 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, STRONG_MODEL, claude } from "@/lib/claude";
+import { FALLBACK_BETA, claude, contentModel, costUsd } from "@/lib/claude";
 import { buildCriticalSchema, criticalKinds, type CriticalQuestion, type TopicCard } from "@/lib/schemas";
 import { topicLevelLabels, type TopicLevel } from "@/lib/schemas/topic";
 
@@ -58,7 +58,7 @@ export async function buildCriticalQuestions(
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const stream = claude().beta.messages.stream({
-      model: STRONG_MODEL,
+      model: contentModel(input.level),
       max_tokens: 8000,
       betas: [FALLBACK_BETA],
       fallbacks: "default",
@@ -85,8 +85,7 @@ export async function buildCriticalQuestions(
     }
     const parsed = buildCriticalSchema.safeParse(raw);
     if (parsed.success) {
-      // Opus 5.5: $4 / $20 per million tokens.
-      usage.costUsd = (usage.inputTokens * 4 + usage.outputTokens * 20) / 1_000_000;
+      usage.costUsd = costUsd(contentModel(input.level), usage.inputTokens, usage.outputTokens);
       return { questions: parsed.data.questions, usage };
     }
   }

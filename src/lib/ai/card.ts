@@ -1,7 +1,7 @@
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { FALLBACK_BETA, STRONG_MODEL, claude } from "@/lib/claude";
+import { FALLBACK_BETA, claude, contentModel, costUsd } from "@/lib/claude";
 import {
   MAX_QUIZ_QUESTIONS,
   buildCardSchema,
@@ -89,7 +89,7 @@ export async function buildTopicCard(input: CardInput): Promise<CardResult> {
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const stream = claude().beta.messages.stream({
-      model: STRONG_MODEL,
+      model: contentModel(input.level),
       max_tokens: 16000,
       betas: [FALLBACK_BETA],
       fallbacks: "default",
@@ -124,8 +124,7 @@ export async function buildTopicCard(input: CardInput): Promise<CardResult> {
       tags,
     });
     if (parsed.success) {
-      // Opus 5.5: $4 / $20 per million tokens.
-      usage.costUsd = (usage.inputTokens * 4 + usage.outputTokens * 20) / 1_000_000;
+      usage.costUsd = costUsd(contentModel(input.level), usage.inputTokens, usage.outputTokens);
       return { result: parsed.data, usage };
     }
   }
