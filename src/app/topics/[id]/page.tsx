@@ -93,7 +93,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
 
       {hasDump && (
         <Card className="bg-success-soft/60 ring-success/25">
-          <CardContent className="flex items-center gap-4">
+          <CardContent className="flex flex-wrap items-center gap-4">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success text-white">
               <Check className="size-5" />
             </span>
@@ -109,6 +109,14 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                 {progress ? `${progress}.` : "The quiz, teach-back and think deeper are optional extras."}
               </div>
             </div>
+            {quizTaken && (
+              <Link
+                href={`/topics/${id}/progress`}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto")}
+              >
+                How you&apos;re doing <ArrowRight className="size-3.5" />
+              </Link>
+            )}
           </CardContent>
         </Card>
       )}
