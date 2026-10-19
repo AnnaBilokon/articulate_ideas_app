@@ -34,6 +34,7 @@ export type ReviewOverview = {
 };
 
 export async function reviewOverview(now: Date = new Date()): Promise<ReviewOverview> {
+  await scheduleMissedQuestions(now);
   const supabase = db();
   const [{ data: settings }, { data: due }, { data: reviewed }, { data: next }] = await Promise.all([
     supabase.from("settings").select("daily_review_cap").eq("id", 1).maybeSingle(),
@@ -70,6 +71,20 @@ export async function reviewOverview(now: Date = new Date()): Promise<ReviewOver
     nextDueAt: next?.[0]?.due_at ?? null,
     scheduled: dueQuestions.length > 0 || (next?.length ?? 0) > 0,
   };
+}
+
+/**
+ * Catches up questions that should be in the reviews but have no schedule:
+ * topics whose brain dump came before scheduling started at the dump, and
+ * questions added after it (a rebuilt card). They're due tomorrow, like after
+ * a brain dump; questions already on the ladder are never touched.
+ */
+async function scheduleMissedQuestions(now: Date): Promise<void> {
+  const { data: topics } = await db().from("topics").select("id, dumps(id), recall_questions(review_state(id))");
+  const missed = (topics ?? []).filter(
+    (t) => t.dumps.length > 0 && t.recall_questions.some((q) => !q.review_state),
+  );
+  await Promise.all(missed.map((t) => scheduleTopicQuestions(t.id, now)));
 }
 
 /**
