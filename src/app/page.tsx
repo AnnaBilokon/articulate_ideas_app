@@ -162,7 +162,7 @@ export default async function Home() {
           <h2 className="text-lg font-semibold tracking-tight">Continue learning</h2>
           {learnedCount > 0 && (
             <Link href="/library" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-              All {learnedCount + topics.length} topics
+              All {learnedCount + topics.length} {learnedCount + topics.length === 1 ? "topic" : "topics"}
             </Link>
           )}
         </div>
@@ -206,14 +206,19 @@ export default async function Home() {
             })}
           </ul>
         ) : learnedCount > 0 ? (
-          <p className="text-muted-foreground">
-            Nothing half-finished. Your {learnedCount} learned {learnedCount === 1 ? "topic is" : "topics are"} in
-            the{" "}
-            <Link href="/library" className="font-medium text-foreground underline-offset-4 hover:underline">
-              Library
+          <div className="flex flex-col gap-3">
+            <p className="text-muted-foreground">
+              Nothing half-finished. Your {learnedCount} learned {learnedCount === 1 ? "topic is" : "topics are"} in
+              the{" "}
+              <Link href="/library" className="font-medium text-foreground underline-offset-4 hover:underline">
+                Library
+              </Link>
+              .
+            </p>
+            <Link href="/discover" className={cn(buttonVariants(), "w-fit")}>
+              <Sparkles className="size-4" /> Find something new to learn
             </Link>
-            .
-          </p>
+          </div>
         ) : (
           <Card className="border-dashed">
             <CardHeader className="items-center text-center">
