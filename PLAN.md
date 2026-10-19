@@ -97,7 +97,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Vocabulary: save words while reading (select any word, or from a glossary explanation) or add your own; each gets a plain definition, how to use it, examples and a Ukrainian translation; separate word practice ("what does it mean? use it in a sentence") on its own spaced schedule (added)
 - [x] Colours: light, dark or system mode, and three colour palettes (Orchard, Lagoon, Rose mist), picked from the header menu or Settings; every text colour passes a WCAG AA contrast check (`npm run check:contrast`) (added)
 - [ ] Library: topic pages, tags, and search by keyword and by meaning (an embedding saved with each card)
-- [ ] Simple suggestions: "More like this" and "Try something new" (version 1, described below)
+- [x] Simple suggestions, by favourite area: keep a list of favourite areas (on Discover, shown on Today); pick one to get 4 topic ideas that build on what you've studied, each a "Next step", "Fill a gap" or "New corner", with why, what it builds on, a level and starter questions; "Start this topic" opens the New topic form filled in. Not cached yet; dismissing and the topic inbox are still to do
 
 **Version 2 (after you've used the MVP for 2-3 weeks)**
 
@@ -209,7 +209,7 @@ The app has two main flows: learning a new topic and reviewing old ones. The hom
 | Vocabulary | Your words, add a word, word practice | MVP (added) |
 | Library | Browse and search topics, filter by tag and mastery | MVP |
 | Topic page | Card, notes, history, test me now | MVP |
-| Discover | Suggestions in four modes, topic inbox | MVP (simple), V2 (smart) |
+| Discover | Favourite areas and suggestions per area (MVP, done); topic inbox, dismissing | MVP (simple), V2 (smart) |
 | Weekly drill | Pre-mortem, argument map, steelman, bias spotting, with Claude's critique | V2 |
 | Journal | Daily "What did I learn today?" recall, decision log | V2 |
 | Dashboard | Stats (what you learn most, time spent), progress, calibration | V2 |

@@ -39,16 +39,19 @@ const choiceClass =
 
 const wordCount = (text: string) => (text.trim() ? text.trim().split(/\s+/).length : 0);
 
+// Starting values, filled in when coming from a Discover suggestion.
+export type NewTopicInitial = { title: string; level: TopicLevel; questions: string; tags: string };
+
 // Fields are controlled: React resets uncontrolled fields after every form
 // action, which would wipe pasted material when the server returns an error.
-export function NewTopicForm({ existingTags }: { existingTags: string[] }) {
+export function NewTopicForm({ existingTags, initial }: { existingTags: string[]; initial: NewTopicInitial }) {
   const [state, formAction, pending] = useActionState(createTopic, initialState);
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initial.title);
   const [mode, setMode] = useState<Mode>("research");
   const [source, setSource] = useState("");
-  const [questions, setQuestions] = useState("");
-  const [level, setLevel] = useState<TopicLevel>("beginner");
-  const [tags, setTags] = useState("");
+  const [questions, setQuestions] = useState(initial.questions);
+  const [level, setLevel] = useState<TopicLevel>(initial.level);
+  const [tags, setTags] = useState(initial.tags);
 
   const chosen = tags.split(",").map(normalizeTag).filter(Boolean);
   const toggleTag = (tag: string) => {
