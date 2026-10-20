@@ -13,6 +13,7 @@ import {
   MessageSquareText,
   PenLine,
   Telescope,
+  WholeWord,
 } from "lucide-react";
 import { BackgroundBuilder } from "@/components/background-builder";
 import { PageHeader } from "@/components/page-header";
@@ -54,7 +55,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, level, created_at, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id, attempts(score, created_at), review_state(due_at)), critical_questions(id), dumps(feedback, created_at), explanations(score, created_at)",
+      "title, level, created_at, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id, attempts(score, created_at), review_state(due_at)), critical_questions(id), glossary_terms(id), dumps(feedback, created_at), explanations(score, created_at)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "user_questions" })
@@ -274,6 +275,22 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                         {lastExplanation?.score != null
                           ? `Last explanation: ${lastExplanation.score}/5`
                           : "Explain the whole topic in your own words"}
+                      </span>
+                    </span>
+                    <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                )}
+                {topic.glossary_terms.length > 0 && (
+                  <Link href={`/topics/${id}/terms`} className="group flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted">
+                    <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
+                      <WholeWord className="size-4" />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block font-medium">
+                        Term quiz <span className="font-normal text-muted-foreground">· optional</span>
+                      </span>
+                      <span className="block text-sm text-muted-foreground">
+                        {topic.glossary_terms.length} terms: read the explanation, name the term
                       </span>
                     </span>
                     <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />

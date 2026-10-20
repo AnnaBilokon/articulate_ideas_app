@@ -401,6 +401,7 @@ The MVP takes about 6 weeks part-time (10-15 hours a week), then 2-3 weeks of re
 
 - [x] review\_state per question with the step ladder, including the confident-miss rule; reviews fall due at midnight (Stockholm time), and answering before a question is due never moves it up the ladder
 - [ ] Optional: turn a few key glossary terms into review questions ("What does X mean, and why does it matter here?")
+- [x] Term quiz (added): read a glossary explanation and name the term, per topic or mixed across topics (10 at a time, from Today). Clear matches (case, punctuation, plural, small typo, abbreviation or full form) are checked for free; anything else by Haiku, which accepts other names for the same idea; "Count it as right" overrides. Practice only: nothing saved or scheduled
 - [x] Today screen: due count, start review, continue unfinished topic (with each topic's next step)
 - [x] Review session with interleaving and the daily cap; weak spots on the end screen
 - [x] Next review date shown at the end of every session (quiz and review)
