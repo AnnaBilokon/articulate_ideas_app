@@ -12,6 +12,7 @@ import {
   Repeat,
   Sparkles,
   Sprout,
+  WholeWord,
 } from "lucide-react";
 import { LightDayButton } from "@/components/light-day-button";
 import { NextReviewLine } from "@/components/next-review-line";
@@ -33,7 +34,7 @@ import { cn } from "@/lib/utils";
 export default async function Home() {
   await connection(); // Read fresh data on every visit, not once at build.
   const supabase = db();
-  const [{ data: all }, review, words, areas, savedCount, streak] = await Promise.all([
+  const [{ data: all }, review, words, areas, savedCount, streak, { count: termCount }] = await Promise.all([
     supabase
       .from("topics")
       .select("id, title, level, created_at, topic_tags(tags(name)), lesson_chunks(id), dumps(id)")
@@ -44,6 +45,7 @@ export default async function Home() {
     favoriteAreas(),
     savedQuestionsToLearn(),
     learningStreak(),
+    supabase.from("glossary_terms").select("id", { count: "exact", head: true }),
   ]);
   // Learned once day 1 is done; the rest are still in progress.
   const topics = (all ?? []).filter((t) => nextLearnStep({ hasLesson: t.lesson_chunks.length > 0, hasDump: t.dumps.length > 0 }));
@@ -139,22 +141,43 @@ export default async function Home() {
         </Card>
       )}
 
-      {words.due > 0 && (
-        <Link
-          href="/vocabulary/practice"
-          className="group -mt-4 flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted"
-        >
-          <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
-            <Dumbbell className="size-4" />
-          </span>
-          <span className="flex-1">
-            <span className="block font-medium">
-              {words.due} {words.due === 1 ? "word" : "words"} to practice
-            </span>
-            <span className="block text-sm text-muted-foreground">From your vocabulary</span>
-          </span>
-          <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-        </Link>
+      {(words.due > 0 || (termCount ?? 0) > 0) && (
+        <div className="-mt-4 flex flex-col gap-2">
+          {words.due > 0 && (
+            <Link
+              href="/vocabulary/practice"
+              className="group flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted"
+            >
+              <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
+                <Dumbbell className="size-4" />
+              </span>
+              <span className="flex-1">
+                <span className="block font-medium">
+                  {words.due} {words.due === 1 ? "word" : "words"} to practice
+                </span>
+                <span className="block text-sm text-muted-foreground">From your vocabulary</span>
+              </span>
+              <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          )}
+          {(termCount ?? 0) > 0 && (
+            <Link
+              href="/terms"
+              className="group flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted"
+            >
+              <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
+                <WholeWord className="size-4" />
+              </span>
+              <span className="flex-1">
+                <span className="block font-medium">Term practice</span>
+                <span className="block text-sm text-muted-foreground">
+                  Read an explanation, name the term · {Math.min(termCount ?? 0, 10)} from your topics
+                </span>
+              </span>
+              <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          )}
+        </div>
       )}
 
       <section className="flex flex-col gap-3">
