@@ -16,6 +16,7 @@ import {
 } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { saveFavoriteAreas } from "./actions";
+import { AddIdea, IdeaCard, groupByArea, type Idea } from "./your-ideas";
 
 const kindClass: Record<TopicSuggestion["kind"], string> = {
   next_step: "bg-info-soft text-info-foreground",
@@ -32,15 +33,25 @@ function newTopicHref(suggestion: TopicSuggestion, area: string): string {
   return `/topics/new?${params}`;
 }
 
-export function DiscoverView({ areas: initialAreas, initialArea }: { areas: string[]; initialArea: string | null }) {
+export function DiscoverView({
+  areas: initialAreas,
+  ideas: initialIdeas,
+  initialArea,
+}: {
+  areas: string[];
+  ideas: Idea[];
+  initialArea: string | null;
+}) {
   const [areas, setAreas] = useState(initialAreas);
   const [draft, setDraft] = useState("");
   const [areaError, setAreaError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
 
   const [selected, setSelected] = useState<string | null>(initialArea);
-  // Ideas per area, kept while the page is open so switching back is free.
-  const [ideas, setIdeas] = useState<Record<string, TopicSuggestion[]>>({});
+  // Claude's suggestions per area, kept while the page is open so switching back is free.
+  const [suggestions, setSuggestions] = useState<Record<string, TopicSuggestion[]>>({});
+  // The learner's own saved ideas and questions, labelled by area.
+  const [ideas, setIdeas] = useState(initialIdeas);
   const [loadingArea, setLoadingArea] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,7 +87,7 @@ export function DiscoverView({ areas: initialAreas, initialArea }: { areas: stri
     setError(null);
     setLoadingArea(area);
     try {
-      const shown = more ? (ideas[area] ?? []) : [];
+      const shown = more ? (suggestions[area] ?? []) : [];
       const response = await fetch("/api/discover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,7 +97,7 @@ export function DiscoverView({ areas: initialAreas, initialArea }: { areas: stri
         | { suggestions?: TopicSuggestion[]; error?: string }
         | null;
       if (!response.ok || !body?.suggestions) throw new Error(body?.error ?? "Something went wrong. Try again.");
-      setIdeas((prev) => ({ ...prev, [area]: [...shown, ...body.suggestions!] }));
+      setSuggestions((prev) => ({ ...prev, [area]: [...shown, ...body.suggestions!] }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
     } finally {
@@ -95,7 +106,7 @@ export function DiscoverView({ areas: initialAreas, initialArea }: { areas: stri
   }
 
   const pick = (area: string) => {
-    if (ideas[area]) setSelected(area);
+    if (suggestions[area]) setSelected(area);
     else void suggest(area);
   };
 
@@ -109,13 +120,41 @@ export function DiscoverView({ areas: initialAreas, initialArea }: { areas: stri
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const shown = selected ? ideas[selected] : undefined;
+  const shown = selected ? suggestions[selected] : undefined;
+  const ideasHere = selected ? ideas.filter((i) => i.area?.toLowerCase() === selected.toLowerCase()) : [];
+
+  async function removeIdea(id: string) {
+    const response = await fetch(`/api/saved-questions/${id}`, { method: "DELETE" });
+    if (response.ok) setIdeas((prev) => prev.filter((i) => i.id !== id));
+  }
   const loading = loadingArea !== null && loadingArea === selected;
 
   return (
     <div className="flex flex-col gap-8">
+      <ol className="grid gap-2 text-sm sm:grid-cols-3" aria-label="How it works">
+        {[
+          "Add an idea, or pick one of your areas",
+          "Choose an idea: yours, or one Claude suggests",
+          "Press Learn this or Start this topic: your lesson is written for you",
+        ].map((step, i) => (
+          <li key={step} className="flex items-start gap-2 rounded-xl bg-muted/60 p-3">
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+              {i + 1}
+            </span>
+            {step}
+          </li>
+        ))}
+      </ol>
+
+      <AddIdea
+        areas={areas}
+        onAdded={(idea) => setIdeas((prev) => [idea, ...prev])}
+        onAddArea={(area) => save([...areas, area])}
+      />
+
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold tracking-tight text-heading">Your favourite areas</h2>
+        <p className="-mt-1 text-sm text-muted-foreground">Pick one for ideas that build on what you&apos;ve learned.</p>
         {areas.length > 0 ? (
           <ul className="flex flex-wrap gap-2">
             {areas.map((area) => (
@@ -177,10 +216,33 @@ export function DiscoverView({ areas: initialAreas, initialArea }: { areas: stri
         )}
       </section>
 
+      {!selected && ideas.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold tracking-tight text-heading">Your ideas</h2>
+          {groupByArea(ideas, areas).map(([area, group]) => (
+            <div key={area} className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium text-muted-foreground">{area}</h3>
+              {group.map((idea) => (
+                <IdeaCard key={idea.id} idea={idea} onRemove={removeIdea} />
+              ))}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {selected && ideasHere.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold tracking-tight text-heading">Your ideas in {selected}</h2>
+          {ideasHere.map((idea) => (
+            <IdeaCard key={idea.id} idea={idea} onRemove={removeIdea} />
+          ))}
+        </section>
+      )}
+
       {selected && (
         <section className="flex flex-col gap-3" aria-live="polite">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold tracking-tight text-heading">Ideas in {selected}</h2>
+            <h2 className="text-lg font-semibold tracking-tight text-heading">Suggested in {selected}</h2>
             {shown && shown.length > 0 && (
               <Button variant="ghost" size="sm" onClick={() => suggest(selected, true)} disabled={loading}>
                 <RefreshCw className="size-3.5" />

@@ -39,8 +39,15 @@ const choiceClass =
 
 const wordCount = (text: string) => (text.trim() ? text.trim().split(/\s+/).length : 0);
 
-// Starting values, filled in when coming from a Discover suggestion.
-export type NewTopicInitial = { title: string; level: TopicLevel; questions: string; tags: string };
+// Starting values, filled in when coming from a Discover suggestion or a
+// saved question (which is then marked as started).
+export type NewTopicInitial = {
+  title: string;
+  level: TopicLevel;
+  questions: string;
+  tags: string;
+  savedQuestionId: string | null;
+};
 
 // Fields are controlled: React resets uncontrolled fields after every form
 // action, which would wipe pasted material when the server returns an error.
@@ -61,6 +68,7 @@ export function NewTopicForm({ existingTags, initial }: { existingTags: string[]
 
   return (
     <form action={formAction}>
+      {initial.savedQuestionId && <input type="hidden" name="savedQuestionId" value={initial.savedQuestionId} />}
       <Card className="gap-0 py-0">
         <CardContent className="flex flex-col gap-7 p-4 sm:p-6">
           <div className="flex flex-col gap-2">

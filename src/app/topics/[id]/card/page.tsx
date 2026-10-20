@@ -6,10 +6,11 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { CriticalKind, RecallQuestionType } from "@/lib/schemas";
+import { critiqueSchema, type CriticalKind, type RecallQuestionType } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { GlossaryEditor } from "./glossary-editor";
+import { ThinkDeeperQuestion } from "./think-deeper-question";
 
 const kindStyles: Record<CriticalKind, { label: string; className: string }> = {
   assumptions: { label: "Assumptions", className: "bg-sunflower-soft text-sunflower-foreground" },
@@ -34,11 +35,12 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, researched_at, dumps(id), topic_cards(one_sentence, paragraph, analogy, counterpoint, connects_to, created_at), recall_questions(text, type, position), critical_questions(text, kind, considerations, position), glossary_terms(id, term, full_form, definition, example, source, created_at)",
+      "title, researched_at, dumps(id), topic_cards(one_sentence, paragraph, analogy, counterpoint, connects_to, created_at), recall_questions(text, type, position), critical_questions(id, text, kind, considerations, position, critical_answers(answer, feedback, created_at), saved_questions(id)), glossary_terms(id, term, full_form, definition, example, source, created_at)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "recall_questions" })
     .order("position", { referencedTable: "critical_questions" })
+    .order("created_at", { referencedTable: "critical_questions.critical_answers", ascending: false })
     .order("created_at", { referencedTable: "glossary_terms" })
     .maybeSingle();
   if (!topic) notFound();
@@ -170,7 +172,7 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
           </CardTitle>
           <CardDescription>
             Open questions with no single right answer. Think one through, or write a paragraph, before opening the
-            hints.
+            hints. Answer one to see a fuller answer and the other side, or save it to learn later.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -178,23 +180,19 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
             <ol className="flex flex-col gap-3">
               {topic.critical_questions.map((q) => {
                 const style = kindStyles[q.kind as CriticalKind] ?? kindStyles.evidence;
+                const answer = q.critical_answers[0];
+                const feedback = answer ? critiqueSchema.safeParse(answer.feedback) : null;
                 return (
-                  <li key={q.position} className="flex flex-col gap-2 rounded-xl border bg-background p-4">
-                    <Badge className={cn("w-fit", style.className)}>{style.label}</Badge>
-                    <p className="leading-6 font-medium">{q.text}</p>
-                    <details className="group">
-                      <summary className="cursor-pointer text-sm text-muted-foreground select-none hover:text-foreground">
-                        Things to consider
-                      </summary>
-                      <ul className="mt-2 flex flex-col gap-1 pl-5 text-sm">
-                        {q.considerations.map((c) => (
-                          <li key={c} className="list-disc marker:text-tag-2-foreground">
-                            {c}
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  </li>
+                  <ThinkDeeperQuestion
+                    key={q.id}
+                    id={q.id}
+                    text={q.text}
+                    kindLabel={style.label}
+                    kindClass={style.className}
+                    considerations={q.considerations}
+                    savedId={q.saved_questions?.id ?? null}
+                    latest={answer && feedback?.success ? { ...answer, feedback: feedback.data } : null}
+                  />
                 );
               })}
             </ol>

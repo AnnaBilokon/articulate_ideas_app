@@ -71,8 +71,15 @@ export function RecallSession<Summary>({
     setStartedAt(clickedAt);
   }
 
-  async function submit(text: string, clickedAt: number) {
-    if (confidence === null) return;
+  // "I don't know" before choosing a confidence: least sure, no answer, score 0.
+  function skip() {
+    setConfidence(1);
+    setAnswer("");
+    void submit("", 0, 1);
+  }
+
+  async function submit(text: string, clickedAt: number, sure: number | null = confidence) {
+    if (sure === null) return;
     setPhase("grading");
     setError(null);
     try {
@@ -81,9 +88,9 @@ export function RecallSession<Summary>({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           answer: text,
-          confidence,
+          confidence: sure,
           mode,
-          durationSec: Math.max(0, Math.round((clickedAt - startedAt) / 1000)),
+          durationSec: clickedAt ? Math.max(0, Math.round((clickedAt - startedAt) / 1000)) : 0,
         }),
       });
       const body = (await response.json()) as GradeResponse & { error?: string };
@@ -176,6 +183,9 @@ export function RecallSession<Summary>({
                   </Button>
                 ))}
               </div>
+              <Button variant="ghost" className="w-fit text-muted-foreground" onClick={skip}>
+                I don&apos;t know: show me the answer
+              </Button>
             </div>
           )}
 

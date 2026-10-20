@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { suggestTopics } from "@/lib/ai/suggest";
 import { requireSession } from "@/lib/auth";
 import { studiedTopics } from "@/lib/discover";
+import { savedQuestions } from "@/lib/saved-questions";
 import { suggestRequestSchema } from "@/lib/schemas";
 
 export const maxDuration = 60;
@@ -15,7 +16,13 @@ export async function POST(request: Request) {
   const { area, exclude } = parsed.data;
 
   try {
-    const { suggestions, usage } = await suggestTopics({ area, studied: await studiedTopics(), exclude });
+    const [studied, saved] = await Promise.all([studiedTopics(), savedQuestions()]);
+    const { suggestions, usage } = await suggestTopics({
+      area,
+      studied,
+      saved: saved.filter((q) => !q.startedAt).map((q) => q.text),
+      exclude,
+    });
     console.log(`suggest "${area}":`, usage);
     return Response.json({ suggestions });
   } catch (error) {
