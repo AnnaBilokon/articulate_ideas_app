@@ -14,6 +14,7 @@ import {
   Sprout,
   WholeWord,
 } from "lucide-react";
+import { LearningTree } from "@/components/learning-tree";
 import { LightDayButton } from "@/components/light-day-button";
 import { NextReviewLine } from "@/components/next-review-line";
 import { PageHeader } from "@/components/page-header";
@@ -81,6 +82,28 @@ export default async function Home() {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardContent className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+          <LearningTree
+            days={streak.days}
+            topics={learnedCount}
+            learnedToday={streak.today}
+            className="h-44 w-auto shrink-0 sm:h-48"
+          />
+          <div className="flex flex-col gap-1.5 text-center sm:text-left">
+            <h2 className="text-lg font-semibold tracking-tight text-heading">Your tree</h2>
+            <p className="text-sm text-muted-foreground">
+              {streak.days === 0
+                ? "A seed for now. Every day you learn, it grows a leaf."
+                : `${streak.days} ${streak.days === 1 ? "leaf" : "leaves"}, one for every day you've learned, and ${learnedCount} ${learnedCount === 1 ? "fruit" : "fruits"}, one for every topic learned.`}
+            </p>
+            <p className="font-medium">
+              {streak.today ? "Today's leaf is in." : "Recall something today to grow a new leaf."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {review.today.length > 0 ? (
         <Card className="bg-sunflower-soft/70 ring-sunflower/50">
