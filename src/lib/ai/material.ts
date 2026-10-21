@@ -3,6 +3,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { FALLBACK_BETA, claude, contentModel, costUsd } from "@/lib/claude";
 import { DOUBTS_CHUNK_TITLE, MAX_CHUNK_WORDS, lessonSchema, sourceSchema } from "@/lib/schemas";
+import { styleRules } from "@/lib/lesson-styles";
 import { levelLine, levelProfile } from "@/lib/levels";
 import { CHUNK_RULES } from "./chunk-rules";
 import type { ResearchEvent, ResearchInput, ResearchResult } from "./research";
@@ -44,13 +45,14 @@ Output (JSON matching the schema):
 
 ${CHUNK_RULES}`;
 
-function userPrompt({ title, level, questions }: ResearchInput, material: string): string {
+function userPrompt({ title, level, lessonStyle, questions }: ResearchInput, material: string): string {
   return [
     `Topic: ${title}`,
     `${levelLine(level)}
 Level rules:
 - chunks: ${levelProfile(level).parts}
 - what to include: ${levelProfile(level).content}`,
+    styleRules(lessonStyle),
     questions.length > 0
       ? `Learner's questions:\n${questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}`
       : "Learner's questions: none",

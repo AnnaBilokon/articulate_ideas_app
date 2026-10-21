@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
+import { surpriseStyle } from "@/lib/lesson-styles";
 import { newTopicSchema, normalizeTag } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
@@ -25,6 +26,8 @@ export async function createTopic(_prev: NewTopicState, formData: FormData): Pro
   const parsed = newTopicSchema.safeParse({
     title: formData.get("title"),
     level: formData.get("level"),
+    // "Surprise me" picks a style here, so the topic keeps it.
+    lessonStyle: formData.get("lessonStyle") === "surprise" ? surpriseStyle() : formData.get("lessonStyle"),
     questions: lines(formData.get("questions")),
     tags,
     sourceText: formData.get("mode") === "own" && typeof source === "string" ? source : null,
@@ -36,7 +39,13 @@ export async function createTopic(_prev: NewTopicState, formData: FormData): Pro
 
   const { data: topic, error: topicError } = await supabase
     .from("topics")
-    .insert({ title: input.title, level: input.level, status: "learning", source_text: input.sourceText })
+    .insert({
+      title: input.title,
+      level: input.level,
+      lesson_style: input.lessonStyle,
+      status: "learning",
+      source_text: input.sourceText,
+    })
     .select("id")
     .single();
   if (topicError) return { error: "Could not save the topic. Try again." };

@@ -8,9 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { lessonStyleHints } from "@/lib/lesson-styles";
 import {
   MAX_SOURCE_CHARS,
   MAX_TAGS,
+  lessonStyleLabels,
+  lessonStyles,
   normalizeTag,
   topicLevelLabels,
   topicLevels,
@@ -27,6 +30,13 @@ const levelHints: Record<TopicLevel, string> = {
   intermediate: "4 parts with the main caveats, 5-6 questions",
   advanced: "4-5 deeper parts, 6-8 harder questions, stricter grading",
 };
+
+// "Surprise me" first: variety is the point. The server picks the style.
+const styleChoices = [
+  { value: "surprise", label: "Surprise me" },
+  ...lessonStyles.map((value) => ({ value, label: lessonStyleLabels[value] })),
+] as const;
+type StyleChoice = (typeof styleChoices)[number]["value"];
 
 const modes = [
   { value: "research", label: "Research it for me", hint: "Claude searches the web and writes the lesson", icon: Globe },
@@ -59,6 +69,7 @@ export function NewTopicForm({ existingTags, initial }: { existingTags: string[]
   const [source, setSource] = useState("");
   const [questions, setQuestions] = useState(initial.questions);
   const [level, setLevel] = useState<TopicLevel>(initial.level);
+  const [style, setStyle] = useState<StyleChoice>("surprise");
   const [tags, setTags] = useState(initial.tags);
 
   const chosen = tags.split(",").map(normalizeTag).filter(Boolean);
@@ -164,6 +175,27 @@ export function NewTopicForm({ existingTags, initial }: { existingTags: string[]
                   />
                   <span className="text-sm font-medium">{topicLevelLabels[value]}</span>
                   <span className="text-xs text-muted-foreground">{levelHints[value]}</span>
+                  <Check className="absolute top-3 right-3 size-4 text-primary opacity-0 transition-opacity peer-checked:opacity-100" />
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 text-sm font-medium">How the lesson is told</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {styleChoices.map(({ value, label }) => (
+                <label key={value} className={choiceClass}>
+                  <input
+                    type="radio"
+                    name="lessonStyle"
+                    value={value}
+                    checked={style === value}
+                    onChange={() => setStyle(value)}
+                    className="peer sr-only"
+                  />
+                  <span className="text-sm font-medium">{label}</span>
+                  <span className="text-xs text-muted-foreground">{lessonStyleHints[value]}</span>
                   <Check className="absolute top-3 right-3 size-4 text-primary opacity-0 transition-opacity peer-checked:opacity-100" />
                 </label>
               ))}

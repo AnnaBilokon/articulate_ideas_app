@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { lessonFromMaterial } from "@/lib/ai/material";
 import { researchLesson, type ResearchEvent } from "@/lib/ai/research";
 import { requireSession } from "@/lib/auth";
-import { isTopicLevel, type Lesson } from "@/lib/schemas";
+import { isLessonStyle, isTopicLevel, type Lesson } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 import { ensureCriticalQuestions } from "@/lib/critical-questions";
 import { ensureGlossary } from "@/lib/glossary";
@@ -26,7 +26,7 @@ export async function POST(_request: Request, { params }: RouteContext<"/api/top
 
   const { data: topic } = await supabase
     .from("topics")
-    .select("title, level, source_text, user_questions(text, position, is_suggested), lesson_chunks(id)")
+    .select("title, level, lesson_style, source_text, user_questions(text, position, is_suggested), lesson_chunks(id)")
     .eq("id", id)
     .maybeSingle();
   if (!topic) return Response.json({ error: "Topic not found" }, { status: 404 });
@@ -69,6 +69,7 @@ export async function POST(_request: Request, { params }: RouteContext<"/api/top
         const input = {
           title: topic.title,
           level: isTopicLevel(topic.level) ? topic.level : null,
+          lessonStyle: isLessonStyle(topic.lesson_style) ? topic.lesson_style : "standard",
           questions: ownQuestions.map((q) => q.text),
         };
         // The learner's own material replaces web research when they gave some.

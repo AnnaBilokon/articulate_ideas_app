@@ -8,4 +8,5 @@ export const CHUNK_RULES = `How to write each chunk (the learner recalls its mai
 - In each chunk: the idea stated plainly; why it's true or how it works, in a "because" sentence; one concrete example from everyday life or work. Add a simple analogy where it helps.
 - The first chunk opens with one or two sentences on what the topic is and why it matters, before any detail.
 - 150-250 words per chunk, never more than ${MAX_CHUNK_WORDS}.
-- Match the learner's level, as the level rules say: what to include, and how much to assume.`;
+- Match the learner's level, as the level rules say: what to include, and how much to assume.
+- Tell it in the lesson style given. Whatever the style, each chunk still states its idea plainly.`;

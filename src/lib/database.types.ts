@@ -768,6 +768,7 @@ export type Database = {
           created_at: string
           id: string
           interest_rating: number | null
+          lesson_style: string
           level: string | null
           mastery_level: string | null
           researched_at: string | null
@@ -779,6 +780,7 @@ export type Database = {
           created_at?: string
           id?: string
           interest_rating?: number | null
+          lesson_style?: string
           level?: string | null
           mastery_level?: string | null
           researched_at?: string | null
@@ -790,6 +792,7 @@ export type Database = {
           created_at?: string
           id?: string
           interest_rating?: number | null
+          lesson_style?: string
           level?: string | null
           mastery_level?: string | null
           researched_at?: string | null
