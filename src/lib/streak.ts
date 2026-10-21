@@ -13,6 +13,8 @@ export type Streak = {
   best: number;
   /** Something was recalled today. */
   today: boolean;
+  /** Days with learning in the last year, in a row or not: one leaf each on the tree. */
+  days: number;
 };
 
 export function streakFrom(times: string[], now: Date = new Date()): Streak {
@@ -36,7 +38,7 @@ export function streakFrom(times: string[], now: Date = new Date()): Streak {
     best = Math.max(best, run);
     previous = d;
   }
-  return { current, best, today: didToday };
+  return { current, best, today: didToday, days: days.size };
 }
 
 const ACTIVITY_TABLES = [

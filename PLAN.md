@@ -470,7 +470,7 @@ Every topic followed the same track in the same format, which made learning feel
 - [ ] 2. Lesson styles: story, problem first, debate (you judge who's right and why), and a Socratic dialogue tutor
 - [ ] 3. More recall formats: put in order, match pairs, predict then reveal, constraint drills (one sentence, 60 seconds, to a 12-year-old, to a skeptic)
 - [ ] 4. Sessions: "Surprise me" (10 minutes, mixed formats) and a weekly boss round across topics
-- [ ] 5. Growth: a learning garden (topics as plants that grow with recall and wilt when overdue), weekly recap, light milestones
+- [ ] 5. Growth: a learning tree on Today (done: a leaf for every learning day, a fruit for every learned topic, today's leaf animates in), weekly recap, light milestones
 - [ ] 6. Real life: "Apply it" missions (the Applied stage) and bridge questions between two topics
 - [ ] 7. Critical-thinking drills: steelman, pre-mortem, bias spotting, argument map, "what would change your mind?"
 

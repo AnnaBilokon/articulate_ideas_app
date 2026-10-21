@@ -335,6 +335,14 @@
   --tag-5-foreground: oklch(0.42 0.08 195);
   --tag-6: oklch(0.95 0.06 130); /* lime */
   --tag-6-foreground: oklch(0.42 0.1 135);
+
+  /* The learning tree on Today: nature colours, the same in every palette. */
+  --tree-trunk: oklch(0.47 0.06 55);
+  --tree-leaf: oklch(0.66 0.15 140);
+  --tree-leaf-2: oklch(0.58 0.13 155);
+  --tree-leaf-new: oklch(0.8 0.18 128);
+  --tree-fruit: oklch(0.68 0.18 32);
+  --tree-ground: oklch(0.9 0.05 125);
 }
 
 .dark {
@@ -366,6 +374,57 @@
   --tag-5-foreground: oklch(0.87 0.07 190);
   --tag-6: oklch(0.3 0.06 130);
   --tag-6-foreground: oklch(0.88 0.1 130);
+
+  --tree-trunk: oklch(0.62 0.06 60);
+  --tree-leaf: oklch(0.7 0.15 140);
+  --tree-leaf-2: oklch(0.6 0.13 155);
+  --tree-leaf-new: oklch(0.86 0.18 128);
+  --tree-fruit: oklch(0.74 0.17 35);
+  --tree-ground: oklch(0.3 0.04 130);
+}
+
+/* Today's leaf pops in; the tree sways a little. Off for reduced motion. */
+@keyframes leaf-grow {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tree-sway {
+  0%,
+  100% {
+    transform: rotate(-0.8deg);
+  }
+  50% {
+    transform: rotate(0.8deg);
+  }
+}
+
+.tree-new-leaf {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: leaf-grow 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s both;
+}
+
+.tree-sway {
+  transform-box: view-box;
+  transform-origin: 120px 205px;
+  animation: tree-sway 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-new-leaf,
+  .tree-sway {
+    animation: none;
+  }
 }
 
 @layer base {
