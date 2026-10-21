@@ -6,3 +6,4 @@ export * from "./grading";
 export * from "./topic";
 export * from "./vocabulary";
 export * from "./discover";
+export * from "./challenge";

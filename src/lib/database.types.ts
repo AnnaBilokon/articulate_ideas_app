@@ -83,6 +83,73 @@ export type Database = {
           },
         ]
       }
+      challenge_attempts: {
+        Row: {
+          answer: Json
+          challenge_id: string
+          created_at: string
+          id: string
+          result: Json
+          score: number
+        }
+        Insert: {
+          answer: Json
+          challenge_id: string
+          created_at?: string
+          id?: string
+          result: Json
+          score: number
+        }
+        Update: {
+          answer?: Json
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          result?: Json
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_attempts_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          kind: string
+          topic_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          kind: string
+          topic_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          kind?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chunk_recalls: {
         Row: {
           chunk_id: string

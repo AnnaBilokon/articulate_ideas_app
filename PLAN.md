@@ -462,6 +462,18 @@ Then the rest:
 - [ ] Optional focus timer and exercise nudge
 - [ ] PWA install, audio review, Anki export, "Ask my library"
 
+### Engagement: varied ways to learn (October 2026)
+
+Every topic followed the same track in the same format, which made learning feel repetitive. These batches change *how* you recall, never *whether* you recall; critical thinking runs through several of them. One pull request per batch.
+
+- [x] 1. Challenges: spot the mistake, two truths and a lie (judging claims); scored from an answer key, counted in the streak
+- [ ] 2. Lesson styles: story, problem first, debate (you judge who's right and why), and a Socratic dialogue tutor
+- [ ] 3. More recall formats: put in order, match pairs, predict then reveal, constraint drills (one sentence, 60 seconds, to a 12-year-old, to a skeptic)
+- [ ] 4. Sessions: "Surprise me" (10 minutes, mixed formats) and a weekly boss round across topics
+- [ ] 5. Growth: a learning garden (topics as plants that grow with recall and wilt when overdue), weekly recap, light milestones
+- [ ] 6. Real life: "Apply it" missions (the Applied stage) and bridge questions between two topics
+- [ ] 7. Critical-thinking drills: steelman, pre-mortem, bias spotting, argument map, "what would change your mind?"
+
 ## Best practices and pitfalls
 
 The biggest risk is building features instead of using the app. Ship the MVP, use it daily, and let real friction decide what comes next.
