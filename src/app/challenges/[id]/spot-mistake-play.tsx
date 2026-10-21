@@ -69,7 +69,7 @@ export function SpotMistakePlay({
                   "rounded px-0.5",
                   mistakeAt.has(i) && found.includes(i) && "bg-success-soft text-success-foreground",
                   mistakeAt.has(i) && !found.includes(i) && "bg-sunflower-soft text-sunflower-foreground",
-                  wrongFlags.includes(i) && "text-muted-foreground line-through",
+                  wrongFlags.includes(i) && "underline decoration-coral decoration-dotted decoration-2 underline-offset-4",
                 )}
               >
                 {s}{" "}
@@ -104,7 +104,8 @@ export function SpotMistakePlay({
         </ul>
         {wrongFlags.length > 0 && (
           <p className="text-sm text-muted-foreground">
-            The crossed-out {wrongFlags.length === 1 ? "sentence was" : "sentences were"} correct.
+            You also flagged the {wrongFlags.length === 1 ? "sentence" : "sentences"} with a dotted underline, but{" "}
+            {wrongFlags.length === 1 ? "it was" : "they were"} correct.
           </p>
         )}
       </div>
