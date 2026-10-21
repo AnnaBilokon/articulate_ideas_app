@@ -5,7 +5,8 @@ import { z } from "zod";
 import { FALLBACK_BETA, claude, contentModel, costUsd } from "@/lib/claude";
 import { lessonSchema, type Lesson } from "@/lib/schemas";
 import { levelLine, levelProfile } from "@/lib/levels";
-import type { TopicLevel } from "@/lib/schemas/topic";
+import { styleRules } from "@/lib/lesson-styles";
+import type { LessonStyle, TopicLevel } from "@/lib/schemas/topic";
 import { CHUNK_RULES } from "./chunk-rules";
 
 // research_and_lesson: web search, then a chunked lesson as JSON.
@@ -44,6 +45,7 @@ ${CHUNK_RULES}`;
 export type ResearchInput = {
   title: string;
   level: TopicLevel | null;
+  lessonStyle: LessonStyle;
   questions: string[];
 };
 
@@ -58,13 +60,14 @@ export type ResearchResult = {
   usage: { inputTokens: number; outputTokens: number; searches: number; costUsd: number };
 };
 
-function userPrompt({ title, level, questions }: ResearchInput): string {
+function userPrompt({ title, level, lessonStyle, questions }: ResearchInput): string {
   const lines = [
     `Topic: ${title}`,
     `${levelLine(level)}
 Level rules:
 - chunks: ${levelProfile(level).parts}
 - what to include: ${levelProfile(level).content}`,
+    styleRules(lessonStyle),
     questions.length > 0
       ? `Learner's questions:\n${questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}`
       : "Learner's questions: none",

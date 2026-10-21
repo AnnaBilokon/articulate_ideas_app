@@ -16,9 +16,14 @@ import {
   type ChunkRecallVerdict,
   type GradeChunkRecallResult,
 } from "@/lib/schemas/grading";
+import { recallPromptFor } from "@/lib/lesson-styles";
+import type { LessonStyle } from "@/lib/schemas/topic";
 import { cn } from "@/lib/utils";
 
 type Chunk = { id: string; title: string; content: string };
+
+// "Ada: …", "Ben: …" and "What holds up: …" lines in debate lessons.
+const SPEAKER = /^(Ada|Ben|What holds up):\s*/;
 
 // Paragraphs, plus "- " lines as bullet lists. Glossary terms are marked at
 // their first appearance in each part.
@@ -37,6 +42,24 @@ function ChunkBody({
     <div className="flex flex-col gap-4 text-base leading-7 sm:text-[1.0625rem]">
       {blocks.map((block, i) => {
         const lines = block.split("\n").map((l) => l.trim());
+        // Debate lessons: each speaker on their own line, the takeaway set apart.
+        if (lines.some((l) => SPEAKER.test(l))) {
+          return (
+            <div key={i} className="flex flex-col gap-2">
+              {lines.map((l, j) => {
+                const match = l.match(SPEAKER);
+                if (!match) return <p key={j}><GlossaryText text={l} terms={terms} seen={seen} onSave={onSave} /></p>;
+                const takeaway = match[1] === "What holds up";
+                return (
+                  <p key={j} className={cn(takeaway && "rounded-lg bg-accent px-3 py-2 text-accent-foreground")}>
+                    <strong className="font-semibold">{match[1]}:</strong>{" "}
+                    <GlossaryText text={l.slice(match[0].length)} terms={terms} seen={seen} onSave={onSave} />
+                  </p>
+                );
+              })}
+            </div>
+          );
+        }
         if (lines.every((l) => l.startsWith("- "))) {
           return (
             <ul key={i} className="flex flex-col gap-1.5 pl-5">
@@ -71,10 +94,12 @@ export function LessonReader({
   topicId,
   chunks,
   terms,
+  style,
 }: {
   topicId: string;
   chunks: Chunk[];
   terms: GlossaryEntry[];
+  style: LessonStyle;
 }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
@@ -227,9 +252,7 @@ export function LessonReader({
               <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
                 What was &ldquo;{chunk.title}&rdquo; about?
               </h2>
-              <p className="text-muted-foreground">
-                Without looking back, write its main idea in a sentence or a few. Rough is fine.
-              </p>
+              <p className="text-muted-foreground">{recallPromptFor[style].ask}</p>
             </div>
             <Textarea
               value={drafts[index] ?? ""}
@@ -238,7 +261,7 @@ export function LessonReader({
               rows={4}
               autoFocus
               disabled={checking}
-              placeholder="The main idea is…"
+              placeholder={recallPromptFor[style].placeholder}
               aria-label="The main idea of this part"
               className="min-h-28 bg-background px-3 py-2.5 md:text-base"
             />

@@ -38,9 +38,25 @@ export const sourceTextSchema = (tooShort = "Keep at least a paragraph of materi
     .min(MIN_SOURCE_CHARS, tooShort)
     .max(MAX_SOURCE_CHARS, "That's too long. Keep it under about 10,000 words.");
 
+// How the lesson is told. "Surprise me" on the form picks one of the three
+// that aren't standard. See src/lib/lesson-styles.ts.
+export const lessonStyles = ["standard", "story", "problem_first", "debate"] as const;
+export type LessonStyle = (typeof lessonStyles)[number];
+
+export const lessonStyleLabels: Record<LessonStyle, string> = {
+  standard: "Explained",
+  story: "Story",
+  problem_first: "Problem first",
+  debate: "Debate",
+};
+
+export const isLessonStyle = (value: string | null): value is LessonStyle =>
+  lessonStyles.includes(value as LessonStyle);
+
 export const newTopicSchema = z.object({
   title: z.string().trim().min(1, "Give the topic a title").max(200),
   level: z.enum(topicLevels),
+  lessonStyle: z.enum(lessonStyles).catch("standard"),
   questions: z
     .array(z.string().trim().min(1).max(500))
     .max(MAX_USER_QUESTIONS, `At most ${MAX_USER_QUESTIONS} questions`),

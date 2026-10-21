@@ -25,7 +25,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { nextLearnStep, progressLine } from "@/lib/learn-flow";
 import { dumpRecordSchema } from "@/lib/schemas/grading";
 import { MAX_QUIZ_QUESTIONS } from "@/lib/schemas/card";
-import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
+import { isLessonStyle, isTopicLevel, lessonStyleLabels, topicLevelLabels } from "@/lib/schemas/topic";
 import { formatDue } from "@/lib/schedule";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -56,7 +56,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, level, created_at, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id, attempts(score, created_at), review_state(due_at)), critical_questions(id), glossary_terms(id), dumps(feedback, created_at), explanations(score, created_at)",
+      "title, level, lesson_style, created_at, researched_at, source_text, user_questions(text, position, is_suggested), topic_tags(tags(name)), lesson_chunks(id), sources(url, title), topic_cards(id), recall_questions(id, attempts(score, created_at), review_state(due_at)), critical_questions(id), glossary_terms(id), dumps(feedback, created_at), explanations(score, created_at)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "user_questions" })
@@ -87,6 +87,9 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
       <PageHeader title={topic.title} back={{ href: "/", label: "Today" }}>
         <div className="flex flex-wrap gap-1.5">
           {isTopicLevel(topic.level) && <Badge variant="secondary">{topicLevelLabels[topic.level]}</Badge>}
+          {isLessonStyle(topic.lesson_style) && topic.lesson_style !== "standard" && (
+            <Badge variant="outline">{lessonStyleLabels[topic.lesson_style]}</Badge>
+          )}
           {tags.map((tag) => (
             <TagBadge key={tag} name={tag} />
           ))}
