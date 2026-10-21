@@ -3,7 +3,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { FALLBACK_BETA, claude, contentModel, costUsd } from "@/lib/claude";
 import { DOUBTS_CHUNK_TITLE, MAX_CHUNK_WORDS, lessonSchema, sourceSchema } from "@/lib/schemas";
-import { topicLevelLabels } from "@/lib/schemas/topic";
+import { levelLine, levelProfile } from "@/lib/levels";
 import { CHUNK_RULES } from "./chunk-rules";
 import type { ResearchEvent, ResearchInput, ResearchResult } from "./research";
 
@@ -38,7 +38,7 @@ Working with the material:
 Output (JSON matching the schema):
 - answers: one entry per learner question, in the same order, each 2-4 sentences, answered from the material. If the material doesn't cover a question, say so in one sentence, then give a short general answer and say it's not from their material. Empty if there are no questions.
 - suggested_questions: up to 3 questions the material raises that the learner should be able to answer, each answered from the material in 2-4 sentences.
-- chunks: 3 to 5 chunks for most material (fewer for very short material), written by the chunk rules below. Use more, up to ${MAX_CHUNKS}, only when long material can't be covered otherwise. Cover the learner's questions within the chunks. Plain paragraphs; you may use short bullet lists with "- ". No headings inside a chunk.
+- chunks: as many as the level rules say for most material (fewer for very short material), written by the chunk rules below. Use more, up to ${MAX_CHUNKS}, only when long material can't be covered otherwise. Cover the learner's questions within the chunks. Plain paragraphs; you may use short bullet lists with "- ". No headings inside a chunk.
 - sources: only URLs that appear in the material itself, with a short title. Empty if there are none.
 - doubts: statements from the material that look wrong, outdated, overstated, or debated, each quoted or closely paraphrased with a one or two sentence concern. Empty if nothing stands out.
 
@@ -47,7 +47,10 @@ ${CHUNK_RULES}`;
 function userPrompt({ title, level, questions }: ResearchInput, material: string): string {
   return [
     `Topic: ${title}`,
-    `Learner's level: ${level ? topicLevelLabels[level] : "not given"}`,
+    `${levelLine(level)}
+Level rules:
+- chunks: ${levelProfile(level).parts}
+- what to include: ${levelProfile(level).content}`,
     questions.length > 0
       ? `Learner's questions:\n${questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}`
       : "Learner's questions: none",

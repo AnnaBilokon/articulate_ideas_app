@@ -347,7 +347,11 @@ Each recall question has its own schedule. A topic review is just the set of tha
 | Score 4-5 but confidence 1 | Stay on the same step (a lucky guess) |
 | Score 0-2 with confidence 3 (confident miss) | Back to step 1, shown with the correct answer side by side with yours, re-asked at the end of the session and again the next day (hypercorrection) |
 
-**Daily cap:** show at most 10 questions a day (setting). "Too much?" makes today a light day of 5, until midnight. Each review starts with up to two questions answered well last time, as a warm-up. Overflow moves to the next days, oldest first, so a missed week doesn't create an 80-question wall.
+**Daily cap:** show at most 10 questions a day, changeable in Settings (5, 10, 15, 20 or 30). "Too much?" makes today a light day of 5, until midnight. Each review starts with up to two questions answered well last time, as a warm-up. Overflow moves to the next days, oldest first, so a missed week doesn't create an 80-question wall. When reviews are already waiting past the limit, the New topic page says so (a nudge, not a block).
+
+**Review load grows for months.** Questions never leave the ladder, so the daily load keeps rising as topics add up. Simulated at about 80% recall with 6 questions per topic, the reviews needed per day (month 2 → 4 → 6) are: 1 topic a week 5 → 7 → 10; 2 a week 10 → 16 → 20; 3 a week 16 → 25 → 30. So 10 a day keeps up with 1-2 new topics a week. Fewer questions for "New to it" topics, and FSRS (longer gaps for well-known questions), both lower it.
+
+**Levels shape each topic** (src/lib/levels.ts): "New to it" gets 3 lesson parts, 3-4 mostly why/how questions, 3 Think deeper questions and lenient grading (the core idea in plain words gets 5); "Know the basics" gets 4 parts and 5-6 mixed questions; "Know it well" gets 4-5 deeper parts, 6-8 mostly apply/compare questions, 6 Think deeper questions and stricter grading (the mechanism and precise terms). Web searches: 3 / 5 / 8. Glossary: up to 15 / 10 / 8 terms.
 
 **Interleaving:** when building today's review, mix topics instead of grouping them.
 

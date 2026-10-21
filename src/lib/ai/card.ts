@@ -9,7 +9,8 @@ import {
   recallQuestionTypes,
   type BuildCardResult,
 } from "@/lib/schemas";
-import { topicLevelLabels, type TopicLevel } from "@/lib/schemas/topic";
+import { levelLine, levelProfile } from "@/lib/levels";
+import type { TopicLevel } from "@/lib/schemas/topic";
 
 // build_card: Topic Card, recall questions with key points, and tags.
 
@@ -47,8 +48,8 @@ Output (JSON matching the schema):
 - card.analogy: one vivid everyday analogy, 1-2 sentences.
 - card.counterpoint: the most common mistake or misconception, or the strongest counterpoint, and why it's wrong or where it holds. 1-3 sentences.
 - card.connects_to: 2-4 related ideas or fields, each a short phrase.
-- recall_questions: 1 or 2 per lesson chunk, about 5 to 8 in total, that test understanding, not wording. Cover each chunk's main idea; skip minor details. No questions on a "Worth double-checking" chunk.
-  - Mix the types: "why" (explain a cause), "how" (explain a mechanism or process), "compare" (contrast with a related idea), "apply" (use it in a new, concrete situation).
+- recall_questions: as many as the level rules say, that test understanding, not wording. Cover each chunk's main idea; skip minor details. No questions on a "Worth double-checking" chunk.
+  - Types: "why" (explain a cause), "how" (explain a mechanism or process), "compare" (contrast with a related idea), "apply" (use it in a new, concrete situation). Lean toward the focus the level rules give.
   - Each question asks for one clear thing and is answerable in 1-3 sentences from the lesson. If it needs two things, say so in the question ("name two", "color and taste").
   - key_points: 2 to 4 short points. First the core answer to the question, then supporting details or examples (these are extras the grader won't require). Each point is one specific idea, stated plainly. No vague points like "explains it well".
   - Don't ask yes/no questions or ask for definitions word for word.
@@ -70,7 +71,10 @@ export type CardResult = {
 function userPrompt({ title, level, chunks, questions, existingTags }: CardInput): string {
   return [
     `Topic: ${title}`,
-    `Learner's level: ${level ? topicLevelLabels[level] : "not given"}`,
+    `${levelLine(level)}
+Level rules:
+- recall questions: ${levelProfile(level).questions}
+- focus: ${levelProfile(level).questionFocus}`,
     `Learner's existing tags: ${existingTags.length > 0 ? existingTags.join(", ") : "none yet"}`,
     `Lesson:\n\n${chunks.map((c) => `## ${c.title}\n\n${c.content}`).join("\n\n")}`,
     questions.length > 0
