@@ -11,6 +11,7 @@ import {
   Layers,
   Lock,
   MessageSquareText,
+  MessagesSquare,
   PenLine,
   SearchCheck,
   Telescope,
@@ -309,6 +310,18 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                       Challenges <span className="font-normal text-muted-foreground">· optional</span>
                     </span>
                     <span className="block text-sm text-muted-foreground">Spot the mistake, two truths and a lie</span>
+                  </span>
+                  <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </Link>
+                <Link href={`/topics/${id}/tutor`} className="group flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted">
+                  <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
+                    <MessagesSquare className="size-4" />
+                  </span>
+                  <span className="flex-1">
+                    <span className="block font-medium">
+                      Talk it through <span className="font-normal text-muted-foreground">· optional</span>
+                    </span>
+                    <span className="block text-sm text-muted-foreground">A tutor asks you questions; you work the ideas out</span>
                   </span>
                   <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                 </Link>

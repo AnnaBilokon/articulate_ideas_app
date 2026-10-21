@@ -467,7 +467,7 @@ Then the rest:
 Every topic followed the same track in the same format, which made learning feel repetitive. These batches change *how* you recall, never *whether* you recall; critical thinking runs through several of them. One pull request per batch.
 
 - [x] 1. Challenges: spot the mistake, two truths and a lie (judging claims); scored from an answer key, counted in the streak
-- [ ] 2. Lesson styles (done: story, problem first, debate where you judge what holds up, and "Surprise me"), and a Socratic dialogue tutor
+- [x] 2. Lesson styles (story, problem first, debate where you judge what holds up, and "Surprise me"), and a Socratic dialogue tutor ("Talk it through")
 - [ ] 3. More recall formats: put in order, match pairs, predict then reveal, constraint drills (one sentence, 60 seconds, to a 12-year-old, to a skeptic)
 - [ ] 4. Sessions: "Surprise me" (10 minutes, mixed formats) and a weekly boss round across topics
 - [ ] 5. Growth: a learning tree on Today (done: a leaf for every learning day, a fruit for every learned topic, today's leaf animates in), weekly recap, light milestones
