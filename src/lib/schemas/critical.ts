@@ -19,7 +19,7 @@ export const criticalQuestionSchema = z.object({
 });
 
 export const buildCriticalSchema = z.object({
-  questions: z.array(criticalQuestionSchema).min(4).max(6),
+  questions: z.array(criticalQuestionSchema).min(3).max(6),
 });
 
 export type CriticalKind = (typeof criticalKinds)[number];

@@ -4,12 +4,11 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { FALLBACK_BETA, claude, contentModel, costUsd } from "@/lib/claude";
 import { lessonSchema, type Lesson } from "@/lib/schemas";
-import { topicLevelLabels, type TopicLevel } from "@/lib/schemas/topic";
+import { levelLine, levelProfile } from "@/lib/levels";
+import type { TopicLevel } from "@/lib/schemas/topic";
 import { CHUNK_RULES } from "./chunk-rules";
 
 // research_and_lesson: web search, then a chunked lesson as JSON.
-
-const MAX_SEARCHES = 5;
 
 // The shape Claude must produce. Kept to plain types the structured-output
 // format accepts; word limits, URL format and counts are checked afterwards
@@ -37,7 +36,7 @@ Research:
 Output (JSON matching the schema):
 - answers: one entry per learner question, in the same order, each 2-4 sentences. Empty if there are no questions.
 - suggested_questions: up to 3 questions the learner did not ask but should, each with a 2-4 sentence answer.
-- chunks: the lesson itself, 3 to 5 chunks in a sensible learning order, written by the chunk rules below. If the topic has more than 5 important ideas, teach the 5 that matter most. Cover the learner's questions and the suggested questions within the chunks. Plain paragraphs; you may use short bullet lists with "- ". No headings inside a chunk.
+- chunks: the lesson itself, as many chunks as the level rules say, in a sensible learning order, written by the chunk rules below. If the topic has more important ideas than that, teach the ones that matter most. Cover the learner's questions and the suggested questions within the chunks. Plain paragraphs; you may use short bullet lists with "- ". No headings inside a chunk.
 - sources: 2-8 sources you relied on, each with url and title.
 
 ${CHUNK_RULES}`;
@@ -62,7 +61,10 @@ export type ResearchResult = {
 function userPrompt({ title, level, questions }: ResearchInput): string {
   const lines = [
     `Topic: ${title}`,
-    `Learner's level: ${level ? topicLevelLabels[level] : "not given"}`,
+    `${levelLine(level)}
+Level rules:
+- chunks: ${levelProfile(level).parts}
+- what to include: ${levelProfile(level).content}`,
     questions.length > 0
       ? `Learner's questions:\n${questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}`
       : "Learner's questions: none",
@@ -136,7 +138,7 @@ async function runConversation(
       fallbacks: "default",
       output_config: { effort: "medium", format: zodOutputFormat(lessonOutputSchema) },
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: MAX_SEARCHES }],
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: levelProfile(input.level).searches }],
       messages,
     });
 

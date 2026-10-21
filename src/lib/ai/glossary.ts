@@ -3,12 +3,12 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { FALLBACK_BETA, claude, contentModel, costUsd, type Model } from "@/lib/claude";
 import {
-  MAX_GLOSSARY_TERMS,
   buildGlossarySchema,
   glossaryTermSchema,
   type GlossaryTerm,
 } from "@/lib/schemas";
-import { topicLevelLabels, type TopicLevel } from "@/lib/schemas/topic";
+import { levelLine, levelProfile } from "@/lib/levels";
+import type { TopicLevel } from "@/lib/schemas/topic";
 
 // build_glossary (from the lesson) and define_term (one term the learner adds).
 
@@ -28,7 +28,7 @@ const STYLE = `How to write each entry:
 
 const BUILD_PROMPT = `You are a personal learning coach. From a lesson the learner is studying, build a glossary of the words that could block understanding: technical terms, field-specific uses of everyday words, names of effects, studies or methods, and every abbreviation.
 
-Pick terms a newcomer at the learner's level might not know or might misread. Skip words any adult knows. Include every abbreviation used. Give up to ${MAX_GLOSSARY_TERMS} terms, in the order they first appear; fewer is fine for a simple lesson.
+Pick the terms the level rules describe. Skip words any adult knows. Include every abbreviation used. Give no more terms than the level rules allow, in the order they first appear; fewer is fine for a simple lesson.
 
 ${STYLE}`;
 
@@ -49,7 +49,7 @@ export type GlossaryContext = {
 function contextPrompt({ title, level, chunks }: GlossaryContext): string {
   return [
     `Topic: ${title}`,
-    `Learner's level: ${level ? topicLevelLabels[level] : "not given"}`,
+    levelLine(level),
     `Lesson:\n\n${chunks.map((c) => `## ${c.title}\n\n${c.content}`).join("\n\n")}`,
   ].join("\n\n");
 }
@@ -102,12 +102,15 @@ export async function buildGlossary(context: GlossaryContext): Promise<{ terms: 
   const { value, usage } = await callStructured(
     contentModel(context.level),
     BUILD_PROMPT,
-    contextPrompt(context),
+    `${contextPrompt(context)}
+
+Level rules:
+- terms: up to ${levelProfile(context.level).glossaryMax}: ${levelProfile(context.level).glossaryFocus}`,
     z.object({ terms: z.array(termOutputSchema) }),
     (raw) => {
       // Trim an over-long list rather than reject it.
       const terms = (raw as { terms?: unknown[] })?.terms;
-      const parsed = buildGlossarySchema.safeParse({ terms: Array.isArray(terms) ? terms.slice(0, MAX_GLOSSARY_TERMS) : terms });
+      const parsed = buildGlossarySchema.safeParse({ terms: Array.isArray(terms) ? terms.slice(0, levelProfile(context.level).glossaryMax) : terms });
       return parsed.success ? parsed.data.terms : null;
     },
   );

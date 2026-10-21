@@ -3,7 +3,8 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { FALLBACK_BETA, claude, contentModel, costUsd } from "@/lib/claude";
 import { buildCriticalSchema, criticalKinds, type CriticalQuestion, type TopicCard } from "@/lib/schemas";
-import { topicLevelLabels, type TopicLevel } from "@/lib/schemas/topic";
+import { levelLine, levelProfile } from "@/lib/levels";
+import type { TopicLevel } from "@/lib/schemas/topic";
 
 // build_critical: open "Think deeper" questions on top of the Topic Card.
 
@@ -25,7 +26,7 @@ What makes a good question here:
 - It can be answered in a paragraph by someone who read the lesson, though it may reach beyond it.
 - Plain language, one question per item, no multi-part lists.
 
-Write 5 or 6 questions, using at least 4 different kinds:
+Write as many questions as the level rules say, each of a different kind where you can:
 - assumptions: what the idea takes for granted, and what happens if that's false.
 - evidence: how we know it's true, how strong the evidence is, what would change our mind.
 - counterargument: the strongest objection or a case where it fails.
@@ -45,7 +46,9 @@ export type CriticalInput = {
 function userPrompt({ title, level, card, chunks }: CriticalInput): string {
   return [
     `Topic: ${title}`,
-    `Learner's level: ${level ? topicLevelLabels[level] : "not given"}`,
+    `${levelLine(level)}
+Level rules:
+- questions: ${levelProfile(level).thinkDeeper}`,
     `Topic Card:\n- In one sentence: ${card.one_sentence}\n- Summary: ${card.paragraph}\n- Analogy: ${card.analogy}\n- Common mistake: ${card.counterpoint}\n- Connects to: ${card.connects_to.join(", ")}`,
     `Lesson:\n\n${chunks.map((c) => `## ${c.title}\n\n${c.content}`).join("\n\n")}`,
   ].join("\n\n");

@@ -2,7 +2,8 @@ import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { FALLBACK_BETA, GRADING_MODEL, claude, costUsd } from "@/lib/claude";
-import { gradeAnswerSchema, type GradeAnswerResult } from "@/lib/schemas";
+import { levelLine, levelProfile } from "@/lib/levels";
+import { gradeAnswerSchema, type GradeAnswerResult, type TopicLevel } from "@/lib/schemas";
 
 // grade_answer: score one recall answer 0-5 against its key points.
 
@@ -45,13 +46,16 @@ export function withWholeScore(raw: unknown): unknown {
   return typeof score === "number" ? { ...(raw as object), score: Math.round(score) } : raw;
 }
 
-export type AnswerInput = { question: string; keyPoints: string[]; answer: string };
+// The topic's level, when there is one, adds its grading rule. Word practice has none.
+export type AnswerInput = { question: string; keyPoints: string[]; answer: string; level?: TopicLevel | null };
 
 export async function gradeAnswer(
   input: AnswerInput,
 ): Promise<{ result: GradeAnswerResult; usage: { inputTokens: number; outputTokens: number; costUsd: number } }> {
   const usage = { inputTokens: 0, outputTokens: 0, costUsd: 0 };
+  const levelRule = input.level !== undefined ? levelProfile(input.level).grading : null;
   const prompt = [
+    ...(levelRule ? [`${levelLine(input.level ?? null)}. ${levelRule}`] : []),
     `Question: ${input.question}`,
     `Key points:\n${input.keyPoints.map((p) => `- ${p}`).join("\n")}`,
     `<answer>\n${input.answer}\n</answer>`,

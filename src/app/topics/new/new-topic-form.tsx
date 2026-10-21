@@ -21,10 +21,11 @@ import { createTopic, type NewTopicState } from "./actions";
 
 const initialState: NewTopicState = { error: null };
 
+// What each level means in practice; see src/lib/levels.ts.
 const levelHints: Record<TopicLevel, string> = {
-  beginner: "Start from the basics",
-  intermediate: "Skip the fundamentals",
-  advanced: "Go deep and nuanced",
+  beginner: "3 short parts, 3-4 questions, plain words count",
+  intermediate: "4 parts with the main caveats, 5-6 questions",
+  advanced: "4-5 deeper parts, 6-8 harder questions, stricter grading",
 };
 
 const modes = [

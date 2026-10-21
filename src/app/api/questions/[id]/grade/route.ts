@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { gradeAnswer } from "@/lib/ai/grade-answer";
 import { requireSession } from "@/lib/auth";
-import type { GradeAnswerResult } from "@/lib/schemas";
+import { isTopicLevel, type GradeAnswerResult } from "@/lib/schemas";
 import { nextReview } from "@/lib/schedule";
 import { db } from "@/lib/supabase";
 
@@ -37,15 +37,24 @@ export async function POST(request: Request, { params }: RouteContext<"/api/ques
   const supabase = db();
   const { data: question } = await supabase
     .from("recall_questions")
-    .select("text, key_points, review_state(step, interval_days, due_at)")
+    .select("text, key_points, topics(level), review_state(step, interval_days, due_at)")
     .eq("id", id)
     .maybeSingle();
   if (!question) return Response.json({ error: "Question not found." }, { status: 404 });
+  // The topic's level sets how strictly the answer is graded.
+  const level = question.topics?.level ?? null;
 
   try {
     // A blank answer is a 0 by the rubric; no need to ask Claude.
     const result: GradeAnswerResult = answer
-      ? (await gradeAnswer({ question: question.text, keyPoints: question.key_points, answer })).result
+      ? (
+          await gradeAnswer({
+            question: question.text,
+            keyPoints: question.key_points,
+            answer,
+            level: isTopicLevel(level) ? level : null,
+          })
+        ).result
       : {
           score: 0,
           points_hit: [],
