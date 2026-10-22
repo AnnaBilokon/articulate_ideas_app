@@ -10,6 +10,7 @@ import {
   GraduationCap,
   House,
   Library,
+  ListChecks,
   Mic,
   Plus,
   Sprout,
@@ -57,6 +58,7 @@ const workspaces: { id: string; label: string; href: string; icon: LucideIcon; p
     prefixes: ["/growth"],
     nav: [
       { href: "/growth/goals", label: "Goals", icon: Target },
+      { href: "/growth/habits", label: "Habits", icon: ListChecks },
       { href: "/growth/achievements", label: "Achievements", icon: Trophy },
     ],
   },

@@ -5,12 +5,14 @@ import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { listAchievements, listGoals } from "@/lib/goals";
+import { listHabits, todayDetail } from "@/lib/habits";
 import { reviewOverview } from "@/lib/reviews";
 import { APP_TIME_ZONE, localDate } from "@/lib/schedule";
 import { learningStreak } from "@/lib/streak";
 import { practiceOverview } from "@/lib/vocabulary";
 import { cn } from "@/lib/utils";
 import { ProgressBar, progressText } from "./growth/goals/goal-bits";
+import { HabitToday } from "./growth/habits/habit-check";
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: APP_TIME_ZONE });
 const hourFormat = new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: APP_TIME_ZONE });
@@ -24,19 +26,20 @@ function greeting(now: Date): string {
 export default async function JourneyHome() {
   await connection(); // Read fresh data on every visit, not once at build.
   const now = new Date();
-  const [review, words, streak, goals, achievements] = await Promise.all([
+  const today = localDate(now);
+  const [review, words, streak, goals, achievements, habits] = await Promise.all([
     reviewOverview(),
     practiceOverview(),
     learningStreak(),
     listGoals(),
     listAchievements(),
+    listHabits(today),
   ]);
+  const todaysHabits = habits.filter((h) => !h.archived && h.plannedToday);
   const active = goals.filter((g) => g.status === "active");
-  // Goals with a target date first, soonest first; then the newest.
-  const shown = [...active]
-    .sort((a, b) => (a.targetDate ?? "9999").localeCompare(b.targetDate ?? "9999"))
-    .slice(0, 3);
-  const thisMonth = achievements.filter((a) => a.achievedOn.slice(0, 7) === localDate(now).slice(0, 7)).length;
+  // Goals with a target year first, soonest first; then the newest.
+  const shown = [...active].sort((a, b) => (a.targetYear ?? 9999) - (b.targetYear ?? 9999)).slice(0, 3);
+  const thisMonth = achievements.filter((a) => a.achievedOn.slice(0, 7) === today.slice(0, 7)).length;
 
   const learning = [
     {
@@ -71,6 +74,29 @@ export default async function JourneyHome() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
       <PageHeader title={greeting(now)} description={`${dateFormat.format(now)}. Your journey, one day at a time.`} />
+
+      {todaysHabits.length > 0 && (
+        <section className="flex flex-col gap-3" aria-labelledby="habits-today">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 id="habits-today" className="text-lg font-semibold tracking-tight text-heading">
+              Habits today{" "}
+              <span className="text-sm font-normal text-muted-foreground">
+                {todaysHabits.filter((h) => h.doneToday).length} of {todaysHabits.length}
+              </span>
+            </h2>
+            <Link href="/growth/habits" className="text-sm text-muted-foreground hover:text-foreground">
+              All habits
+            </Link>
+          </div>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {todaysHabits.map((h) => (
+              <li key={h.id}>
+                <HabitToday habitId={h.id} title={h.title} today={today} done={h.doneToday} detail={todayDetail(h)} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
@@ -112,7 +138,7 @@ export default async function JourneyHome() {
               <Sprout className="size-4.5" />
             </span>
             <CardTitle className="text-lg text-heading">Growth</CardTitle>
-            <CardDescription>Goals and achievements.</CardDescription>
+            <CardDescription>Goals, habits and achievements.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col gap-4">
             {shown.length === 0 ? (

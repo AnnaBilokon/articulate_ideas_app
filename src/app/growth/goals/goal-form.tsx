@@ -11,19 +11,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { MAX_GOAL_STEPS, type GoalInput } from "@/lib/schemas";
 import { createGoal, updateGoal } from "../actions";
 
-// A goal's name and why, and the optional ways to track it: a target date,
+// A goal's name and why, and the optional ways to track it: a target year,
 // a number to reach, and (for a new goal) its first steps.
 export function GoalForm({ goalId, initial }: { goalId?: string; initial?: GoalInput }) {
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [why, setWhy] = useState(initial?.why ?? "");
-  const [targetDate, setTargetDate] = useState(initial?.targetDate ?? "");
+  const [targetYear, setTargetYear] = useState(initial?.targetYear?.toString() ?? "");
   const [metricTarget, setMetricTarget] = useState(initial?.metricTarget?.toString() ?? "");
   const [metricUnit, setMetricUnit] = useState(initial?.metricUnit ?? "");
   const [steps, setSteps] = useState<string[]>([]);
   const [newStep, setNewStep] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+
+  // This year and the next ten, plus a past year a goal already has.
+  const thisYear = new Date().getFullYear();
+  const years = Array.from({ length: 11 }, (_, i) => thisYear + i);
+  if (initial?.targetYear && initial.targetYear < thisYear) years.unshift(initial.targetYear);
 
   const addStep = () => {
     const s = newStep.trim();
@@ -39,7 +44,7 @@ export function GoalForm({ goalId, initial }: { goalId?: string; initial?: GoalI
         setError("The number to reach should be a number, like 12 or 2.5.");
         return;
       }
-      const goal: GoalInput = { title, why, targetDate: targetDate || null, metricTarget: target, metricUnit };
+      const goal: GoalInput = { title, why, targetYear: targetYear ? Number(targetYear) : null, metricTarget: target, metricUnit };
       // A step typed but not added yet still counts.
       const allSteps = newStep.trim() ? [...steps, newStep.trim()] : steps;
       const result = goalId ? await updateGoal(goalId, goal) : await createGoal({ ...goal, steps: allSteps });
@@ -80,14 +85,20 @@ export function GoalForm({ goalId, initial }: { goalId?: string; initial?: GoalI
 
         <div className="grid gap-6 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="target-date">Target date</Label>
-            <Input
-              id="target-date"
-              type="date"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-              className="h-10 bg-background"
-            />
+            <Label htmlFor="target-year">Target year</Label>
+            <select
+              id="target-year"
+              value={targetYear}
+              onChange={(e) => setTargetYear(e.target.value)}
+              className="h-10 rounded-lg border border-input bg-background px-2.5 text-sm"
+            >
+              <option value="">No target year</option>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
             <p className="text-xs text-muted-foreground">Optional. A direction, not a deadline.</p>
           </div>
           <div className="flex flex-col gap-2">
