@@ -30,7 +30,7 @@ export default async function NewTopicPage({ searchParams }: PageProps<"/topics/
       <PageHeader
         title="New topic"
         description="Name it, ask what you're curious about, and set your level."
-        back={{ href: "/", label: "Today" }}
+        back={{ href: "/learn", label: "Today" }}
       />
       {/* Reviews are piling up: a nudge, not a block. */}
       {review.overflow > 0 && (

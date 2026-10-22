@@ -14,5 +14,5 @@ export async function deleteTopic(topicId: string): Promise<DeleteTopicState> {
   const { error } = await db().from("topics").delete().eq("id", topicId);
   if (error) return { error: "Could not delete the topic. Try again." };
 
-  redirect("/");
+  redirect("/learn");
 }

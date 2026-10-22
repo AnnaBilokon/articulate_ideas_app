@@ -12,6 +12,6 @@ export async function saveDailyCap(cap: number): Promise<{ cap: number } | { err
 
   const { error } = await db().from("settings").update({ daily_review_cap: cap }).eq("id", 1);
   if (error) return { error: "Could not save the limit. Try again." };
-  revalidatePath("/");
+  revalidatePath("/learn");
   return { cap };
 }

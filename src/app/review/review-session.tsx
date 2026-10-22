@@ -49,7 +49,7 @@ export function ReviewSession({ questions }: { questions: SessionQuestion[] }) {
                           <Repeat className="size-4" /> Keep going
                         </a>
                       )}
-                      <Link href="/" className={buttonVariants()}>
+                      <Link href="/learn" className={buttonVariants()}>
                         Back to Today <ArrowRight className="size-4" />
                       </Link>
                     </div>

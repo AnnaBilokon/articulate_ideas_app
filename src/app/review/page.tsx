@@ -15,7 +15,7 @@ export default async function ReviewPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
-      <PageHeader title="Review" back={{ href: "/", label: "Today" }}>
+      <PageHeader title="Review" back={{ href: "/learn", label: "Today" }}>
         <p className="text-sm text-muted-foreground">
           {today.length > 0
             ? `${today.length} ${today.length === 1 ? "question" : "questions"} due, from all your topics, mixed.`
@@ -42,7 +42,7 @@ export default async function ReviewPage() {
                 <NextReviewLine dueAt={nextDueAt} />
               )}
             </div>
-            <Link href="/" className={buttonVariants({ variant: "outline" })}>
+            <Link href="/learn" className={buttonVariants({ variant: "outline" })}>
               Today
             </Link>
           </CardContent>
