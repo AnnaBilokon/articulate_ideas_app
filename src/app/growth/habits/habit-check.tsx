@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { Check } from "lucide-react";
 import { calendarWeeks, isPlannedOn, WEEKDAYS, type HabitRule } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
@@ -90,9 +90,14 @@ export function HabitCalendar({
   weeks: number;
 }) {
   const doneSet = new Set(done);
+  const scroller = useRef<HTMLDivElement>(null);
+  // On narrow screens the weeks scroll sideways: start at this week.
+  useEffect(() => {
+    if (scroller.current) scroller.current.scrollLeft = scroller.current.scrollWidth;
+  }, []);
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex gap-1 overflow-x-auto pb-1" role="group" aria-label={`${title}: the last ${weeks} weeks`}>
+      <div ref={scroller} className="flex gap-1 overflow-x-auto pb-1" role="group" aria-label={`${title}: the last ${weeks} weeks`}>
         <div className="flex shrink-0 flex-col gap-1 pr-0.5 text-[10px] leading-none text-muted-foreground" aria-hidden>
           {WEEKDAYS.map((w) => (
             <span key={w.day} className="flex h-4 items-center">
