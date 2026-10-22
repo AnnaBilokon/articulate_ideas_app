@@ -3,6 +3,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { CONTENT_MODEL, FALLBACK_BETA, claude, costUsd } from "@/lib/claude";
 import {
+  AI_ENGINEERING_TOPIC,
   SPEAKING_PLAN,
   speakingFeedbackSchema,
   speakingFollowUpFeedbackSchema,
@@ -29,7 +30,32 @@ Write one speaking exercise.
 - question: what someone in the scene asks or says to the learner, in their own voice, one or two sentences. Answerable out loud in 30-90 seconds without preparing, and it practises today's skill and technique.
 - tip: one short sentence on how to apply today's technique to this question.
 - revisit: up to 2 expressions from "Expressions to bring back" that would fit naturally in an answer, copied exactly. Empty if none fit.
-Match the learner's level: simpler situations for "I get by", nuanced ones for "I'm fluent". Don't repeat a recent scenario. Use the recent notes to target what they're working on.`;
+Match the learner's level: simpler situations for "I get by", nuanced ones for "I'm fluent". Later rounds of the plan ask more: less familiar questions, a follow-on part, polite pushback. Don't repeat a recent scenario or question. Use the recent notes to target what they're working on.`;
+
+// The AI engineering topic: real questions and problems, one area at a time
+// so they vary. Areas are what AI engineers are asked about in 2026.
+const AI_ENGINEERING_AREAS = [
+  "RAG: chunking, hybrid search, reranking, why retrieval misses",
+  "Evaluating LLM features: eval sets, LLM-as-judge, catching regressions",
+  "Agents and tool use: when an agent is worth it, loops, failures, guardrails",
+  "Hallucinations and grounding answers in sources",
+  "Prompt and context engineering: what goes in the context and why",
+  "Cost and latency: model choice, prompt caching, batching, smaller models",
+  "Reliable structured output and handling bad model output",
+  "Security: prompt injection, data leaks, permissions for tools",
+  "Prompting vs RAG vs fine-tuning: choosing and explaining the trade-off",
+  "Observability and debugging LLM apps in production",
+  "Shipping AI features: scoping, setting expectations, explaining limits to non-engineers",
+  "Embeddings and vector search: how they work and where they fail",
+  "Moving to a new model: testing, comparing, rolling out safely",
+  "Connecting models to tools and data: APIs, MCP, function calling",
+  "Responsible AI: privacy, bias, human review, user trust",
+];
+
+const AI_ENGINEERING_GUIDE = `This topic is AI engineering. The question is one an AI engineer really gets asked today, or an AI engineering problem to talk through:
+- a question from an interview, a design review, a tech lead, a product manager or a colleague ("How would you evaluate…?", "Why not just fine-tune?"), or
+- a problem: something in an AI system is wrong, slow, costly or risky, and they're asked how they'd approach it.
+Realistic and current, the kind that comes up at work this year; never trivia or definitions to recite. Fit it to today's technique: an everyday comparison for "Explain it simply", a quick opinion for "Opinions on the spot", a chat at a meetup for small talk.`;
 
 const FEEDBACK_PROMPT = `${COACH}
 
@@ -41,7 +67,8 @@ The learner answered a speaking exercise. Give feedback.
 - vocabulary: one sentence with a word or phrase to swap for a more natural or precise one, quoting theirs.
 - grammar: one sentence with the most useful correction, quoting their words and the fix.
   For clarity, structure, vocabulary and grammar: if nothing needs changing, say so in a few words. Don't invent problems.
-- improved: their answer in natural, clear spoken English at their level, keeping their ideas and roughly their length. Not a showcase of fancy words.
+- improved: their answer in natural, clear spoken English at their level, keeping their ideas and roughly their length. Not a showcase of fancy words. On a technical question, keep it technically sound.
+  If a technical answer has a real mistake or misses the key point, say so briefly in clarity.
 - expressions: 2 or 3 short, useful expressions (2 to 6 words each) they could have used here and will use again, each with a plain meaning and an example sentence from this scene. Everyday English, not idioms that sound odd from a non-native speaker.
 - follow_up: one natural question from the scene that invites them to use one or two of these expressions next. Don't name the expressions in it.
 - used_revisit: the expressions from "Expressions to bring back" that their answer used, in any form, copied exactly from that list.
@@ -111,8 +138,11 @@ export type ExerciseDraft = { scenario: string; question: string; tip: string; r
 
 export async function makeSpeakingExercise(input: {
   profile: SpeakingProfile;
+  round: number;
   day: number;
   topic: string;
+  /** Counts finished exercises, to rotate through the topic's areas. */
+  done: number;
   recent: { scenario: string; note: string | null }[];
   revisitPool: string[];
 }) {
@@ -120,7 +150,11 @@ export async function makeSpeakingExercise(input: {
   const prompt = [
     profileBlock(input.profile),
     `Topic for this exercise: ${input.topic}`,
-    `Today (day ${plan.day} of 14): ${speakingSkillInfo[plan.skill].label}: "${plan.title}". Technique: ${plan.technique}`,
+    ...(input.topic.toLowerCase() === AI_ENGINEERING_TOPIC.toLowerCase()
+      ? [`${AI_ENGINEERING_GUIDE}
+Area for this one: ${AI_ENGINEERING_AREAS[input.done % AI_ENGINEERING_AREAS.length]}`]
+      : []),
+    `Today (round ${input.round}, day ${plan.day} of 14): ${speakingSkillInfo[plan.skill].label}: "${plan.title}". Technique: ${plan.technique}`,
     `Recent exercises (don't repeat these scenes; the notes show what they're working on):\n${
       input.recent.length > 0 ? input.recent.map((r) => `- ${r.scenario}${r.note ? ` (note: ${r.note})` : ""}`).join("\n") : "none yet"
     }`,
@@ -182,7 +216,7 @@ export async function speakingFeedback(input: {
     (raw) => {
       const shaped = feedbackOutput.safeParse(raw);
       if (!shaped.success) return null;
-      // Expressions that fit the Vocabulary list: up to 6 words, 60 characters.
+      // Short expressions only: up to 6 words, 60 characters.
       const expressions = shaped.data.expressions
         .filter((e) => e.expression.trim().split(/\s+/).length <= 6 && e.expression.trim().length <= 60)
         .slice(0, 3);

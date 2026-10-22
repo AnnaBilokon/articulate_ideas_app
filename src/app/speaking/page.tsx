@@ -12,8 +12,8 @@ import { StartExercise } from "./start-exercise";
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 
-// The speaking coach: set up once, then one exercise at a time through a
-// flexible 14-day plan. Progress is what's done; there are no scores.
+// The speaking coach: set up once, then one exercise at a time through 14
+// practice days that repeat in rounds. Progress is what's done; no scores.
 export default async function SpeakingPage() {
   await connection();
   const profile = await speakingProfile();
@@ -32,7 +32,7 @@ export default async function SpeakingPage() {
 
   const overview = await speakingOverview();
   const today = SPEAKING_PLAN[overview.day - 1];
-  const doneToday = overview.doneByDay[today.day] ?? 0;
+  const { round, doneToday } = overview;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
@@ -45,26 +45,20 @@ export default async function SpeakingPage() {
       <Card className="ring-primary/20">
         <CardHeader>
           <CardDescription>
-            {overview.freePractice ? "Free practice · the plan is done" : `Day ${today.day} of 14 · ${speakingSkillInfo[today.skill].label}`}
+            {round > 1 && `Round ${round} · `}Day {today.day} of 14 · {speakingSkillInfo[today.skill].label}
           </CardDescription>
-          <CardTitle className="text-xl text-heading">{overview.freePractice ? "Keep it going" : today.title}</CardTitle>
-          <CardDescription>
-            {overview.freePractice
-              ? "Mixed exercises across all four skills, bringing back your saved expressions."
-              : today.technique}
-          </CardDescription>
+          <CardTitle className="text-xl text-heading">{today.title}</CardTitle>
+          <CardDescription>{today.technique}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {!overview.freePractice && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground" aria-label={`${doneToday} of ${EXERCISES_PER_DAY} exercises done`}>
-              {Array.from({ length: EXERCISES_PER_DAY }, (_, i) => (
-                <span key={i} className={cn("size-2.5 rounded-full", i < doneToday ? "bg-primary" : "bg-muted ring-1 ring-border")} />
-              ))}
-              <span>
-                {doneToday} of {EXERCISES_PER_DAY} for this day. Take as long as you like: the plan waits for you.
-              </span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground" aria-label={`${doneToday} of ${EXERCISES_PER_DAY} exercises done`}>
+            {Array.from({ length: EXERCISES_PER_DAY }, (_, i) => (
+              <span key={i} className={cn("size-2.5 rounded-full", i < doneToday ? "bg-primary" : "bg-muted ring-1 ring-border")} />
+            ))}
+            <span>
+              {doneToday} of {EXERCISES_PER_DAY} for this day. Take as long as you like: the plan waits for you.
+            </span>
+          </div>
           {overview.open ? (
             <Link href={`/speaking/exercises/${overview.open.id}`} className={cn(buttonVariants({ size: "lg" }), "h-10 w-fit px-4")}>
               Continue your exercise <ArrowRight className="size-4" />
@@ -76,11 +70,16 @@ export default async function SpeakingPage() {
       </Card>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold tracking-tight text-heading">Your 14 days</h2>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-semibold tracking-tight text-heading">Round {round}</h2>
+          <p className="text-sm text-muted-foreground">
+            After day 14 the plan starts again, with harder questions each round.
+          </p>
+        </div>
         <ol className="grid grid-cols-2 gap-2 sm:grid-cols-7">
           {SPEAKING_PLAN.map((d) => {
-            const done = overview.doneByDay[d.day] ?? 0;
-            const current = !overview.freePractice && d.day === today.day;
+            const done = d.day < today.day ? EXERCISES_PER_DAY : d.day === today.day ? doneToday : 0;
+            const current = d.day === today.day;
             return (
               <li
                 key={d.day}
@@ -122,14 +121,14 @@ export default async function SpeakingPage() {
         <section className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="text-lg font-semibold tracking-tight text-heading">Your expressions</h2>
-            <Link href="/vocabulary" className="text-sm text-muted-foreground hover:text-foreground">
-              In your vocabulary
+            <Link href="/speaking/expressions" className="text-sm text-muted-foreground hover:text-foreground">
+              See all {overview.saved.length}
             </Link>
           </div>
           <ul className="flex flex-wrap gap-2">
-            {overview.saved.map((s) => (
-              <li key={s.word} className="rounded-full bg-accent px-3 py-1.5 text-sm text-accent-foreground">
-                {s.word}
+            {overview.saved.slice(0, 12).map((s) => (
+              <li key={s.id} className="rounded-full bg-accent px-3 py-1.5 text-sm text-accent-foreground">
+                {s.expression}
               </li>
             ))}
           </ul>

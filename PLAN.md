@@ -478,10 +478,10 @@ Every topic followed the same track in the same format, which made learning feel
 
 A Speaking tab for English articulation, active vocabulary and thinking on the spot at work and in social talk.
 
-- [x] Profile: goals, challenges, level in plain words, situations, and topics (AI developer work first)
-- [x] A flexible 14-day plan: finding words (days 1-3), organising thoughts (4-6), spontaneous answers (7-9), conversation skills (10-12), real situations (13-14); three exercises a day, and the plan waits rather than penalising missed days
+- [x] Profile: goals, challenges, level in plain words, situations, and topics; the first is "AI engineering": questions AI engineers get asked today, or AI engineering problems to talk through, rotating through current areas (RAG, evals, agents, cost, security, ...)
+- [x] 14 practice days that repeat in rounds, each round more demanding: finding words (days 1-3), organising thoughts (4-6), spontaneous answers (7-9), conversation skills (10-12), real situations (13-14); three exercises a day, and the plan waits rather than penalising missed days
 - [x] One exercise at a time: a realistic scene and question, answered by voice (browser speech-to-text, free) or typing, with an optional timer that's off by default
-- [x] Feedback on clarity, structure, vocabulary and grammar, a natural improved version, 2-3 expressions to save to Vocabulary, then a follow-up question to use them
+- [x] Feedback on clarity, structure, vocabulary and grammar, a natural improved version, 2-3 expressions to save to the Speaking tab's own list (kept apart from Vocabulary and its schedule), then a follow-up question to use them
 - [x] Saved expressions come back in later exercises, and using them again is noticed; progress is counted with no scores or streak penalties, and finished exercises count as learning days
 
 ## Best practices and pitfalls

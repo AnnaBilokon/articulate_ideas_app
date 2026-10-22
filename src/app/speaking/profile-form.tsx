@@ -124,7 +124,10 @@ export function ProfileForm({ initial }: { initial: SpeakingProfile | null }) {
 
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-sm font-medium">Topics to practise</legend>
-          <p className="-mt-1 text-sm text-muted-foreground">The scenes come from these. You pick one each time.</p>
+          <p className="-mt-1 text-sm text-muted-foreground">
+            The scenes come from these. You pick one each time. &ldquo;AI engineering&rdquo; asks the questions AI engineers get
+            today, and problems to talk through.
+</p>
           <ul className="flex flex-wrap gap-2">
             {topics.map((t) => (
               <li key={t} className="flex items-center gap-1 rounded-full bg-highlight py-1.5 pr-2 pl-3.5 text-sm font-medium text-highlight-foreground">

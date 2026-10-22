@@ -2,11 +2,11 @@ import "server-only";
 import { makeSpeakingExercise, speakingFeedback, speakingFollowUp } from "@/lib/ai/speaking";
 import {
   SPEAKING_PLAN,
-  SPEAKING_SAVED_PREFIX,
-  currentPlanDay,
+  planPosition,
   speakingFeedbackSchema,
   speakingFollowUpFeedbackSchema,
   speakingProfileSchema,
+  type SpeakingExpression,
   type SpeakingFeedback,
   type SpeakingFollowUpFeedback,
   type SpeakingProfile,
@@ -15,8 +15,7 @@ import {
 import { db } from "@/lib/supabase";
 
 // The speaking coach's data: the profile, the plan position, exercises, and
-// the expressions saved from it into Vocabulary (their context starts with
-// SPEAKING_SAVED_PREFIX), which later exercises bring back.
+// the expressions saved from feedback, which later exercises bring back.
 
 export class SpeakingError extends Error {
   constructor(message: string, readonly status = 400) {
@@ -96,12 +95,12 @@ export async function speakingExercise(id: string): Promise<SpeakingExercise | n
   return data ? toExercise(data) : null;
 }
 
-export type SavedExpression = { word: string; dueAt: string | null; lastScore: number | null };
+export type SavedExpression = SpeakingExpression & { id: string; timesUsed: number; lastUsedAt: string | null };
 
 export type SpeakingOverview = {
+  round: number;
   day: number;
-  freePractice: boolean;
-  doneByDay: Record<number, number>;
+  doneToday: number;
   done: number;
   open: SpeakingExercise | null;
   recent: SpeakingExercise[];
@@ -110,37 +109,63 @@ export type SpeakingOverview = {
   reused: number;
 };
 
-async function savedExpressions(): Promise<SavedExpression[]> {
+/** Saved expressions, newest first. */
+export async function savedSpeakingExpressions(): Promise<SavedExpression[]> {
   const { data } = await db()
-    .from("vocabulary_words")
-    .select("word, due_at, last_score, created_at")
-    .ilike("context", `${SPEAKING_SAVED_PREFIX}%`)
+    .from("speaking_expressions")
+    .select("id, expression, meaning, example, times_used, last_used_at")
     .order("created_at", { ascending: false });
-  return (data ?? []).map((w) => ({ word: w.word, dueAt: w.due_at, lastScore: w.last_score }));
+  return (data ?? []).map((e) => ({
+    id: e.id,
+    expression: e.expression,
+    meaning: e.meaning,
+    example: e.example,
+    timesUsed: e.times_used,
+    lastUsedAt: e.last_used_at,
+  }));
+}
+
+/** Saves an expression; false when it's saved already. */
+export async function saveSpeakingExpression(input: SpeakingExpression & { exerciseId: string | null }): Promise<boolean> {
+  const { error } = await db().from("speaking_expressions").insert({
+    expression: input.expression,
+    meaning: input.meaning,
+    example: input.example,
+    exercise_id: input.exerciseId,
+  });
+  if (error?.code === "23505") return false;
+  if (error) throw new SpeakingError("Couldn't save it. Try again.", 500);
+  return true;
+}
+
+/** Counts a use of each saved expression in the list. */
+async function markExpressionsUsed(expressions: string[]) {
+  if (expressions.length === 0) return;
+  const saved = await savedSpeakingExpressions();
+  const now = new Date().toISOString();
+  await Promise.all(
+    saved
+      .filter((s) => expressions.some((e) => e.toLowerCase() === s.expression.toLowerCase()))
+      .map((s) =>
+        db().from("speaking_expressions").update({ times_used: s.timesUsed + 1, last_used_at: now }).eq("id", s.id),
+      ),
+  );
 }
 
 export async function speakingOverview(): Promise<SpeakingOverview> {
   const [{ data }, saved] = await Promise.all([
     db().from("speaking_exercises").select(COLUMNS).order("created_at", { ascending: false }),
-    savedExpressions(),
+    savedSpeakingExpressions(),
   ]);
   const exercises = (data ?? []).map(toExercise);
-  const doneByDay = new Map<number, number>();
-  for (const e of exercises) if (e.completedAt) doneByDay.set(e.day, (doneByDay.get(e.day) ?? 0) + 1);
-  const { day, freePractice } = currentPlanDay(doneByDay);
-  const reused = exercises.reduce(
-    (n, e) => n + (e.feedback?.used_revisit.length ?? 0),
-    0,
-  );
+  const done = exercises.filter((e) => e.completedAt).length;
   return {
-    day,
-    freePractice,
-    doneByDay: Object.fromEntries(doneByDay),
-    done: exercises.filter((e) => e.completedAt).length,
+    ...planPosition(done),
+    done,
     open: exercises.find((e) => !e.completedAt) ?? null,
     recent: exercises.filter((e) => e.completedAt).slice(0, 5),
     saved,
-    reused,
+    reused: saved.reduce((n, s) => n + s.timesUsed, 0),
   };
 }
 
@@ -149,18 +174,19 @@ export async function startSpeakingExercise(topic: string): Promise<string> {
   const profile = await speakingProfile();
   if (!profile) throw new SpeakingError("Set up the coach first.");
   const overview = await speakingOverview();
-  // In free practice the four skills take turns (days 2, 4, 9 and 12).
-  const plan = overview.freePractice ? SPEAKING_PLAN[[1, 3, 8, 11][overview.done % 4]] : SPEAKING_PLAN[overview.day - 1];
+  const plan = SPEAKING_PLAN[overview.day - 1];
 
-  // Saved expressions practised least first, a handful at a time.
+  // Saved expressions used least (and longest ago) first, a handful at a time.
   const revisitPool = [...overview.saved]
-    .sort((a, b) => (a.lastScore ?? -1) - (b.lastScore ?? -1))
+    .sort((a, b) => a.timesUsed - b.timesUsed || (a.lastUsedAt ?? "").localeCompare(b.lastUsedAt ?? ""))
     .slice(0, 8)
-    .map((s) => s.word);
+    .map((s) => s.expression);
   const { value, usage } = await makeSpeakingExercise({
     profile,
+    round: overview.round,
     day: plan.day,
     topic,
+    done: overview.done,
     recent: overview.recent.map((e) => ({ scenario: e.scenario, note: e.feedback?.clarity ?? null })),
     revisitPool,
   });
@@ -206,6 +232,7 @@ export async function answerSpeakingExercise(id: string, answer: { text: string;
     .select(COLUMNS)
     .single();
   if (error) throw new SpeakingError("Could not save your answer. Try again.", 500);
+  await markExpressionsUsed(value.used_revisit);
   return toExercise(data);
 }
 
@@ -230,6 +257,7 @@ export async function followUpSpeakingExercise(
     });
     console.log(`speaking follow-up ${id}:`, usage);
     followUp = value;
+    await markExpressionsUsed(value.used);
   }
   const { data, error } = await db()
     .from("speaking_exercises")

@@ -683,6 +683,47 @@ export type Database = {
         }
         Relationships: []
       }
+      speaking_expressions: {
+        Row: {
+          created_at: string
+          example: string
+          exercise_id: string | null
+          expression: string
+          id: string
+          last_used_at: string | null
+          meaning: string
+          times_used: number
+        }
+        Insert: {
+          created_at?: string
+          example: string
+          exercise_id?: string | null
+          expression: string
+          id?: string
+          last_used_at?: string | null
+          meaning: string
+          times_used?: number
+        }
+        Update: {
+          created_at?: string
+          example?: string
+          exercise_id?: string | null
+          expression?: string
+          id?: string
+          last_used_at?: string | null
+          meaning?: string
+          times_used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaking_expressions_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "speaking_exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       speaking_profile: {
         Row: {
           challenges: string

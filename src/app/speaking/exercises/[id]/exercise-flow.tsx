@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ArrowRight, BookmarkCheck, BookmarkPlus, Check, Lightbulb, Loader2, Sparkles } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { SPEAKING_SAVED_PREFIX, type SpeakingExpression } from "@/lib/schemas";
+import type { SpeakingExpression } from "@/lib/schemas";
 import type { SpeakingExercise } from "@/lib/speaking";
 import { cn } from "@/lib/utils";
 import { SpeechAnswer } from "../../speech-answer";
@@ -18,10 +18,13 @@ export function ExerciseFlow({
   initial,
   technique,
   topics,
+  saved,
 }: {
   initial: SpeakingExercise;
   technique: string;
   topics: string[];
+  /** Expressions saved already, lowercased. */
+  saved: string[];
 }) {
   const [exercise, setExercise] = useState(initial);
   const [pending, setPending] = useState(false);
@@ -131,7 +134,12 @@ export function ExerciseFlow({
             <h2 className="font-semibold text-heading">Expressions to keep</h2>
             <ul className="flex flex-col gap-2">
               {fb.expressions.map((e) => (
-                <ExpressionCard key={e.expression} expression={e} />
+                <ExpressionCard
+                  key={e.expression}
+                  expression={e}
+                  exerciseId={exercise.id}
+                  initiallySaved={saved.includes(e.expression.toLowerCase())}
+                />
               ))}
             </ul>
           </section>
@@ -217,24 +225,32 @@ export function ExerciseFlow({
   );
 }
 
-// An expression with "Save to Vocabulary": it gets a definition, examples
-// and a Ukrainian translation there, and comes back in word practice.
-function ExpressionCard({ expression }: { expression: SpeakingExpression }) {
-  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+// An expression with Save: it goes to your expressions on the Speaking tab,
+// and later exercises bring it back.
+function ExpressionCard({
+  expression,
+  exerciseId,
+  initiallySaved,
+}: {
+  expression: SpeakingExpression;
+  exerciseId: string;
+  initiallySaved: boolean;
+}) {
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">(initiallySaved ? "saved" : "idle");
   const [message, setMessage] = useState<string | null>(null);
 
   async function save() {
     setState("saving");
     setMessage(null);
-    const response = await fetch("/api/vocabulary", {
+    const response = await fetch("/api/speaking/expressions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ word: expression.expression, context: `${SPEAKING_SAVED_PREFIX}${expression.example}` }),
+      body: JSON.stringify({ ...expression, exerciseId }),
     });
     const body = (await response.json().catch(() => null)) as { error?: string } | null;
     if (response.ok || response.status === 409) {
       setState("saved");
-      if (response.status === 409) setMessage("Already in your vocabulary.");
+      if (response.status === 409) setMessage("Already in your expressions.");
     } else {
       setState("error");
       setMessage(body?.error ?? "Couldn't save it. Try again.");

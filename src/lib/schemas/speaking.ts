@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-// Speaking coach: the learner's profile, the flexible 14-day plan, and the
+// Speaking coach: the learner's profile, the plan of 14 practice days that
+// repeats in rounds, and the
 // shapes of exercises and feedback. No scores anywhere: progress is what's
 // done and which expressions come back into use.
 
@@ -24,10 +25,9 @@ export const speakingContextOptions = [
   "Social conversations",
 ] as const;
 
-export const DEFAULT_SPEAKING_TOPIC = "AI developer work";
-
-/** Expressions saved from the coach go to Vocabulary with a context starting with this. */
-export const SPEAKING_SAVED_PREFIX = "Speaking coach: ";
+/** Questions an AI engineer is asked today, and AI engineering problems to talk through. */
+export const AI_ENGINEERING_TOPIC = "AI engineering";
+export const DEFAULT_SPEAKING_TOPIC = AI_ENGINEERING_TOPIC;
 export const MAX_SPEAKING_TOPICS = 8;
 
 export const speakingProfileSchema = z.object({
@@ -53,7 +53,10 @@ export const speakingSkillInfo: Record<SpeakingSkill, { label: string; blurb: st
   conversation: { label: "Conversation", blurb: "Keep a real exchange going" },
 };
 
-/** The flexible 14-day plan: a day moves on after its exercises, not by the calendar. */
+/**
+ * 14 practice days that repeat in rounds, each round a little more demanding.
+ * A day moves on after its exercises, not by the calendar.
+ */
 export const SPEAKING_PLAN: { day: number; skill: SpeakingSkill; title: string; technique: string }[] = [
   { day: 1, skill: "vocabulary", title: "Name it", technique: "Find the precise word for things in your field, and use it in a sentence." },
   { day: 2, skill: "vocabulary", title: "Describe it", technique: "When the word won't come, describe it: what it is, what it does, what it's like." },
@@ -73,10 +76,14 @@ export const SPEAKING_PLAN: { day: number; skill: SpeakingSkill; title: string; 
 
 export const EXERCISES_PER_DAY = 3;
 
-/** The day to practise: the first with fewer than 3 exercises done. After day 14, free practice on day 14. */
-export function currentPlanDay(doneByDay: Map<number, number>): { day: number; freePractice: boolean } {
-  const open = SPEAKING_PLAN.find((d) => (doneByDay.get(d.day) ?? 0) < EXERCISES_PER_DAY);
-  return open ? { day: open.day, freePractice: false } : { day: 14, freePractice: true };
+/** Where the plan is after `done` finished exercises: the round, the day in it, and exercises done that day. */
+export function planPosition(done: number): { round: number; day: number; doneToday: number } {
+  const step = Math.floor(done / EXERCISES_PER_DAY);
+  return {
+    round: Math.floor(step / SPEAKING_PLAN.length) + 1,
+    day: (step % SPEAKING_PLAN.length) + 1,
+    doneToday: done % EXERCISES_PER_DAY,
+  };
 }
 
 // Answers, spoken (a transcript) or typed.
@@ -96,6 +103,9 @@ export const speakingExpressionSchema = z.object({
   example: z.string().trim().min(1),
 });
 export type SpeakingExpression = z.infer<typeof speakingExpressionSchema>;
+
+/** An expression saved from feedback to the Speaking tab's own list. */
+export const saveSpeakingExpressionSchema = speakingExpressionSchema.extend({ exerciseId: z.uuid().nullable() });
 
 export const speakingFeedbackSchema = z.object({
   well: z.string().trim().min(1),
