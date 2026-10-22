@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowRight, CheckCircle2, Flame, GraduationCap, Repeat, Sprout, WholeWord } from "lucide-react";
+import { ArrowRight, CheckCircle2, Flame, GraduationCap, Repeat, Sprout, Trophy, WholeWord } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { listAchievements, listGoals } from "@/lib/goals";
 import { reviewOverview } from "@/lib/reviews";
-import { APP_TIME_ZONE } from "@/lib/schedule";
+import { APP_TIME_ZONE, localDate } from "@/lib/schedule";
 import { learningStreak } from "@/lib/streak";
 import { practiceOverview } from "@/lib/vocabulary";
 import { cn } from "@/lib/utils";
+import { ProgressBar, progressText } from "./growth/goals/goal-bits";
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: APP_TIME_ZONE });
 const hourFormat = new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: APP_TIME_ZONE });
@@ -22,7 +24,19 @@ function greeting(now: Date): string {
 export default async function JourneyHome() {
   await connection(); // Read fresh data on every visit, not once at build.
   const now = new Date();
-  const [review, words, streak] = await Promise.all([reviewOverview(), practiceOverview(), learningStreak()]);
+  const [review, words, streak, goals, achievements] = await Promise.all([
+    reviewOverview(),
+    practiceOverview(),
+    learningStreak(),
+    listGoals(),
+    listAchievements(),
+  ]);
+  const active = goals.filter((g) => g.status === "active");
+  // Goals with a target date first, soonest first; then the newest.
+  const shown = [...active]
+    .sort((a, b) => (a.targetDate ?? "9999").localeCompare(b.targetDate ?? "9999"))
+    .slice(0, 3);
+  const thisMonth = achievements.filter((a) => a.achievedOn.slice(0, 7) === localDate(now).slice(0, 7)).length;
 
   const learning = [
     {
@@ -92,16 +106,51 @@ export default async function JourneyHome() {
           </CardContent>
         </Card>
 
-        <Card className="bg-muted/40">
+        <Card>
           <CardHeader>
             <span className="mb-1 flex size-9 items-center justify-center rounded-lg bg-success-soft text-success-foreground">
               <Sprout className="size-4.5" />
             </span>
             <CardTitle className="text-lg text-heading">Growth</CardTitle>
-            <CardDescription>Goals and achievements, habits, limiting beliefs and strengths.</CardDescription>
+            <CardDescription>Goals and achievements.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Coming next, one part at a time.</p>
+          <CardContent className="flex flex-1 flex-col gap-4">
+            {shown.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No goals yet. Start with one that matters this season.</p>
+            ) : (
+              <ul className="flex flex-col gap-3 text-sm">
+                {shown.map((g) => {
+                  const text = progressText(g);
+                  return (
+                    <li key={g.id}>
+                      <Link href={`/growth/goals/${g.id}`} className="flex flex-col gap-1.5 hover:text-heading">
+                        <span className="font-medium">{g.title}</span>
+                        {g.progress !== null && (
+                          <span className="flex items-center gap-2">
+                            <ProgressBar value={g.progress} label={`${g.title}: ${text}`} className="flex-1" />
+                            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{text}</span>
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+                {active.length > shown.length && (
+                  <li className="text-xs text-muted-foreground">and {active.length - shown.length} more</li>
+                )}
+              </ul>
+            )}
+            {thisMonth > 0 && (
+              <p className="flex items-center gap-2 text-sm">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-sunflower-soft text-sunflower-foreground">
+                  <Trophy className="size-3.5" />
+                </span>
+                {thisMonth} {thisMonth === 1 ? "achievement" : "achievements"} this month
+              </p>
+            )}
+            <Link href={shown.length === 0 ? "/growth/goals/new" : "/growth/goals"} className={cn(buttonVariants(), "mt-auto w-fit")}>
+              {shown.length === 0 ? "Add a goal" : "Open Growth"} <ArrowRight className="size-4" />
+            </Link>
           </CardContent>
         </Card>
       </div>
