@@ -489,7 +489,7 @@ A Speaking tab for English articulation, active vocabulary and thinking on the s
 The app becomes "My Self Journey", a personal app with workspaces. The learning coach is one of them; a Growth workspace holds goals, habits, beliefs and strengths. One pull request per step.
 
 - [x] 1. Rename and Journey home: `/` shows each workspace at a glance (greeting, learning streak and what's due); Learning's Today moves to `/learn`; the logo opens a workspace menu, and each workspace has its own tabs
-- [ ] 2. Goals and achievements: steps checklist, number targets, progress notes, optional target dates (no "overdue" warnings); finished goals and logged wins become achievements
+- [x] 2. Goals and achievements: steps checklist, number targets, progress notes, optional target dates (no "overdue" warnings); finished goals and logged wins become achievements
 - [ ] 3. Habits: daily, on chosen days, or X times a week; check in on Journey home, a calendar of the days done, no penalties for missed days
 - [ ] 4. Limiting beliefs and strengths: a guided reframe (evidence against, a kinder belief, "working on it" or "let go"), with an optional "Help me reframe" from Claude; strengths with examples, linked to achievements
 

@@ -107,7 +107,8 @@ export default async function GoalPage({ params }: PageProps<"/growth/goals/[id]
 
       {looksDone && (
         <p className="rounded-xl bg-success-soft/60 p-3 text-sm text-success-foreground">
-          Everything&apos;s ticked off. If it feels done, mark it as achieved.
+          {goal.metricTarget !== null ? "You've reached the number." : "Every step is ticked off."} If it feels done, mark it
+          as achieved.
         </p>
       )}
       <StatusActions goalId={goal.id} status={goal.status} />
