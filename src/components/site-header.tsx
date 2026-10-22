@@ -3,21 +3,26 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   BookA,
   CalendarCheck,
+  CalendarRange,
   Check,
   ChevronDown,
   Feather,
   Gem,
   GraduationCap,
   House,
+  LayoutDashboard,
   Library,
   ListChecks,
   Mic,
+  PiggyBank,
   Plus,
   Sprout,
   Target,
   Trophy,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { AppearanceMenu } from "@/components/appearance-menu";
@@ -66,9 +71,26 @@ const workspaces: { id: string; label: string; href: string; icon: LucideIcon; p
       { href: "/growth/beliefs", label: "Beliefs", icon: Feather },
     ],
   },
+  {
+    id: "money",
+    label: "Money",
+    href: "/money",
+    icon: Wallet,
+    prefixes: ["/money"],
+    nav: [
+      { href: "/money", label: "Overview", icon: LayoutDashboard },
+      { href: "/money/months", label: "Months", icon: CalendarRange },
+      { href: "/money/trends", label: "Trends", icon: BarChart3 },
+      { href: "/money/savings", label: "Savings", icon: PiggyBank },
+    ],
+  },
 ];
 
 const matches = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+/** The tab for a page: the longest one that matches, so /money/months isn't also Overview. */
+const activeTab = (pathname: string, nav: NavItem[]) =>
+  nav.filter((item) => matches(pathname, item.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
 function currentWorkspace(pathname: string) {
   if (pathname === "/") return null;
@@ -142,6 +164,7 @@ export function SiteHeader() {
   const current = currentWorkspace(pathname);
   // Journey home lists the workspaces; inside one, its tabs.
   const nav = current?.nav ?? workspaces.map(({ href, label, icon }) => ({ href, label, icon }));
+  const active = current ? activeTab(pathname, nav) : undefined;
 
   return (
     <header className="sticky top-0 z-10 border-b border-border/70 bg-background/75 backdrop-blur-md">
@@ -152,8 +175,8 @@ export function SiteHeader() {
             <Link
               key={href}
               href={href}
-              aria-current={current && matches(pathname, href) ? "page" : undefined}
-              className={tabClass(Boolean(current && matches(pathname, href)))}
+              aria-current={href === active ? "page" : undefined}
+              className={tabClass(href === active)}
             >
               {/* Icons on phones, words from tablet width up. */}
               <Icon className="size-4.5 sm:hidden" />
