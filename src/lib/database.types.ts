@@ -475,6 +475,7 @@ export type Database = {
           metric_unit: string | null
           status: string
           target_date: string | null
+          target_year: number | null
           title: string
           updated_at: string
           why: string | null
@@ -488,6 +489,7 @@ export type Database = {
           metric_unit?: string | null
           status?: string
           target_date?: string | null
+          target_year?: number | null
           title: string
           updated_at?: string
           why?: string | null
@@ -501,6 +503,7 @@ export type Database = {
           metric_unit?: string | null
           status?: string
           target_date?: string | null
+          target_year?: number | null
           title?: string
           updated_at?: string
           why?: string | null

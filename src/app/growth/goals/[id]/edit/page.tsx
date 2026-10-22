@@ -19,7 +19,7 @@ export default async function EditGoalPage({ params }: PageProps<"/growth/goals/
         initial={{
           title: goal.title,
           why: goal.why ?? "",
-          targetDate: goal.targetDate,
+          targetYear: goal.targetYear,
           metricTarget: goal.metricTarget,
           metricUnit: goal.metricUnit ?? "",
         }}

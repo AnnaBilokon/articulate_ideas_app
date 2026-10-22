@@ -1,13 +1,10 @@
-import Link from "next/link";
 import { connection } from "next/server";
-import { Target, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { listAchievements, listGoals } from "@/lib/goals";
 import { localDate } from "@/lib/schedule";
-import { formatDay } from "@/lib/schemas";
-import { cn } from "@/lib/utils";
-import { LogWin, RemoveAchievement } from "./log-win";
+import { AchievementItem, LogWin } from "./log-win";
 
 const monthFormat = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
 
@@ -21,6 +18,7 @@ export default async function AchievementsPage() {
     const key = a.achievedOn.slice(0, 7);
     months.set(key, [...(months.get(key) ?? []), a]);
   }
+  const goalOptions = goals.filter((g) => g.status === "active").map(({ id, title }) => ({ id, title }));
   const thisYear = achievements.filter((a) => a.achievedOn.slice(0, 4) === today.slice(0, 4)).length;
 
   return (
@@ -33,7 +31,7 @@ export default async function AchievementsPage() {
             : `${thisYear} this year. Look back here when it feels like nothing's moving.`
         }
       >
-        <LogWin goals={goals.filter((g) => g.status === "active").map(({ id, title }) => ({ id, title }))} today={today} />
+        <LogWin goals={goalOptions} today={today} />
       </PageHeader>
 
       {achievements.length === 0 ? (
@@ -54,28 +52,8 @@ export default async function AchievementsPage() {
             <h2 className="text-lg font-semibold tracking-tight text-heading">{monthFormat.format(new Date(`${month}-01T00:00:00Z`))}</h2>
             <ul className="flex flex-col gap-2">
               {items.map((a) => (
-                <li key={a.id} className="group flex gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-                  <span
-                    className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-full",
-                      a.fromGoal ? "bg-success-soft text-success-foreground" : "bg-sunflower-soft text-sunflower-foreground",
-                    )}
-                  >
-                    {a.fromGoal ? <Target className="size-4" /> : <Trophy className="size-4" />}
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="font-medium">{a.fromGoal ? `Reached: ${a.title}` : a.title}</span>
-                    {a.note && <p className="text-sm leading-6 whitespace-pre-wrap text-muted-foreground">{a.note}</p>}
-                    <span className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                      {formatDay(a.achievedOn)}
-                      {a.goalId && !a.fromGoal && a.goalTitle && (
-                        <Link href={`/growth/goals/${a.goalId}`} className="hover:text-foreground">
-                          Towards: {a.goalTitle}
-                        </Link>
-                      )}
-                    </span>
-                  </div>
-                  <RemoveAchievement id={a.id} title={a.title} />
+                <li key={a.id}>
+                  <AchievementItem achievement={a} goals={goalOptions} today={today} />
                 </li>
               ))}
             </ul>

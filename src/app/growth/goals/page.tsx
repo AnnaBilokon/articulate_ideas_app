@@ -6,7 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { listGoals, type GoalSummary } from "@/lib/goals";
 import { localDate } from "@/lib/schedule";
-import { describeTargetDate, formatDay, goalStatusLabels, type GoalStatus } from "@/lib/schemas";
+import { describeTargetYear, formatDay, goalStatusLabels, type GoalStatus } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { ProgressBar, progressText } from "./goal-bits";
 
@@ -90,10 +90,10 @@ function GoalRow({ goal, today }: { goal: GoalSummary; today: string }) {
           {goal.status === "achieved" && goal.achievedAt ? (
             <span>Achieved {formatDay(localDate(new Date(goal.achievedAt)))}</span>
           ) : (
-            goal.targetDate &&
+            goal.targetYear &&
             goal.status === "active" && (
               <span className="flex items-center gap-1">
-                <CalendarDays className="size-3.5" /> {describeTargetDate(goal.targetDate, today)}
+                <CalendarDays className="size-3.5" /> {describeTargetYear(goal.targetYear, Number(today.slice(0, 4)))}
               </span>
             )
           )}

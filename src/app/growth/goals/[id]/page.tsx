@@ -6,10 +6,10 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getGoal } from "@/lib/goals";
 import { localDate } from "@/lib/schedule";
-import { describeTargetDate, formatAmount, formatDay, goalStatusLabels } from "@/lib/schemas";
+import { describeTargetYear, formatAmount, goalStatusLabels } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { ProgressBar, progressText, statusTone } from "../goal-bits";
-import { DeleteGoal, MetricControl, NotesLog, StatusActions, StepsList } from "./goal-parts";
+import { AchievedDate, DeleteGoal, MetricControl, NotesLog, StatusActions, StepsList } from "./goal-parts";
 
 // One goal: why it matters, how far along it is, its steps and notes, and
 // moving it on (achieved, paused, let go).
@@ -33,9 +33,9 @@ export default async function GoalPage({ params }: PageProps<"/growth/goals/[id]
             <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", statusTone[goal.status])}>
               {goalStatusLabels[goal.status]}
             </span>
-            {goal.targetDate && goal.status !== "achieved" && (
+            {goal.targetYear && goal.status !== "achieved" && (
               <span className="flex items-center gap-1">
-                <CalendarDays className="size-3.5" /> {describeTargetDate(goal.targetDate, today)}
+                <CalendarDays className="size-3.5" /> {describeTargetYear(goal.targetYear, Number(today.slice(0, 4)))}
               </span>
             )}
             <Link href={`/growth/goals/${goal.id}/edit`} className="flex items-center gap-1 hover:text-foreground">
@@ -47,15 +47,18 @@ export default async function GoalPage({ params }: PageProps<"/growth/goals/[id]
 
       {goal.status === "achieved" && goal.achievedAt && (
         <Card className="bg-success-soft/60 ring-success/30">
-          <CardContent className="flex items-center gap-3">
-            <PartyPopper className="size-5 shrink-0 text-success-foreground" />
-            <p className="text-success-foreground">
-              Achieved on {formatDay(localDate(new Date(goal.achievedAt)))}. It&apos;s in your{" "}
-              <Link href="/growth/achievements" className="font-medium underline underline-offset-4">
-                achievements
-              </Link>
-              .
-            </p>
+          <CardContent className="flex items-start gap-3">
+            <PartyPopper className="mt-0.5 size-5 shrink-0 text-success-foreground" />
+            <div className="flex flex-col gap-1 text-success-foreground">
+              <AchievedDate goalId={goal.id} day={localDate(new Date(goal.achievedAt))} today={today} />
+              <p className="text-sm">
+                It&apos;s in your{" "}
+                <Link href="/growth/achievements" className="font-medium underline underline-offset-4">
+                  achievements
+                </Link>
+                .
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}

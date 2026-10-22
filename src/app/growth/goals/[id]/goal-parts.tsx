@@ -6,7 +6,7 @@ import { Check, Loader2, Minus, Pause, Play, Plus, RotateCcw, Trash2, Trophy, Wi
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { formatAmount, type GoalStatus } from "@/lib/schemas";
+import { formatAmount, formatDay, type GoalStatus } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import {
   addGoalNote,
@@ -14,6 +14,7 @@ import {
   deleteGoal,
   deleteGoalNote,
   deleteGoalStep,
+  setGoalAchievedOn,
   setGoalMetric,
   setGoalStatus,
   setGoalStepDone,
@@ -28,6 +29,57 @@ function ErrorLine({ error }: { error: string | null }) {
       {error}
     </p>
   ) : null;
+}
+
+/** "Achieved on 22 Oct 2026", with a way to change the day. */
+export function AchievedDate({ goalId, day, today }: { goalId: string; day: string; today: string }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(day);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  if (!editing) {
+    return (
+      <p className="flex flex-wrap items-baseline gap-x-2">
+        <span>Achieved on {formatDay(day)}.</span>
+        <button type="button" onClick={() => setEditing(true)} className="text-sm underline underline-offset-4 opacity-80 hover:opacity-100">
+          Change date
+        </button>
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span>Achieved on</span>
+        <Input
+          type="date"
+          aria-label="Achieved on"
+          value={value}
+          max={today}
+          onChange={(e) => setValue(e.target.value)}
+          className="h-8 w-40 bg-background text-foreground"
+        />
+        <Button
+          size="sm"
+          disabled={pending || !value}
+          onClick={() =>
+            start(async () => {
+              const result = await setGoalAchievedOn(goalId, value);
+              setError(result.error);
+              if (!result.error) setEditing(false);
+            })
+          }
+        >
+          {pending && <Loader2 className="size-3.5 animate-spin" />} Save
+        </Button>
+        <Button size="sm" variant="ghost" disabled={pending} onClick={() => setEditing(false)}>
+          Cancel
+        </Button>
+      </div>
+      <ErrorLine error={error} />
+    </div>
+  );
 }
 
 /** The number reached so far: one up or down, or type it in. */

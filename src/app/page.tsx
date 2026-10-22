@@ -37,10 +37,8 @@ export default async function JourneyHome() {
   ]);
   const todaysHabits = habits.filter((h) => !h.archived && h.plannedToday);
   const active = goals.filter((g) => g.status === "active");
-  // Goals with a target date first, soonest first; then the newest.
-  const shown = [...active]
-    .sort((a, b) => (a.targetDate ?? "9999").localeCompare(b.targetDate ?? "9999"))
-    .slice(0, 3);
+  // Goals with a target year first, soonest first; then the newest.
+  const shown = [...active].sort((a, b) => (a.targetYear ?? 9999) - (b.targetYear ?? 9999)).slice(0, 3);
   const thisMonth = achievements.filter((a) => a.achievedOn.slice(0, 7) === today.slice(0, 7)).length;
 
   const learning = [

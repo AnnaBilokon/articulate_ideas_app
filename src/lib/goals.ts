@@ -13,7 +13,7 @@ export type GoalSummary = {
   title: string;
   why: string | null;
   status: GoalStatus;
-  targetDate: string | null;
+  targetYear: number | null;
   metricTarget: number | null;
   metricCurrent: number;
   metricUnit: string | null;
@@ -37,7 +37,7 @@ export type Achievement = {
 };
 
 const GOAL_COLUMNS =
-  "id, created_at, title, why, status, target_date, metric_target, metric_current, metric_unit, achieved_at, goal_steps(id, title, position, done_at)";
+  "id, created_at, title, why, status, target_year, metric_target, metric_current, metric_unit, achieved_at, goal_steps(id, title, position, done_at)";
 
 type GoalRow = {
   id: string;
@@ -45,7 +45,7 @@ type GoalRow = {
   title: string;
   why: string | null;
   status: string;
-  target_date: string | null;
+  target_year: number | null;
   metric_target: number | null;
   metric_current: number;
   metric_unit: string | null;
@@ -68,7 +68,7 @@ function fromRow(r: GoalRow): { summary: GoalSummary; steps: GoalStep[] } {
     title: r.title,
     why: r.why,
     status: r.status as GoalStatus,
-    targetDate: r.target_date,
+    targetYear: r.target_year,
     ...metric,
     metricUnit: r.metric_unit,
     achievedAt: r.achieved_at,

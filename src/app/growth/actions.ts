@@ -35,7 +35,7 @@ function refresh(goalId?: string) {
 const goalColumns = (g: GoalInput) => ({
   title: g.title,
   why: g.why || null,
-  target_date: g.targetDate,
+  target_year: g.targetYear,
   metric_target: g.metricTarget,
   metric_unit: g.metricTarget === null ? null : g.metricUnit || null,
 });
@@ -201,6 +201,55 @@ export async function logAchievement(input: AchievementInput): Promise<Result> {
   });
   if (error) return { error: "Could not save it. Try again." };
   refresh(parsed.data.goalId ?? undefined);
+  return { error: null };
+}
+
+/**
+ * Edits an achievement. For one a goal earned, the goal's achieved date
+ * follows, and the goal it belongs to can't change.
+ */
+export async function updateAchievement(id: string, input: AchievementInput): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Not found." };
+  const parsed = achievementSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (parsed.data.achievedOn > localDate()) return { error: "Pick today or a day in the past." };
+  const { data: current } = await db().from("achievements").select("goal_id, from_goal").eq("id", id).maybeSingle();
+  if (!current) return { error: "Not found." };
+
+  const { error } = await db()
+    .from("achievements")
+    .update({
+      title: parsed.data.title,
+      note: parsed.data.note || null,
+      achieved_on: parsed.data.achievedOn,
+      goal_id: current.from_goal ? current.goal_id : parsed.data.goalId,
+    })
+    .eq("id", id);
+  if (error) return { error: "Could not save it. Try again." };
+  if (current.from_goal && current.goal_id) {
+    await db().from("goals").update({ achieved_at: achievedAt(parsed.data.achievedOn) }).eq("id", current.goal_id);
+  }
+  refresh(current.goal_id ?? undefined);
+  return { error: null };
+}
+
+/** Midday on a calendar day, so the day reads the same in any time zone nearby. */
+const achievedAt = (day: string) => `${day}T12:00:00Z`;
+
+/** Changes the day a goal was reached, on the goal and its achievement. */
+export async function setGoalAchievedOn(goalId: string, day: string): Promise<Result> {
+  await requireSession();
+  if (!isId(goalId) || !z.iso.date().safeParse(day).success) return { error: "Pick a date." };
+  if (day > localDate()) return { error: "Pick today or a day in the past." };
+  const { error } = await db()
+    .from("goals")
+    .update({ achieved_at: achievedAt(day), updated_at: new Date().toISOString() })
+    .eq("id", goalId)
+    .eq("status", "achieved");
+  if (error) return { error: "Could not save the date. Try again." };
+  await db().from("achievements").update({ achieved_on: day }).eq("goal_id", goalId).eq("from_goal", true);
+  refresh(goalId);
   return { error: null };
 }
 

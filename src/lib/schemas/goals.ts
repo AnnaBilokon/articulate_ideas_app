@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Growth workspace: goals (with optional steps, a number to reach, notes and
-// a target date) and achievements. Progress is shown, never judged: no
+// a target year) and achievements. Progress is shown, never judged: no
 // "overdue", no red.
 
 export const goalStatuses = ["active", "paused", "achieved", "let_go"] as const;
@@ -22,7 +22,7 @@ export const goalSchema = z
   .object({
     title: z.string().trim().min(1, "Give your goal a name.").max(200, "Keep the name under 200 characters."),
     why: optionalText(2000, "Keep the why under 2000 characters."),
-    targetDate: z.iso.date().nullable(),
+    targetYear: z.number().int().min(2000).max(2100).nullable(),
     metricTarget: z.number().positive("The number to reach should be above 0.").max(1e12).nullable(),
     metricUnit: optionalText(40, "Keep the unit short, like “books” or “km”."),
   })
@@ -71,21 +71,10 @@ const shortDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "sho
 /** A YYYY-MM-DD date as "31 Dec 2026". */
 export const formatDay = (date: string) => shortDate.format(new Date(`${date}T00:00:00Z`));
 
-/** A target date told gently: "by 31 Dec 2026 · in 2 months", or "Target was 3 Oct 2026" once it's passed. */
-export function describeTargetDate(target: string, today: string): string {
-  const days = Math.round((Date.parse(`${target}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
-  if (days < 0) return `Target was ${formatDay(target)}`;
-  const when =
-    days === 0
-      ? "today"
-      : days === 1
-        ? "tomorrow"
-        : days < 14
-          ? `in ${days} days`
-          : days < 60
-            ? `in ${Math.round(days / 7)} weeks`
-            : days < 365 * 2
-              ? `in ${Math.round(days / 30.4)} months`
-              : `in ${Math.round(days / 365)} years`;
-  return `By ${formatDay(target)} · ${when}`;
+/** A target year told gently: "This year", "Next year", "By 2029", or "Target was 2025" once it's passed. */
+export function describeTargetYear(target: number, currentYear: number): string {
+  if (target < currentYear) return `Target was ${target}`;
+  if (target === currentYear) return `This year (${target})`;
+  if (target === currentYear + 1) return `Next year (${target})`;
+  return `By ${target}`;
 }
