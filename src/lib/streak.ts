@@ -4,7 +4,8 @@ import { db } from "@/lib/supabase";
 
 // Days in a row with learning: a day counts when you recalled something (a
 // review or quiz answer, word practice, a part recall, a brain dump, a
-// teach-back, a Think deeper answer, a challenge or a tutor conversation). Days are calendar days in the app's
+// teach-back, a Think deeper answer, a challenge, a tutor conversation or a
+// speaking exercise). Days are calendar days in the app's
 // time zone.
 
 export type Streak = {
@@ -41,25 +42,27 @@ export function streakFrom(times: string[], now: Date = new Date()): Streak {
   return { current, best, today: didToday, days: days.size };
 }
 
-const ACTIVITY_TABLES = [
-  "attempts",
-  "vocabulary_attempts",
-  "chunk_recalls",
-  "dumps",
-  "explanations",
-  "critical_answers",
-  "challenge_attempts",
-  "tutor_sessions",
+// Each table with the time that counts; a speaking exercise counts once done.
+const ACTIVITY = [
+  ["attempts", "created_at"],
+  ["vocabulary_attempts", "created_at"],
+  ["chunk_recalls", "created_at"],
+  ["dumps", "created_at"],
+  ["explanations", "created_at"],
+  ["critical_answers", "created_at"],
+  ["challenge_attempts", "created_at"],
+  ["tutor_sessions", "created_at"],
+  ["speaking_exercises", "completed_at"],
 ] as const;
 
 export async function learningStreak(now: Date = new Date()): Promise<Streak> {
   // A year back is plenty for the current streak and a fair "best".
   const since = startOfDay(now, -366).toISOString();
   const results = await Promise.all(
-    ACTIVITY_TABLES.map((table) => db().from(table).select("created_at").gte("created_at", since)),
+    ACTIVITY.map(([table, column]) => db().from(table).select(column).gte(column, since)),
   );
-  return streakFrom(
-    results.flatMap(({ data }) => (data ?? []).map((row) => row.created_at)),
-    now,
+  const times = results.flatMap(({ data }, i) =>
+    (data ?? []).map((row) => (row as Record<string, string | null>)[ACTIVITY[i][1]]).filter((t): t is string => t !== null),
   );
+  return streakFrom(times, now);
 }

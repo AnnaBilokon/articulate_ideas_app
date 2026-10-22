@@ -629,6 +629,93 @@ export type Database = {
           },
         ]
       }
+      speaking_exercises: {
+        Row: {
+          answer: string | null
+          completed_at: string | null
+          created_at: string
+          feedback: Json | null
+          follow_up_answer: string | null
+          follow_up_feedback: Json | null
+          id: string
+          plan_day: number
+          question: string
+          revisit: string[]
+          scenario: string
+          skill: string
+          spoken: boolean | null
+          tip: string | null
+          topic: string
+        }
+        Insert: {
+          answer?: string | null
+          completed_at?: string | null
+          created_at?: string
+          feedback?: Json | null
+          follow_up_answer?: string | null
+          follow_up_feedback?: Json | null
+          id?: string
+          plan_day: number
+          question: string
+          revisit?: string[]
+          scenario: string
+          skill: string
+          spoken?: boolean | null
+          tip?: string | null
+          topic: string
+        }
+        Update: {
+          answer?: string | null
+          completed_at?: string | null
+          created_at?: string
+          feedback?: Json | null
+          follow_up_answer?: string | null
+          follow_up_feedback?: Json | null
+          id?: string
+          plan_day?: number
+          question?: string
+          revisit?: string[]
+          scenario?: string
+          skill?: string
+          spoken?: boolean | null
+          tip?: string | null
+          topic?: string
+        }
+        Relationships: []
+      }
+      speaking_profile: {
+        Row: {
+          challenges: string
+          contexts: string[]
+          created_at: string
+          goals: string
+          id: number
+          level: string
+          topics: string[]
+          updated_at: string
+        }
+        Insert: {
+          challenges: string
+          contexts?: string[]
+          created_at?: string
+          goals: string
+          id?: number
+          level: string
+          topics?: string[]
+          updated_at?: string
+        }
+        Update: {
+          challenges?: string
+          contexts?: string[]
+          created_at?: string
+          goals?: string
+          id?: number
+          level?: string
+          topics?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       suggestions: {
         Row: {
           created_at: string
