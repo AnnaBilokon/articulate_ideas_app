@@ -10,6 +10,8 @@ import type { ChartData } from "./series";
 // carry the rest. A single series gets a 10% wash under its line.
 
 const PLOT_HEIGHT = 200;
+// Room above the plot for the top tick and a value on the tallest mark.
+const TOP = 18;
 const AXIS_BAND = 28;
 const LEFT = 44;
 const RIGHT_ROOM = 64;
@@ -35,7 +37,7 @@ export function LineChart({
   const hi = ticks[ticks.length - 1];
   const innerW = Math.max(width - LEFT - RIGHT_ROOM, 0);
   const x = (i: number) => LEFT + (n <= 1 ? innerW / 2 : (innerW * i) / (n - 1));
-  const y = (v: number) => PLOT_HEIGHT - ((v - lo) / (hi - lo || 1)) * PLOT_HEIGHT;
+  const y = (v: number) => TOP + PLOT_HEIGHT - ((v - lo) / (hi - lo || 1)) * PLOT_HEIGHT;
 
   // End labels, top to bottom, skipping any closer than 14px to one already placed.
   const ends = data.series
@@ -80,7 +82,7 @@ export function LineChart({
         {width > 0 && n > 0 && (
           <svg
             width={width}
-            height={PLOT_HEIGHT + AXIS_BAND}
+            height={TOP + PLOT_HEIGHT + AXIS_BAND}
             role="img"
             aria-label={`${title}. The table view lists every value.`}
             tabIndex={0}
@@ -109,11 +111,11 @@ export function LineChart({
               </g>
             ))}
             {data.labels.map((label, i) => (
-              <text key={label} x={x(i)} y={PLOT_HEIGHT + 18} textAnchor="middle" className={axisText}>
+              <text key={label} x={x(i)} y={TOP + PLOT_HEIGHT + 18} textAnchor="middle" className={axisText}>
                 {label}
               </text>
             ))}
-            {tip && <line x1={x(tip.index)} x2={x(tip.index)} y1={0} y2={PLOT_HEIGHT} stroke="var(--muted-foreground)" strokeOpacity={0.6} strokeWidth={1} />}
+            {tip && <line x1={x(tip.index)} x2={x(tip.index)} y1={TOP} y2={TOP + PLOT_HEIGHT} stroke="var(--muted-foreground)" strokeOpacity={0.6} strokeWidth={1} />}
             {data.series.length === 1 && (
               <path
                 d={`${path(data.series[0].values)}L${x(data.series[0].values.findLastIndex((v) => v !== null))},${y(Math.max(lo, 0))}L${x(data.series[0].values.findIndex((v) => v !== null))},${y(Math.max(lo, 0))}Z`}

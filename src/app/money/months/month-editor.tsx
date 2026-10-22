@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Fragment, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Loader2, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -109,6 +109,11 @@ export function MonthEditor({
   const [saved, setSaved] = useState(false);
   const [saving, start] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const confirmRef = useRef<HTMLDivElement>(null);
+  // The totals bar covers the bottom of the screen: bring the question into view.
+  useEffect(() => {
+    if (confirmDelete) confirmRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [confirmDelete]);
 
   const set = (id: string, key: keyof Row, value: string) => {
     setRows((r) => ({ ...r, [id]: { ...r[id], [key]: value } }));
@@ -159,26 +164,33 @@ export function MonthEditor({
   };
 
   return (
-    <div className="flex flex-col gap-5 pb-24">
+    <div className="flex flex-col gap-5 pb-32">
       {(["income", "expense"] as const).map((kind) => (
-        <Section key={kind} kind={kind} list={shown.filter((c) => c.kind === kind)}>
-          {(c) => (
+        <Section
+          key={kind}
+          kind={kind}
+          list={shown.filter((c) => c.kind === kind)}
+          inputs={(c) => (
             <>
               <AmountInput label={`${c.name}: actual`} value={rows[c.id].amount} onChange={(v) => set(c.id, "amount", v)} />
               <AmountInput label={`${c.name}: expected`} value={rows[c.id].planned} onChange={(v) => set(c.id, "planned", v)} />
-              {kind === "expense" && (
-                <Input
-                  aria-label={`${c.name}: note`}
-                  value={rows[c.id].note}
-                  onChange={(e) => set(c.id, "note", e.target.value)}
-                  maxLength={500}
-                  placeholder="Note"
-                  className="col-span-3 h-8 bg-background text-xs sm:col-span-1 sm:h-9"
-                />
-              )}
             </>
           )}
-        </Section>
+          note={
+            kind === "expense"
+              ? (c) => (
+                  <Input
+                    aria-label={`${c.name}: note`}
+                    value={rows[c.id].note}
+                    onChange={(e) => set(c.id, "note", e.target.value)}
+                    maxLength={500}
+                    placeholder="Note"
+                    className="h-8 bg-background text-xs sm:h-9"
+                  />
+                )
+              : undefined
+          }
+        />
       ))}
 
       <Card size="sm">
@@ -230,8 +242,11 @@ export function MonthEditor({
       </Card>
 
       {(["pot", "saving"] as const).map((kind) => (
-        <Section key={kind} kind={kind} list={shown.filter((c) => c.kind === kind)}>
-          {(c) => (
+        <Section
+          key={kind}
+          kind={kind}
+          list={shown.filter((c) => c.kind === kind)}
+          inputs={(c) => (
             <>
               <AmountInput label={`${c.name}: in`} value={rows[c.id].amount} onChange={(v) => set(c.id, "amount", v)} placeholder={toText(entries.get(c.id)?.planned ?? null)} />
               {kind === "pot" && <AmountInput label={`${c.name}: spent`} value={rows[c.id].spent} onChange={(v) => set(c.id, "spent", v)} />}
@@ -243,7 +258,7 @@ export function MonthEditor({
               />
             </>
           )}
-        </Section>
+        />
       ))}
 
       <Card size="sm">
@@ -272,7 +287,7 @@ export function MonthEditor({
             <Trash2 className="size-4" /> Delete this month
           </Button>
         ) : (
-          <div className="flex flex-col gap-3 rounded-xl bg-coral-soft p-4 ring-1 ring-coral/30" role="alertdialog" aria-label="Delete this month?">
+          <div ref={confirmRef} className="flex flex-col gap-3 rounded-xl bg-coral-soft p-4 ring-1 ring-coral/30" role="alertdialog" aria-label="Delete this month?">
             <p className="font-medium text-coral-foreground">Delete this month and everything entered in it?</p>
             <div className="flex gap-2">
               <Button
@@ -280,9 +295,8 @@ export function MonthEditor({
                 disabled={saving}
                 onClick={() =>
                   start(async () => {
-                    const result = await deletePeriod(period.id);
-                    if (result.error) setError(result.error);
-                    else router.push("/money/months");
+                    // Only returns on failure; success goes to Months.
+                    setError((await deletePeriod(period.id)).error);
                   })
                 }
               >
@@ -325,10 +339,29 @@ export function MonthEditor({
   );
 }
 
-function Section({ kind, list, children }: { kind: MoneyKind; list: MoneyCategory[]; children: (c: MoneyCategory) => React.ReactNode }) {
+// Desktop: one row per category. Phones: the name on its own line, the
+// amounts in columns below it, and the note under those.
+const rowTemplate: Record<MoneyKind, string> = {
+  income: "sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem]",
+  expense: "sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_minmax(0,9rem)]",
+  pot: "sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_6.5rem]",
+  saving: "sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem]",
+};
+
+function Section({
+  kind,
+  list,
+  inputs,
+  note,
+}: {
+  kind: MoneyKind;
+  list: MoneyCategory[];
+  inputs: (c: MoneyCategory) => React.ReactNode;
+  note?: (c: MoneyCategory) => React.ReactNode;
+}) {
   if (list.length === 0) return null;
   const cols = columns[kind];
-  const grid = kind === "expense" ? "grid-cols-[minmax(0,1fr)_5.5rem_5.5rem] sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_minmax(0,9rem)]" : cols.length === 3 ? "grid-cols-[minmax(0,1fr)_5rem_5rem_5rem] sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_6.5rem]" : "grid-cols-[minmax(0,1fr)_5.5rem_5.5rem] sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem]";
+  const phoneCols = cols.length === 3 ? "grid-cols-3" : "grid-cols-2";
   return (
     <Card size="sm">
       <CardHeader>
@@ -336,22 +369,23 @@ function Section({ kind, list, children }: { kind: MoneyKind; list: MoneyCategor
         {kind === "pot" && <p className="text-sm text-muted-foreground">Leave &ldquo;Left&rdquo; blank to carry over: last month&apos;s, plus in, minus spent.</p>}
         {kind === "saving" && <p className="text-sm text-muted-foreground">Leave the balance blank to add this month&apos;s transfer to last month&apos;s.</p>}
       </CardHeader>
-      <CardContent>
-        <div className={cn("grid items-center gap-x-2 gap-y-2", grid)}>
-          <span />
+      <CardContent className="flex flex-col gap-3 sm:gap-2">
+        <div className={cn("grid gap-2", phoneCols, rowTemplate[kind])}>
+          <span className="hidden sm:block" />
           {cols.map((col) => (
             <span key={col.key} className="text-right text-xs font-medium text-muted-foreground">
               {col.label}
             </span>
           ))}
-          {kind === "expense" && <span className="hidden text-xs font-medium text-muted-foreground sm:block">Note</span>}
-          {list.map((c) => (
-            <Fragment key={c.id}>
-              <span className={cn("min-w-0 truncate text-sm", c.archived && "text-muted-foreground")}>{c.name}</span>
-              {children(c)}
-            </Fragment>
-          ))}
+          {note && <span className="hidden text-xs font-medium text-muted-foreground sm:block">Note</span>}
         </div>
+        {list.map((c) => (
+          <div key={c.id} className={cn("grid items-center gap-x-2 gap-y-1.5", rowTemplate[kind])}>
+            <span className={cn("min-w-0 truncate text-sm", c.archived && "text-muted-foreground")}>{c.name}</span>
+            <div className={cn("grid gap-2 sm:contents", phoneCols)}>{inputs(c)}</div>
+            {note?.(c)}
+          </div>
+        ))}
       </CardContent>
     </Card>
   );

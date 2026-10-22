@@ -9,6 +9,8 @@ import type { ChartData } from "./series";
 // touching marks, hairline grid. Hover or focus a month for every value.
 
 const PLOT_HEIGHT = 200;
+// Room above the plot for the top tick and a value on the tallest mark.
+const TOP = 18;
 const AXIS_BAND = 28;
 const LEFT = 44;
 const MAX_BAR = 24;
@@ -56,7 +58,7 @@ export function ColumnChart({
   const hi = ticks[ticks.length - 1];
   const innerW = Math.max(width - LEFT, 0);
   const band = n > 0 ? innerW / n : 0;
-  const y = (v: number) => PLOT_HEIGHT - ((v - lo) / (hi - lo || 1)) * PLOT_HEIGHT;
+  const y = (v: number) => TOP + PLOT_HEIGHT - ((v - lo) / (hi - lo || 1)) * PLOT_HEIGHT;
   const zero = y(0);
 
   const k = stacked ? 1 : data.series.length;
@@ -70,7 +72,7 @@ export function ColumnChart({
     <ChartFrame title={title} description={description} data={data} format={format} legend={<Legend series={data.series} shape="rect" />} total={stacked}>
       <div ref={ref} className="relative w-full" onPointerLeave={() => setTip(null)}>
         {width > 0 && n > 0 && (
-          <svg width={width} height={PLOT_HEIGHT + AXIS_BAND} role="img" aria-label={`${title}. The table view lists every value.`}>
+          <svg width={width} height={TOP + PLOT_HEIGHT + AXIS_BAND} role="img" aria-label={`${title}. The table view lists every value.`}>
             {ticks.map((t) => (
               <g key={t}>
                 <line x1={LEFT} x2={width} y1={y(t)} y2={y(t)} stroke={gridStroke} strokeWidth={1} shapeRendering="crispEdges" />
@@ -105,7 +107,7 @@ export function ColumnChart({
                       <path key={s.key} d={negativePath(x, barW, zero, y(v))} fill={s.color} />
                     );
                   })}
-                  <text x={LEFT + band * i + band / 2} y={PLOT_HEIGHT + 18} textAnchor="middle" className={axisText}>
+                  <text x={LEFT + band * i + band / 2} y={TOP + PLOT_HEIGHT + 18} textAnchor="middle" className={axisText}>
                     {label}
                   </text>
                   {i === last && (stacked || data.series.length === 1) && (
@@ -123,7 +125,7 @@ export function ColumnChart({
                     x={LEFT + band * i}
                     y={0}
                     width={band}
-                    height={PLOT_HEIGHT + AXIS_BAND}
+                    height={TOP + PLOT_HEIGHT + AXIS_BAND}
                     fill="transparent"
                     tabIndex={0}
                     aria-label={`${label}: ${data.series.map((s) => `${s.name} ${s.values[i] === null ? "none" : format(s.values[i] ?? 0)}`).join(", ")}`}

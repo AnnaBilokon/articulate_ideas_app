@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { loadMoney } from "@/lib/money";
@@ -95,13 +96,14 @@ export async function startNextPeriod(): Promise<Result & { month?: string }> {
   return { error: null, month };
 }
 
+/** Deletes a month and goes to Months; only returns on failure. */
 export async function deletePeriod(periodId: string): Promise<Result> {
   await requireSession();
   if (!isId(periodId)) return { error: "Month not found." };
   const { error } = await db().from("money_periods").delete().eq("id", periodId);
   if (error) return { error: "Could not delete the month. Try again." };
   refresh();
-  return { error: null };
+  redirect("/money/months");
 }
 
 export async function addCategory(input: { name: string; kind: MoneyKind }): Promise<Result> {
