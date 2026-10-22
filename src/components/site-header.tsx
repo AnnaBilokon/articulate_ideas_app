@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookA, House, Library, Plus, Sprout } from "lucide-react";
+import { BookA, House, Library, Mic, Plus, Sprout } from "lucide-react";
 import { AppearanceMenu } from "@/components/appearance-menu";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,7 @@ const nav = [
   { href: "/", label: "Today", icon: House },
   { href: "/library", label: "Library", icon: Library },
   { href: "/vocabulary", label: "Vocabulary", icon: BookA },
+  { href: "/speaking", label: "Speaking", icon: Mic },
 ];
 
 const isActive = (pathname: string, href: string) =>
