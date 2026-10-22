@@ -10,3 +10,4 @@ export * from "./challenge";
 export * from "./tutor";
 export * from "./speaking";
 export * from "./goals";
+export * from "./habits";

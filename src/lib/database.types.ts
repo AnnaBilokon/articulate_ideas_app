@@ -507,6 +507,71 @@ export type Database = {
         }
         Relationships: []
       }
+      habit_checks: {
+        Row: {
+          created_at: string
+          day: string
+          habit_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          habit_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          habit_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_checks_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          days: number[]
+          id: string
+          schedule: string
+          times_per_week: number | null
+          title: string
+          updated_at: string
+          why: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          days?: number[]
+          id?: string
+          schedule?: string
+          times_per_week?: number | null
+          title: string
+          updated_at?: string
+          why?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          days?: number[]
+          id?: string
+          schedule?: string
+          times_per_week?: number | null
+          title?: string
+          updated_at?: string
+          why?: string | null
+        }
+        Relationships: []
+      }
       lesson_chunks: {
         Row: {
           content: string
