@@ -2,7 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookA, CalendarCheck, Check, ChevronDown, GraduationCap, House, Library, Mic, Plus, Sprout, type LucideIcon } from "lucide-react";
+import {
+  BookA,
+  CalendarCheck,
+  Check,
+  ChevronDown,
+  GraduationCap,
+  House,
+  Library,
+  Mic,
+  Plus,
+  Sprout,
+  Target,
+  Trophy,
+  type LucideIcon,
+} from "lucide-react";
 import { AppearanceMenu } from "@/components/appearance-menu";
 import {
   DropdownMenu,
@@ -33,6 +47,17 @@ const workspaces: { id: string; label: string; href: string; icon: LucideIcon; p
       { href: "/library", label: "Library", icon: Library },
       { href: "/vocabulary", label: "Vocabulary", icon: BookA },
       { href: "/speaking", label: "Speaking", icon: Mic },
+    ],
+  },
+  {
+    id: "growth",
+    label: "Growth",
+    href: "/growth/goals",
+    icon: Sprout,
+    prefixes: ["/growth"],
+    nav: [
+      { href: "/growth/goals", label: "Goals", icon: Target },
+      { href: "/growth/achievements", label: "Achievements", icon: Trophy },
     ],
   },
 ];

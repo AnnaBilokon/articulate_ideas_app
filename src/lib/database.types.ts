@@ -39,6 +39,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          achieved_on: string
+          created_at: string
+          from_goal: boolean
+          goal_id: string | null
+          id: string
+          note: string | null
+          title: string
+        }
+        Insert: {
+          achieved_on?: string
+          created_at?: string
+          from_goal?: boolean
+          goal_id?: string | null
+          id?: string
+          note?: string | null
+          title: string
+        }
+        Update: {
+          achieved_on?: string
+          created_at?: string
+          from_goal?: boolean
+          goal_id?: string | null
+          id?: string
+          note?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievements_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attempts: {
         Row: {
           answer: string
@@ -362,6 +400,112 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      goal_notes: {
+        Row: {
+          body: string
+          created_at: string
+          goal_id: string
+          id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          goal_id: string
+          id?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          goal_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_notes_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goal_steps: {
+        Row: {
+          created_at: string
+          done_at: string | null
+          goal_id: string
+          id: string
+          position: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          done_at?: string | null
+          goal_id: string
+          id?: string
+          position?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          done_at?: string | null
+          goal_id?: string
+          id?: string
+          position?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_steps_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          achieved_at: string | null
+          created_at: string
+          id: string
+          metric_current: number
+          metric_target: number | null
+          metric_unit: string | null
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+          why: string | null
+        }
+        Insert: {
+          achieved_at?: string | null
+          created_at?: string
+          id?: string
+          metric_current?: number
+          metric_target?: number | null
+          metric_unit?: string | null
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          why?: string | null
+        }
+        Update: {
+          achieved_at?: string | null
+          created_at?: string
+          id?: string
+          metric_current?: number
+          metric_target?: number | null
+          metric_unit?: string | null
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          why?: string | null
+        }
+        Relationships: []
       }
       lesson_chunks: {
         Row: {

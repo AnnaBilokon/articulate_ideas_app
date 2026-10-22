@@ -66,6 +66,12 @@ function zoneOffset(date: Date): number {
   return asUtc - Math.floor(date.getTime() / 1000) * 1000;
 }
 
+/** The calendar date of `date` in the app's time zone, as YYYY-MM-DD, `days` days on. */
+export function localDate(date: Date = new Date(), days = 0): string {
+  const [year, month, day] = zonedDate(date);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
 /** Midnight in the app's time zone, `days` days after the day of `date`. */
 export function startOfDay(date: Date, days = 0): Date {
   const [year, month, day] = zonedDate(date);
