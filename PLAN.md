@@ -1,4 +1,4 @@
-# Learning Coach App — Product & Build Plan
+# My Self Journey (Learning Coach) — Product & Build Plan
 
 Oct 1, 2026 · @Anna
 
@@ -483,6 +483,15 @@ A Speaking tab for English articulation, active vocabulary and thinking on the s
 - [x] One exercise at a time: a realistic scene and question, answered by voice (browser speech-to-text, free) or typing, with an optional timer that's off by default
 - [x] Feedback on clarity, structure, vocabulary and grammar, a natural improved version, 2-3 expressions to save to the Speaking tab's own list (kept apart from Vocabulary and its schedule), then a follow-up question to use them
 - [x] Saved expressions come back in later exercises, and using them again is noticed; progress is counted with no scores or streak penalties, and finished exercises count as learning days
+
+### My Self Journey: workspaces (October 2026)
+
+The app becomes "My Self Journey", a personal app with workspaces. The learning coach is one of them; a Growth workspace holds goals, habits, beliefs and strengths. One pull request per step.
+
+- [x] 1. Rename and Journey home: `/` shows each workspace at a glance (greeting, learning streak and what's due); Learning's Today moves to `/learn`; the logo opens a workspace menu, and each workspace has its own tabs
+- [ ] 2. Goals and achievements: steps checklist, number targets, progress notes, optional target dates (no "overdue" warnings); finished goals and logged wins become achievements
+- [ ] 3. Habits: daily, on chosen days, or X times a week; check in on Journey home, a calendar of the days done, no penalties for missed days
+- [ ] 4. Limiting beliefs and strengths: a guided reframe (evidence against, a kinder belief, "working on it" or "let go"), with an optional "Help me reframe" from Claude; strengths with examples, linked to achievements
 
 ## Best practices and pitfalls
 

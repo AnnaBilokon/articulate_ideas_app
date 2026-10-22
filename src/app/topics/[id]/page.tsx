@@ -85,7 +85,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
-      <PageHeader title={topic.title} back={{ href: "/", label: "Today" }}>
+      <PageHeader title={topic.title} back={{ href: "/learn", label: "Today" }}>
         <div className="flex flex-wrap gap-1.5">
           {isTopicLevel(topic.level) && <Badge variant="secondary">{topicLevelLabels[topic.level]}</Badge>}
           {isLessonStyle(topic.lesson_style) && topic.lesson_style !== "standard" && (

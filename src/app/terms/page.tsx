@@ -19,10 +19,10 @@ export default async function TermPracticePage() {
       <PageHeader
         title="Term practice"
         description={`${terms.length} terms from your topics. Read the explanation and name the term. Practice only: nothing is scheduled.`}
-        back={{ href: "/", label: "Today" }}
+        back={{ href: "/learn", label: "Today" }}
       />
       {terms.length > 0 ? (
-        <TermQuiz terms={terms} backHref="/" backLabel="Back to Today" />
+        <TermQuiz terms={terms} backHref="/learn" backLabel="Back to Today" />
       ) : (
         <p className="text-muted-foreground">No terms yet. Each topic&apos;s glossary terms appear after its lesson.</p>
       )}

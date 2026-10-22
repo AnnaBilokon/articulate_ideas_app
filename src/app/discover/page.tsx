@@ -16,7 +16,7 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/discove
       <PageHeader
         title="Discover"
         description="Where your next topic comes from: your own ideas, and suggestions that build on what you already know."
-        back={{ href: "/", label: "Today" }}
+        back={{ href: "/learn", label: "Today" }}
       />
       <DiscoverView
         areas={areas}

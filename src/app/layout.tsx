@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Learning Coach",
-  description: "Learn a topic, recall it, explain it, and keep it.",
+  title: "My Self Journey",
+  description: "Learning, goals, habits and growth, in one place.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
