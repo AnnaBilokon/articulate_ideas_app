@@ -7,6 +7,8 @@ import {
   CalendarCheck,
   Check,
   ChevronDown,
+  Feather,
+  Gem,
   GraduationCap,
   House,
   Library,
@@ -60,6 +62,8 @@ const workspaces: { id: string; label: string; href: string; icon: LucideIcon; p
       { href: "/growth/goals", label: "Goals", icon: Target },
       { href: "/growth/habits", label: "Habits", icon: ListChecks },
       { href: "/growth/achievements", label: "Achievements", icon: Trophy },
+      { href: "/growth/strengths", label: "Strengths", icon: Gem },
+      { href: "/growth/beliefs", label: "Beliefs", icon: Feather },
     ],
   },
 ];

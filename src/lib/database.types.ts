@@ -121,6 +121,48 @@ export type Database = {
           },
         ]
       }
+      beliefs: {
+        Row: {
+          belief: string
+          created_at: string
+          evidence_against: string | null
+          id: string
+          let_go_at: string | null
+          origin: string | null
+          reframe: string | null
+          status: string
+          strength_now: number | null
+          strength_start: number | null
+          updated_at: string
+        }
+        Insert: {
+          belief: string
+          created_at?: string
+          evidence_against?: string | null
+          id?: string
+          let_go_at?: string | null
+          origin?: string | null
+          reframe?: string | null
+          status?: string
+          strength_now?: number | null
+          strength_start?: number | null
+          updated_at?: string
+        }
+        Update: {
+          belief?: string
+          created_at?: string
+          evidence_against?: string | null
+          id?: string
+          let_go_at?: string | null
+          origin?: string | null
+          reframe?: string | null
+          status?: string
+          strength_now?: number | null
+          strength_start?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       challenge_attempts: {
         Row: {
           answer: Json
@@ -474,7 +516,6 @@ export type Database = {
           metric_target: number | null
           metric_unit: string | null
           status: string
-          target_date: string | null
           target_year: number | null
           title: string
           updated_at: string
@@ -488,7 +529,6 @@ export type Database = {
           metric_target?: number | null
           metric_unit?: string | null
           status?: string
-          target_date?: string | null
           target_year?: number | null
           title: string
           updated_at?: string
@@ -502,7 +542,6 @@ export type Database = {
           metric_target?: number | null
           metric_unit?: string | null
           status?: string
-          target_date?: string | null
           target_year?: number | null
           title?: string
           updated_at?: string
@@ -966,6 +1005,57 @@ export type Database = {
           level?: string
           topics?: string[]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      strength_achievements: {
+        Row: {
+          achievement_id: string
+          strength_id: string
+        }
+        Insert: {
+          achievement_id: string
+          strength_id: string
+        }
+        Update: {
+          achievement_id?: string
+          strength_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strength_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strength_achievements_strength_id_fkey"
+            columns: ["strength_id"]
+            isOneToOne: false
+            referencedRelation: "strengths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strengths: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string
         }
         Relationships: []
       }

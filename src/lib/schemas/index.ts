@@ -11,3 +11,4 @@ export * from "./tutor";
 export * from "./speaking";
 export * from "./goals";
 export * from "./habits";
+export * from "./beliefs";

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowRight, CheckCircle2, Flame, GraduationCap, Repeat, Sprout, Trophy, WholeWord } from "lucide-react";
+import { ArrowRight, CheckCircle2, Feather, Flame, GraduationCap, Repeat, Sprout, Trophy, WholeWord } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { listBeliefs, reminderFor } from "@/lib/beliefs";
 import { listAchievements, listGoals } from "@/lib/goals";
 import { listHabits, todayDetail } from "@/lib/habits";
 import { reviewOverview } from "@/lib/reviews";
@@ -27,14 +28,16 @@ export default async function JourneyHome() {
   await connection(); // Read fresh data on every visit, not once at build.
   const now = new Date();
   const today = localDate(now);
-  const [review, words, streak, goals, achievements, habits] = await Promise.all([
+  const [review, words, streak, goals, achievements, habits, beliefs] = await Promise.all([
     reviewOverview(),
     practiceOverview(),
     learningStreak(),
     listGoals(),
     listAchievements(),
     listHabits(today),
+    listBeliefs(),
   ]);
+  const reminder = reminderFor(beliefs, today);
   const todaysHabits = habits.filter((h) => !h.archived && h.plannedToday);
   const active = goals.filter((g) => g.status === "active");
   // Goals with a target year first, soonest first; then the newest.
@@ -74,6 +77,19 @@ export default async function JourneyHome() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
       <PageHeader title={greeting(now)} description={`${dateFormat.format(now)}. Your journey, one day at a time.`} />
+
+      {reminder && (
+        <Link
+          href={`/growth/beliefs/${reminder.id}`}
+          className="-mt-2 flex items-start gap-3 rounded-xl bg-accent/60 p-4 text-accent-foreground transition-colors hover:bg-accent"
+        >
+          <Feather className="mt-0.5 size-4 shrink-0" />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-xs font-medium tracking-wide uppercase opacity-80">To keep in mind today</span>
+            <span className="leading-6 font-medium">{reminder.reframe}</span>
+          </span>
+        </Link>
+      )}
 
       {todaysHabits.length > 0 && (
         <section className="flex flex-col gap-3" aria-labelledby="habits-today">
@@ -138,7 +154,7 @@ export default async function JourneyHome() {
               <Sprout className="size-4.5" />
             </span>
             <CardTitle className="text-lg text-heading">Growth</CardTitle>
-            <CardDescription>Goals, habits and achievements.</CardDescription>
+            <CardDescription>Goals, habits, achievements, strengths and beliefs.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col gap-4">
             {shown.length === 0 ? (
