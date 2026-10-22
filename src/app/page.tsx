@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowRight, CheckCircle2, Feather, Flame, GraduationCap, Repeat, Sprout, Trophy, WholeWord } from "lucide-react";
+import { ArrowRight, CheckCircle2, Feather, Flame, GraduationCap, Repeat, Sprout, Trophy, Wallet, WholeWord } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { listBeliefs, reminderFor } from "@/lib/beliefs";
 import { listAchievements, listGoals } from "@/lib/goals";
 import { listHabits, todayDetail } from "@/lib/habits";
+import { loadMoney } from "@/lib/money";
 import { reviewOverview } from "@/lib/reviews";
 import { APP_TIME_ZONE, localDate } from "@/lib/schedule";
+import { formatKr, periodLabel, periodTotals, runningBalances } from "@/lib/schemas";
 import { learningStreak } from "@/lib/streak";
 import { practiceOverview } from "@/lib/vocabulary";
 import { cn } from "@/lib/utils";
@@ -28,7 +30,7 @@ export default async function JourneyHome() {
   await connection(); // Read fresh data on every visit, not once at build.
   const now = new Date();
   const today = localDate(now);
-  const [review, words, streak, goals, achievements, habits, beliefs] = await Promise.all([
+  const [review, words, streak, goals, achievements, habits, beliefs, money] = await Promise.all([
     reviewOverview(),
     practiceOverview(),
     learningStreak(),
@@ -36,9 +38,18 @@ export default async function JourneyHome() {
     listAchievements(),
     listHabits(today),
     listBeliefs(),
+    loadMoney(),
   ]);
   const reminder = reminderFor(beliefs, today);
   const todaysHabits = habits.filter((h) => !h.archived && h.plannedToday);
+  // Money: the latest month that's been filled in.
+  const moneyMonth = money.periods.filter((p) => periodTotals(p, money.categories).started).at(-1);
+  const moneyTotals = moneyMonth ? periodTotals(moneyMonth, money.categories) : null;
+  const moneySavings = moneyMonth
+    ? [...(runningBalances(money.periods, money.categories).get(moneyMonth.id) ?? new Map<string, number>())]
+        .filter(([id]) => money.categories.find((c) => c.id === id)?.kind === "saving")
+        .reduce((t, [, v]) => t + v, 0)
+    : 0;
   const active = goals.filter((g) => g.status === "active");
   // Goals with a target year first, soonest first; then the newest.
   const shown = [...active].sort((a, b) => (a.targetYear ?? 9999) - (b.targetYear ?? 9999)).slice(0, 3);
@@ -192,6 +203,36 @@ export default async function JourneyHome() {
             )}
             <Link href={shown.length === 0 ? "/growth/goals/new" : "/growth/goals"} className={cn(buttonVariants(), "mt-auto w-fit")}>
               {shown.length === 0 ? "Add a goal" : "Open Growth"} <ArrowRight className="size-4" />
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="sm:col-span-2">
+          <CardHeader>
+            <span className="mb-1 flex size-9 items-center justify-center rounded-lg bg-info-soft text-info-foreground">
+              <Wallet className="size-4.5" />
+            </span>
+            <CardTitle className="text-lg text-heading">Money</CardTitle>
+            <CardDescription>{moneyMonth ? `Last filled in: ${periodLabel(moneyMonth.month)}.` : "Income, spending and savings, month by month."}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {moneyTotals && (
+              <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  ["Spent", moneyTotals.spending],
+                  ["Saved", moneyTotals.savingTransfers],
+                  ["Free cash", moneyTotals.freeCash],
+                  ["All savings", moneySavings],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex flex-col gap-0.5">
+                    <dt className="text-xs text-muted-foreground">{label}</dt>
+                    <dd className="font-semibold text-heading">{formatKr(value as number)}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            <Link href="/money" className={cn(buttonVariants(), "w-fit")}>
+              Open Money <ArrowRight className="size-4" />
             </Link>
           </CardContent>
         </Card>

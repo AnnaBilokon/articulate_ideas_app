@@ -492,7 +492,16 @@ The app becomes "My Self Journey", a personal app with workspaces. The learning 
 - [x] 2. Goals and achievements: steps checklist, number targets, progress notes, an optional target year (no "overdue" warnings); finished goals and logged wins become achievements, which can be edited, and a reached goal's date can be changed
 - [x] 3. Habits: daily, on chosen days, or X times a week; check in on Journey home, a calendar of the days done, no penalties for missed days
 - [x] Cleanup: drop `goals.target_date` (replaced by `target_year`; kept so the migration could run before the new code deployed)
-- [ ] 4. Limiting beliefs and strengths: a guided reframe (evidence against, a kinder belief, "working on it" or "let go"), with an optional "Help me reframe" from Claude; strengths with examples, linked to achievements
+- [x] 4. Limiting beliefs and strengths: a guided reframe (evidence against, a kinder belief, "working on it" or "let go"), with an optional "Help me reframe" from Claude; strengths with examples, linked to achievements
+
+### Money workspace (October 2026)
+
+Income, spending and savings per pay period, replacing the budget spreadsheet. Monthly totals, not single purchases.
+
+- [x] Categories by kind: income, bills and spending (actual and expected), pots (in, spent, left; carried over) and savings (in, balance); one-offs per month
+- [x] Months: fill in a pay period with live totals; start the next one with last month's expected amounts
+- [x] Overview, Trends (income/spending/savings, where the money goes, free cash, every bill by month) and Savings (balances over time, savings rate, pots); SVG charts with a validated colour order, legend, tooltips and a table view
+- [x] Import of Jun–Jul to Okt–Nov 2026 from the sheet (bill totals and Jun–Jul free cash checked against it)
 
 ## Best practices and pitfalls
 

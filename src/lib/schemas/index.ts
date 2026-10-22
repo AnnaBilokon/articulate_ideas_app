@@ -12,3 +12,4 @@ export * from "./speaking";
 export * from "./goals";
 export * from "./habits";
 export * from "./beliefs";
+export * from "./money";

@@ -649,6 +649,134 @@ export type Database = {
           },
         ]
       }
+      money_categories: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          position: number
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          name: string
+          position?: number
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          position?: number
+        }
+        Relationships: []
+      }
+      money_entries: {
+        Row: {
+          amount: number | null
+          balance: number | null
+          category_id: string
+          id: string
+          note: string | null
+          period_id: string
+          planned: number | null
+          spent: number | null
+        }
+        Insert: {
+          amount?: number | null
+          balance?: number | null
+          category_id: string
+          id?: string
+          note?: string | null
+          period_id: string
+          planned?: number | null
+          spent?: number | null
+        }
+        Update: {
+          amount?: number | null
+          balance?: number | null
+          category_id?: string
+          id?: string
+          note?: string | null
+          period_id?: string
+          planned?: number | null
+          spent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "money_entries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "money_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "money_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "money_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      money_one_offs: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          period_id: string
+          title: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          period_id: string
+          title: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          period_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "money_one_offs_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "money_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      money_periods: {
+        Row: {
+          created_at: string
+          id: string
+          month: string
+          note: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: string
+          note?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: string
+          note?: string | null
+        }
+        Relationships: []
+      }
       pretest_answers: {
         Row: {
           answer: string
