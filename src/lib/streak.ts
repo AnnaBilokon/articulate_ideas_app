@@ -4,7 +4,7 @@ import { db } from "@/lib/supabase";
 
 // Days in a row with learning: a day counts when you recalled something (a
 // review or quiz answer, word practice, a part recall, a brain dump, a
-// teach-back, a Think deeper answer or a challenge). Days are calendar days in the app's
+// teach-back, a Think deeper answer, a challenge or a tutor conversation). Days are calendar days in the app's
 // time zone.
 
 export type Streak = {
@@ -49,6 +49,7 @@ const ACTIVITY_TABLES = [
   "explanations",
   "critical_answers",
   "challenge_attempts",
+  "tutor_sessions",
 ] as const;
 
 export async function learningStreak(now: Date = new Date()): Promise<Streak> {

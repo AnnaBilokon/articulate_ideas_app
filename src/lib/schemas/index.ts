@@ -7,3 +7,4 @@ export * from "./topic";
 export * from "./vocabulary";
 export * from "./discover";
 export * from "./challenge";
+export * from "./tutor";

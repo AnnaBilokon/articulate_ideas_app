@@ -802,6 +802,44 @@ export type Database = {
         }
         Relationships: []
       }
+      tutor_sessions: {
+        Row: {
+          created_at: string
+          done: boolean
+          id: string
+          messages: Json
+          summary: string[] | null
+          topic_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          messages?: Json
+          summary?: string[] | null
+          topic_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          messages?: Json
+          summary?: string[] | null
+          topic_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_sessions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_questions: {
         Row: {
           answer: string | null
