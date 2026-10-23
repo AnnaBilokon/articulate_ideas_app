@@ -5,14 +5,14 @@ import { seriesColor } from "@/components/charts/series";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadMoney } from "@/lib/money";
-import { formatKr, periodShort, periodTotals, runningBalances } from "@/lib/schemas";
-import { NoMonths, StatTile } from "../money-bits";
+import { formatKr, periodShort, periodTotals, runningBalances, type MoneyColor } from "@/lib/schemas";
+import { ColorKey, NoMonths, StatTile } from "../money-bits";
 
 // Savings growth and pots: balances over time, the savings rate per month,
 // and what's in each pot now.
 export default async function SavingsPage() {
   await connection();
-  const { categories, periods } = await loadMoney();
+  const { categories, periods, colorLabels } = await loadMoney();
   const filled = periods.filter((p) => periodTotals(p, categories).billsEntered);
 
   if (filled.length === 0) {
@@ -121,6 +121,16 @@ export default async function SavingsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-heading">Pots, month by month</CardTitle>
+              <ColorKey
+                used={
+                  new Set(
+                    filled.flatMap((p) =>
+                      p.entries.filter((e) => pots.some((s) => s.key === e.categoryId)).map((e) => e.colors.balance),
+                    ).filter((x): x is MoneyColor => !!x),
+                  )
+                }
+                labels={colorLabels}
+              />
             </CardHeader>
             <CardContent className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -138,11 +148,19 @@ export default async function SavingsPage() {
                   {pots.map((s) => (
                     <tr key={s.key} className="border-t border-border/60">
                       <td className="py-1.5 pr-3 whitespace-nowrap">{s.name}</td>
-                      {s.values.map((v, i) => (
-                        <td key={labels[i]} className="px-2 py-1.5 text-right whitespace-nowrap">
-                          {v === null ? "–" : formatKr(v).replace(" kr", "")}
-                        </td>
-                      ))}
+                      {s.values.map((v, i) => {
+                        const color = filled[i].entries.find((e) => e.categoryId === s.key)?.colors.balance;
+                        return (
+                          <td
+                            key={labels[i]}
+                            className="px-2 py-1.5 text-right whitespace-nowrap"
+                            style={color ? { background: `var(--cell-${color})` } : undefined}
+                            title={color ? colorLabels[color] : undefined}
+                          >
+                            {v === null ? "–" : formatKr(v).replace(" kr", "")}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>

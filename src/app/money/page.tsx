@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadMoney } from "@/lib/money";
 import { formatKr, monthSlug, periodLabel, periodShort, periodTotals, runningBalances } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
-import { MonthPicker, NoMonths, StatTile, pickPeriod, previousOf } from "./money-bits";
+import { ColorKey, MonthPicker, NoMonths, StatTile, colorsUsed, pickPeriod, previousOf } from "./money-bits";
 
 // This month at a glance: a band with income, spending, savings and free
 // cash, then two columns: expected vs actual per bill on the left, where
@@ -15,7 +15,7 @@ import { MonthPicker, NoMonths, StatTile, pickPeriod, previousOf } from "./money
 export default async function MoneyOverview({ searchParams }: PageProps<"/money">) {
   await connection();
   const { month } = await searchParams;
-  const { categories, periods } = await loadMoney();
+  const { categories, periods, colorLabels } = await loadMoney();
   const period = pickPeriod(periods, month);
 
   if (!period) {
@@ -105,6 +105,7 @@ export default async function MoneyOverview({ searchParams }: PageProps<"/money"
               <CardHeader>
                 <CardTitle className="text-heading">Bills and spending</CardTitle>
                 <p className="text-sm text-muted-foreground">Actual against expected. The line marks what you expected.</p>
+                <ColorKey used={colorsUsed([period])} labels={colorLabels} />
               </CardHeader>
               <CardContent>
                 <ul className="flex flex-col gap-3">
@@ -120,7 +121,17 @@ export default async function MoneyOverview({ searchParams }: PageProps<"/money"
                             {e?.note && <span className="ml-1.5 text-xs text-muted-foreground">{e.note}</span>}
                           </span>
                           <span className="shrink-0 tabular-nums">
-                            {actual !== null ? formatKr(actual) : <span className="text-muted-foreground">–</span>}
+                            {actual !== null ? (
+                              <span
+                                className={cn(e?.colors.amount && "rounded px-1.5 py-0.5")}
+                                style={e?.colors.amount ? { background: `var(--cell-${e.colors.amount})` } : undefined}
+                                title={e?.colors.amount ? colorLabels[e.colors.amount] : undefined}
+                              >
+                                {formatKr(actual)}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">–</span>
+                            )}
                             {planned !== null && <span className="text-xs text-muted-foreground"> / {formatKr(planned)}</span>}
                           </span>
                         </div>
@@ -157,7 +168,13 @@ export default async function MoneyOverview({ searchParams }: PageProps<"/money"
                   {period.oneOffs.map((o) => (
                     <li key={o.id} className="flex justify-between gap-3">
                       <span>{o.title}</span>
-                      <span className="tabular-nums">{formatKr(o.amount)}</span>
+                      <span
+                        className={cn("tabular-nums", o.color && "rounded px-1.5 py-0.5")}
+                        style={o.color ? { background: `var(--cell-${o.color})` } : undefined}
+                        title={o.color ? colorLabels[o.color] : undefined}
+                      >
+                        {formatKr(o.amount)}
+                      </span>
                     </li>
                   ))}
                 </ul>

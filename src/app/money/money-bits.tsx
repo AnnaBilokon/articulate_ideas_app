@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, Wallet } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatKr, monthSlug, periodLabel, periodShort, type MoneyPeriod } from "@/lib/schemas";
+import { formatKr, moneyColors, monthSlug, periodLabel, periodShort, type MoneyColor, type MoneyPeriod } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { StartMonth } from "./start-month";
 
@@ -90,3 +90,33 @@ export function NoMonths() {
 }
 
 export const monthTitle = (p: MoneyPeriod) => periodLabel(p.month);
+
+/** The colours used on a page and what they mean, with a link to name them. */
+export function ColorKey({ used, labels }: { used: Set<MoneyColor>; labels: Record<MoneyColor, string> }) {
+  if (used.size === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+      {moneyColors
+        .filter((c) => used.has(c))
+        .map((c) => (
+          <span key={c} className="flex items-center gap-1.5">
+            <span className="size-3 rounded-[3px] ring-1 ring-foreground/20" style={{ background: `var(--cell-${c})` }} aria-hidden />
+            {labels[c]}
+          </span>
+        ))}
+      <Link href="/money/categories#colours" className="underline-offset-4 hover:text-foreground hover:underline">
+        Name colours
+      </Link>
+    </div>
+  );
+}
+
+/** Every colour used in these months. */
+export function colorsUsed(periods: MoneyPeriod[]): Set<MoneyColor> {
+  const used = new Set<MoneyColor>();
+  for (const p of periods) {
+    for (const e of p.entries) for (const c of Object.values(e.colors)) used.add(c);
+    for (const o of p.oneOffs) if (o.color) used.add(o.color);
+  }
+  return used;
+}

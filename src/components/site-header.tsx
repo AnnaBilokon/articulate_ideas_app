@@ -139,7 +139,7 @@ function WorkspaceMenu({ current }: { current: (typeof workspaces)[number] | nul
         <span className="max-md:sr-only">{current?.label ?? APP_NAME}</span>
         <ChevronDown className="size-3.5 text-muted-foreground" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-52">
+      <DropdownMenuContent data-workspace={current?.id} align="start" className="w-52">
         <DropdownMenuItem render={<Link href="/" />}>
           <House />
           Journey home

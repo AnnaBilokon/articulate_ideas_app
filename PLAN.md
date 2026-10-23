@@ -501,7 +501,9 @@ Income, spending and savings per pay period, replacing the budget spreadsheet. M
 - [x] Categories by kind: income, bills and spending (actual and expected), pots (in, spent, left; carried over) and savings (in, balance); one-offs per month
 - [x] Months: fill in a pay period with live totals; start the next one with last month's expected amounts
 - [x] Overview, Trends (income/spending/savings, where the money goes, free cash, every bill by month) and Savings (balances over time, savings rate, pots); SVG charts with a validated colour order, legend, tooltips and a table view
-- [x] Import of Jun–Jul to Okt–Nov 2026 from the sheet (bill totals and Jun–Jul free cash checked against it)
+- [x] Import of Feb–Mar to Okt–Nov 2026 from the sheet (bill totals and free cash checked against it)
+- [x] Its own palette (pacific blue, sky blue, rose kiss, powder blush, soft peach) and a wider dashboard layout; workspaces can now each have their own look
+- [x] Colour any amount, like highlighting a cell, with colours you name ("to check", "paused"...)
 
 ## Best practices and pitfalls
 

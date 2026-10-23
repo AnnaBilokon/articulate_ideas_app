@@ -4,15 +4,15 @@ import { seriesColor, type Series } from "@/components/charts/series";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadMoney } from "@/lib/money";
-import { formatKr, periodShort, periodTotals } from "@/lib/schemas";
-import { NoMonths } from "../money-bits";
+import { formatKr, periodShort, periodTotals, type MoneyColor } from "@/lib/schemas";
+import { ColorKey, NoMonths } from "../money-bits";
 
 // Spending trends over the months that have been filled in: income, spending
 // and savings side by side; where the money goes, by category; free cash;
 // and every category month by month.
 export default async function TrendsPage() {
   await connection();
-  const { categories, periods } = await loadMoney();
+  const { categories, periods, colorLabels } = await loadMoney();
   const filled = periods.filter((p) => periodTotals(p, categories).billsEntered);
 
   if (filled.length === 0) {
@@ -28,6 +28,7 @@ export default async function TrendsPage() {
   const totals = filled.map((p) => periodTotals(p, categories));
   const amount = (categoryId: string) =>
     filled.map((p) => p.entries.find((e) => e.categoryId === categoryId)?.amount ?? null);
+  const colorOf = (categoryId: string, i: number) => filled[i].entries.find((e) => e.categoryId === categoryId)?.colors.amount;
 
   // Spending by category: the three biggest bills by total, then pots, one-offs, and the rest.
   const expenseCats = categories.filter((c) => c.kind === "expense");
@@ -86,6 +87,10 @@ export default async function TrendsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-heading">Every bill, month by month</CardTitle>
+          <ColorKey
+            used={new Set(byTotal.flatMap(({ c }) => filled.map((_, i) => colorOf(c.id, i)).filter((x): x is MoneyColor => !!x)))}
+            labels={colorLabels}
+          />
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -104,11 +109,19 @@ export default async function TrendsPage() {
               {byTotal.map(({ c, values }) => (
                 <tr key={c.id} className="border-t border-border/60">
                   <td className="py-1.5 pr-3 whitespace-nowrap">{c.name}</td>
-                  {values.map((v, i) => (
-                    <td key={labels[i]} className="px-2 py-1.5 text-right whitespace-nowrap">
-                      {v === null ? "–" : formatKr(v).replace(" kr", "")}
-                    </td>
-                  ))}
+                  {values.map((v, i) => {
+                    const color = colorOf(c.id, i);
+                    return (
+                      <td
+                        key={labels[i]}
+                        className="px-2 py-1.5 text-right whitespace-nowrap"
+                        style={color ? { background: `var(--cell-${color})` } : undefined}
+                        title={color ? colorLabels[color] : undefined}
+                      >
+                        {v === null ? "–" : formatKr(v).replace(" kr", "")}
+                      </td>
+                    );
+                  })}
                   <td className="py-1.5 pl-2 text-right font-medium whitespace-nowrap">{formatKr(average(values)).replace(" kr", "")}</td>
                 </tr>
               ))}

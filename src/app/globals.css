@@ -496,6 +496,12 @@
   --glow-1: color-mix(in oklab, #96c9dc 70%, transparent);
   --glow-2: color-mix(in oklab, #f9b9b7 55%, transparent);
   --glow-3: color-mix(in oklab, #f5d491 45%, transparent);
+  /* Cell colours: soft tints of the palette behind any amount. */
+  --cell-sky: #d3e8f0;
+  --cell-blush: #fcdcdb;
+  --cell-peach: #f9e7c2;
+  --cell-rose: #fad4e1;
+  --cell-teal: #cde4e9;
 }
 
 .dark [data-workspace="money"] {
@@ -536,6 +542,11 @@
   --glow-1: color-mix(in oklab, #61a0af 22%, transparent);
   --glow-2: color-mix(in oklab, #f06c9b 12%, transparent);
   --glow-3: color-mix(in oklab, #f5d491 8%, transparent);
+  --cell-sky: #22424d;
+  --cell-blush: #4a3135;
+  --cell-peach: #463c22;
+  --cell-rose: #4d2337;
+  --cell-teal: #1d3f47;
 }
 
 /* Money's top band: the palette as a soft gradient. */

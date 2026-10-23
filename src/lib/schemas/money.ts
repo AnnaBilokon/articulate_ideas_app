@@ -19,6 +19,25 @@ export const moneyKindInfo: Record<MoneyKind, { label: string; plural: string; h
 
 export type MoneyCategory = { id: string; name: string; kind: MoneyKind; position: number; archived: boolean };
 
+/** Colours to mark any amount with, like highlighting a cell; each gets a name of your choosing. */
+export const moneyColors = ["sky", "blush", "peach", "rose", "teal"] as const;
+export type MoneyColor = (typeof moneyColors)[number];
+export const moneyColorNames: Record<MoneyColor, string> = { sky: "Sky", blush: "Blush", peach: "Peach", rose: "Rose", teal: "Teal" };
+export const isMoneyColor = (v: unknown): v is MoneyColor => moneyColors.includes(v as MoneyColor);
+
+/** The amounts of an entry that can be coloured. */
+export const moneyFields = ["amount", "planned", "spent", "balance"] as const;
+export type MoneyField = (typeof moneyFields)[number];
+export type MoneyColors = Partial<Record<MoneyField, MoneyColor>>;
+
+/** Keeps only known fields and colours, e.g. from the database. */
+export function cleanColors(raw: unknown): MoneyColors {
+  if (!raw || typeof raw !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(raw).filter(([field, color]) => moneyFields.includes(field as MoneyField) && isMoneyColor(color)),
+  ) as MoneyColors;
+}
+
 export type MoneyEntry = {
   categoryId: string;
   /** Came in, spent, or transferred in the period; null until entered. */
@@ -29,9 +48,10 @@ export type MoneyEntry = {
   /** Pots and savings: the balance at the end, when entered. */
   balance: number | null;
   note: string | null;
+  colors: MoneyColors;
 };
 
-export type MoneyOneOff = { id: string; title: string; amount: number };
+export type MoneyOneOff = { id: string; title: string; amount: number; color: MoneyColor | null };
 
 export type MoneyPeriod = { id: string; month: string; note: string | null; entries: MoneyEntry[]; oneOffs: MoneyOneOff[] };
 
@@ -179,11 +199,18 @@ export const periodInputSchema = z.object({
         spent: money,
         balance: money,
         note: z.string().trim().max(500).nullable(),
+        colors: z.partialRecord(z.enum(moneyFields), z.enum(moneyColors)),
       }),
     )
     .max(200),
   oneOffs: z
-    .array(z.object({ title: z.string().trim().min(1, "Name the one-off.").max(120), amount: z.number().min(-1e10).max(1e10) }))
+    .array(
+      z.object({
+        title: z.string().trim().min(1, "Name the one-off.").max(120),
+        amount: z.number().min(-1e10).max(1e10),
+        color: z.enum(moneyColors).nullable(),
+      }),
+    )
     .max(50),
   note: z.string().trim().max(2000).nullable(),
 });
@@ -193,3 +220,8 @@ export const categoryInputSchema = z.object({
   name: z.string().trim().min(1, "Name the category.").max(60, "Keep the name under 60 characters."),
   kind: z.enum(moneyKinds),
 });
+
+export const colorLabelsSchema = z.partialRecord(
+  z.enum(moneyColors),
+  z.string().trim().max(30, "Keep a name under 30 characters."),
+);

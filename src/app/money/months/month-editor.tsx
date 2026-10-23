@@ -7,15 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { formatKr, moneyKindInfo, periodTotals, type MoneyCategory, type MoneyKind, type MoneyPeriod } from "@/lib/schemas";
+import {
+  formatKr,
+  moneyKindInfo,
+  periodTotals,
+  type MoneyCategory,
+  type MoneyColor,
+  type MoneyColors,
+  type MoneyField,
+  type MoneyKind,
+  type MoneyPeriod,
+} from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { deletePeriod, savePeriod } from "../actions";
+import { CellColorPicker, cellStyle } from "../cell-color";
 
 // Filling in a month: actual and expected per category, one-offs, pots
 // (transferred, spent, balance) and savings (transferred, balance), with
-// the totals updating as you type. Blank means not entered.
+// the totals updating as you type. Blank means not entered. Any amount can
+// be given a colour, like highlighting a cell.
 
-type Row = { amount: string; planned: string; spent: string; balance: string; note: string };
+type Row = { amount: string; planned: string; spent: string; balance: string; note: string; colors: MoneyColors };
 
 const toText = (v: number | null) => (v === null ? "" : String(v));
 
@@ -31,23 +43,39 @@ function AmountInput({
   value,
   onChange,
   placeholder,
+  color,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  /** The field's colour and how to change it; the dot sits inside the field. */
+  color?: { value: MoneyColor | null; onChange: (c: MoneyColor | null) => void; labels: Record<MoneyColor, string> };
 }) {
   const bad = Number.isNaN(parseAmount(value));
   return (
-    <Input
-      aria-label={label}
-      aria-invalid={bad || undefined}
-      inputMode="decimal"
-      value={value}
-      placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-9 w-full min-w-0 bg-background text-right tabular-nums"
-    />
+    <div className="relative min-w-0">
+      <Input
+        aria-label={label}
+        aria-invalid={bad || undefined}
+        inputMode="decimal"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        title={color?.value ? color.labels[color.value] : undefined}
+        style={cellStyle(color?.value)}
+        className={cn("h-9 w-full min-w-0 bg-background text-right tabular-nums", color && "pl-7")}
+      />
+      {color && (
+        <CellColorPicker
+          value={color.value}
+          onChange={color.onChange}
+          labels={color.labels}
+          label={label}
+          className="absolute top-1/2 left-1.5 -translate-y-1/2"
+        />
+      )}
+    </div>
   );
 }
 
@@ -75,9 +103,11 @@ export function MonthEditor({
   period,
   categories,
   balancesBefore,
+  colorLabels,
 }: {
   period: MoneyPeriod;
   categories: MoneyCategory[];
+  colorLabels: Record<MoneyColor, string>;
   /** Pot and saving balances at the end of the month before. */
   balancesBefore: Record<string, number>;
 }) {
@@ -97,12 +127,15 @@ export function MonthEditor({
             spent: toText(e?.spent ?? null),
             balance: toText(e?.balance ?? null),
             note: e?.note ?? "",
+            colors: e?.colors ?? {},
           },
         ];
       }),
     ),
   );
-  const [oneOffs, setOneOffs] = useState(period.oneOffs.map((o) => ({ title: o.title, amount: String(o.amount) })));
+  const [oneOffs, setOneOffs] = useState(
+    period.oneOffs.map((o) => ({ title: o.title, amount: String(o.amount), color: o.color as MoneyColor | null })),
+  );
   const [note, setNote] = useState(period.note ?? "");
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,11 +148,35 @@ export function MonthEditor({
     if (confirmDelete) confirmRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [confirmDelete]);
 
-  const set = (id: string, key: keyof Row, value: string) => {
+  const set = (id: string, key: Exclude<keyof Row, "colors">, value: string) => {
     setRows((r) => ({ ...r, [id]: { ...r[id], [key]: value } }));
     setDirty(true);
     setSaved(false);
   };
+
+  /** An amount field of a category, with its colour. */
+  const field = (c: MoneyCategory, key: MoneyField, label: string, placeholder?: string) => (
+    <AmountInput
+      label={`${c.name}: ${label}`}
+      value={rows[c.id][key]}
+      onChange={(v) => set(c.id, key, v)}
+      placeholder={placeholder}
+      color={{
+        value: rows[c.id].colors[key] ?? null,
+        labels: colorLabels,
+        onChange: (color) => {
+          setRows((r) => {
+            const colors = { ...r[c.id].colors };
+            if (color) colors[key] = color;
+            else delete colors[key];
+            return { ...r, [c.id]: { ...r[c.id], colors } };
+          });
+          setDirty(true);
+          setSaved(false);
+        },
+      }}
+    />
+  );
 
   const num = (text: string) => {
     const v = parseAmount(text);
@@ -127,19 +184,20 @@ export function MonthEditor({
   };
 
   const draft: MoneyPeriod = {
-      ...period,
-      entries: shown.map((c) => ({
-        categoryId: c.id,
-        amount: num(rows[c.id].amount),
-        planned: num(rows[c.id].planned),
-        spent: num(rows[c.id].spent),
-        balance: num(rows[c.id].balance),
-        note: rows[c.id].note.trim() || null,
-      })),
-      oneOffs: oneOffs.flatMap((o, i) => {
-        const v = num(o.amount);
-        return o.title.trim() && v !== null ? [{ id: String(i), title: o.title.trim(), amount: v }] : [];
-      }),
+    ...period,
+    entries: shown.map((c) => ({
+      categoryId: c.id,
+      amount: num(rows[c.id].amount),
+      planned: num(rows[c.id].planned),
+      spent: num(rows[c.id].spent),
+      balance: num(rows[c.id].balance),
+      note: rows[c.id].note.trim() || null,
+      colors: rows[c.id].colors,
+    })),
+    oneOffs: oneOffs.flatMap((o, i) => {
+      const v = num(o.amount);
+      return o.title.trim() && v !== null ? [{ id: String(i), title: o.title.trim(), amount: v, color: o.color }] : [];
+    }),
   };
   const totals = periodTotals(draft, categories);
   const invalid =
@@ -148,7 +206,11 @@ export function MonthEditor({
 
   const save = () =>
     start(async () => {
-      const result = await savePeriod(period.id, { entries: draft.entries, oneOffs: draft.oneOffs.map(({ title, amount }) => ({ title, amount })), note: note.trim() || null });
+      const result = await savePeriod(period.id, {
+        entries: draft.entries,
+        oneOffs: draft.oneOffs.map(({ title, amount, color }) => ({ title, amount, color })),
+        note: note.trim() || null,
+      });
       setError(result.error);
       if (!result.error) {
         setDirty(false);
@@ -172,8 +234,8 @@ export function MonthEditor({
           list={shown.filter((c) => c.kind === kind)}
           inputs={(c) => (
             <>
-              <AmountInput label={`${c.name}: actual`} value={rows[c.id].amount} onChange={(v) => set(c.id, "amount", v)} />
-              <AmountInput label={`${c.name}: expected`} value={rows[c.id].planned} onChange={(v) => set(c.id, "planned", v)} />
+              {field(c, "amount", "actual")}
+              {field(c, "planned", "expected")}
             </>
           )}
           note={
@@ -212,13 +274,21 @@ export function MonthEditor({
                 placeholder="What"
                 className="h-9 flex-1 bg-background"
               />
-              <div className="w-28 shrink-0">
+              <div className="w-32 shrink-0">
                 <AmountInput
                   label="One-off amount"
                   value={o.amount}
                   onChange={(v) => {
                     setOneOffs(oneOffs.map((x, j) => (j === i ? { ...x, amount: v } : x)));
                     setDirty(true);
+                  }}
+                  color={{
+                    value: o.color,
+                    labels: colorLabels,
+                    onChange: (color) => {
+                      setOneOffs(oneOffs.map((x, j) => (j === i ? { ...x, color } : x)));
+                      setDirty(true);
+                    },
                   }}
                 />
               </div>
@@ -235,7 +305,7 @@ export function MonthEditor({
               </button>
             </div>
           ))}
-          <Button variant="secondary" size="sm" className="w-fit" onClick={() => setOneOffs([...oneOffs, { title: "", amount: "" }])}>
+          <Button variant="secondary" size="sm" className="w-fit" onClick={() => setOneOffs([...oneOffs, { title: "", amount: "", color: null }])}>
             <Plus className="size-3.5" /> Add a one-off
           </Button>
         </CardContent>
@@ -248,14 +318,9 @@ export function MonthEditor({
           list={shown.filter((c) => c.kind === kind)}
           inputs={(c) => (
             <>
-              <AmountInput label={`${c.name}: in`} value={rows[c.id].amount} onChange={(v) => set(c.id, "amount", v)} placeholder={toText(entries.get(c.id)?.planned ?? null)} />
-              {kind === "pot" && <AmountInput label={`${c.name}: spent`} value={rows[c.id].spent} onChange={(v) => set(c.id, "spent", v)} />}
-              <AmountInput
-                label={`${c.name}: ${kind === "pot" ? "left" : "balance"}`}
-                value={rows[c.id].balance}
-                onChange={(v) => set(c.id, "balance", v)}
-                placeholder={String(Math.round(computed(c)))}
-              />
+              {field(c, "amount", "in", toText(entries.get(c.id)?.planned ?? null))}
+              {kind === "pot" && field(c, "spent", "spent")}
+              {field(c, "balance", kind === "pot" ? "left" : "balance", String(Math.round(computed(c))))}
             </>
           )}
         />
