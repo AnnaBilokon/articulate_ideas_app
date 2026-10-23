@@ -13,9 +13,6 @@ import {
 import { moneyColors, type MoneyColor } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
-/** The background for a coloured cell. */
-export const cellStyle = (color: MoneyColor | null | undefined) => (color ? { background: `var(--cell-${color})` } : undefined);
-
 // A small dot on an amount that opens the colours, each with its name.
 // The menu carries the Money theme, since it opens outside the page.
 export function CellColorPicker({
@@ -43,7 +40,7 @@ export function CellColorPicker({
         )}
       >
         <span
-          className={cn("size-3 rounded-full", value ? "ring-1 ring-foreground/30" : "border border-dashed border-foreground/35")}
+          className={cn("size-3 rounded-full", value ? "ring-2 ring-white/90" : "border border-dashed border-foreground/35")}
           style={value ? { background: `var(--cell-${value})` } : undefined}
         />
       </DropdownMenuTrigger>

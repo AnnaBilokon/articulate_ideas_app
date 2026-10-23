@@ -20,9 +20,20 @@ export const moneyKindInfo: Record<MoneyKind, { label: string; plural: string; h
 export type MoneyCategory = { id: string; name: string; kind: MoneyKind; position: number; archived: boolean };
 
 /** Colours to mark any amount with, like highlighting a cell; each gets a name of your choosing. */
-export const moneyColors = ["sky", "blush", "peach", "rose", "teal"] as const;
+export const moneyColors = ["red", "yellow", "green", "purple", "blue", "pink"] as const;
 export type MoneyColor = (typeof moneyColors)[number];
-export const moneyColorNames: Record<MoneyColor, string> = { sky: "Sky", blush: "Blush", peach: "Peach", rose: "Rose", teal: "Teal" };
+export const moneyColorNames: Record<MoneyColor, string> = {
+  red: "Red",
+  yellow: "Yellow",
+  green: "Green",
+  purple: "Purple",
+  blue: "Blue",
+  pink: "Pink",
+};
+
+/** A coloured cell: the colour behind, and text that stays readable on it. */
+export const cellStyle = (color: MoneyColor | null | undefined) =>
+  color ? { background: `var(--cell-${color})`, color: `var(--cell-${color}-foreground)` } : undefined;
 export const isMoneyColor = (v: unknown): v is MoneyColor => moneyColors.includes(v as MoneyColor);
 
 /** The amounts of an entry that can be coloured. */

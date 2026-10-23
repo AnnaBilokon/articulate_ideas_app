@@ -4,7 +4,7 @@ import { seriesColor, type Series } from "@/components/charts/series";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadMoney } from "@/lib/money";
-import { formatKr, periodShort, periodTotals, type MoneyColor } from "@/lib/schemas";
+import { cellStyle, formatKr, periodShort, periodTotals, type MoneyColor } from "@/lib/schemas";
 import { ColorKey, NoMonths } from "../money-bits";
 
 // Spending trends over the months that have been filled in: income, spending
@@ -115,7 +115,7 @@ export default async function TrendsPage() {
                       <td
                         key={labels[i]}
                         className="px-2 py-1.5 text-right whitespace-nowrap"
-                        style={color ? { background: `var(--cell-${color})` } : undefined}
+                        style={cellStyle(color)}
                         title={color ? colorLabels[color] : undefined}
                       >
                         {v === null ? "–" : formatKr(v).replace(" kr", "")}
