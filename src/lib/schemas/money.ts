@@ -83,14 +83,14 @@ export type PeriodTotals = {
   plannedPotTransfers: number;
   plannedSavingTransfers: number;
   freeCash: number;
-  /** What free cash would be if everything went as expected. */
-  plannedFreeCash: number;
   /** What actually left: expenses, one-offs, and spending from pots. */
   spending: number;
   /** Savings transfers as a share of income, 0-1; null without income. */
   savingsRate: number | null;
   /** Any actual amount entered yet. */
   started: boolean;
+  /** Any bill entered: the month counts as filled in from then on. */
+  billsEntered: boolean;
 };
 
 export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): PeriodTotals {
@@ -107,6 +107,7 @@ export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): 
     plannedSavingTransfers: 0,
   };
   let started = false;
+  let billsEntered = false;
   for (const e of period.entries) {
     const kind = kindOf.get(e.categoryId);
     const amount = e.amount ?? 0;
@@ -115,6 +116,7 @@ export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): 
       t.income += amount;
       t.plannedIncome += e.planned ?? 0;
     } else if (kind === "expense") {
+      if (e.amount !== null) billsEntered = true;
       t.expenses += amount;
       t.plannedExpenses += e.planned ?? 0;
     } else if (kind === "pot") {
@@ -132,10 +134,10 @@ export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): 
     ...t,
     oneOffs,
     freeCash: t.income - t.expenses - oneOffs - t.potTransfers - t.savingTransfers,
-    plannedFreeCash: t.plannedIncome - t.plannedExpenses - t.plannedPotTransfers - t.plannedSavingTransfers,
     spending: t.expenses + oneOffs + t.potSpent,
     savingsRate: t.income > 0 ? t.savingTransfers / t.income : null,
     started,
+    billsEntered,
   };
 }
 

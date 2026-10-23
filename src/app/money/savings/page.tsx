@@ -13,11 +13,11 @@ import { NoMonths, StatTile } from "../money-bits";
 export default async function SavingsPage() {
   await connection();
   const { categories, periods } = await loadMoney();
-  const filled = periods.filter((p) => periodTotals(p, categories).started);
+  const filled = periods.filter((p) => periodTotals(p, categories).billsEntered);
 
   if (filled.length === 0) {
     return (
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
         <PageHeader title="Savings and pots" description="What you've put aside, and how it grows." />
         {periods.length === 0 ? <NoMonths /> : <p className="text-muted-foreground">Fill in a month to see your savings here.</p>}
       </main>
@@ -50,7 +50,7 @@ export default async function SavingsPage() {
   const potMax = Math.max(1, ...potsNow.map((p) => Math.abs(p.value)));
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6">
       <PageHeader title="Savings and pots" description={`Balances at the end of each month, up to ${periodShort(latest.month)}.`} />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -80,75 +80,78 @@ export default async function SavingsPage() {
         </Card>
       </section>
 
-      {savings.length > 0 && (
-        <LineChart title="Savings over time" description="Each account's balance at the end of the month." data={{ labels, series: savings }} />
-      )}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        {savings.length > 0 && (
+          <LineChart title="Savings over time" description="Each account's balance at the end of the month." data={{ labels, series: savings }} />
+        )}
+        <ColumnChart
+          title="Savings rate"
+          description="Share of each month's income that went to savings."
+          unit="percent"
+          data={{ labels, series: [{ key: "rate", name: "Savings rate", color: seriesColor(0), values: rates }] }}
+        />
+      </div>
 
-      <ColumnChart
-        title="Savings rate"
-        description="Share of each month's income that went to savings."
-        unit="percent"
-        data={{ labels, series: [{ key: "rate", name: "Savings rate", color: seriesColor(0), values: rates }] }}
-      />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start">
+        {potsNow.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-heading">In your pots now</CardTitle>
+              <p className="text-sm text-muted-foreground">What&apos;s left in each, at the end of {periodShort(latest.month)}.</p>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-3">
+                {potsNow.map((p) => (
+                  <li key={p.name} className="flex flex-col gap-1">
+                    <div className="flex justify-between gap-3 text-sm">
+                      <span>{p.name}</span>
+                      <span className="tabular-nums">{formatKr(p.value)}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted" aria-hidden>
+                      {p.value > 0 && <div className="h-full rounded-full" style={{ width: `${(p.value / potMax) * 100}%`, background: "var(--series-1)" }} />}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
-      {potsNow.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-heading">In your pots now</CardTitle>
-            <p className="text-sm text-muted-foreground">What&apos;s left in each, at the end of {periodShort(latest.month)}.</p>
-          </CardHeader>
-          <CardContent>
-            <ul className="flex flex-col gap-3">
-              {potsNow.map((p) => (
-                <li key={p.name} className="flex flex-col gap-1">
-                  <div className="flex justify-between gap-3 text-sm">
-                    <span>{p.name}</span>
-                    <span className="tabular-nums">{formatKr(p.value)}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted" aria-hidden>
-                    {p.value > 0 && <div className="h-full rounded-full" style={{ width: `${(p.value / potMax) * 100}%`, background: "var(--series-1)" }} />}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {pots.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-heading">Pots, month by month</CardTitle>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-muted-foreground">
-                  <th className="py-1.5 pr-3 text-left font-medium">Pot</th>
-                  {labels.map((l) => (
-                    <th key={l} className="px-2 py-1.5 text-right font-medium whitespace-nowrap">
-                      {l}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="tabular-nums">
-                {pots.map((s) => (
-                  <tr key={s.key} className="border-t border-border/60">
-                    <td className="py-1.5 pr-3 whitespace-nowrap">{s.name}</td>
-                    {s.values.map((v, i) => (
-                      <td key={labels[i]} className="px-2 py-1.5 text-right whitespace-nowrap">
-                        {v === null ? "–" : formatKr(v).replace(" kr", "")}
-                      </td>
+        {pots.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-heading">Pots, month by month</CardTitle>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-muted-foreground">
+                    <th className="py-1.5 pr-3 text-left font-medium">Pot</th>
+                    {labels.map((l) => (
+                      <th key={l} className="px-2 py-1.5 text-right font-medium whitespace-nowrap">
+                        {l}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="mt-2 text-xs text-muted-foreground">What was left at the end of each month, in kr.</p>
-          </CardContent>
-        </Card>
-      )}
+                </thead>
+                <tbody className="tabular-nums">
+                  {pots.map((s) => (
+                    <tr key={s.key} className="border-t border-border/60">
+                      <td className="py-1.5 pr-3 whitespace-nowrap">{s.name}</td>
+                      {s.values.map((v, i) => (
+                        <td key={labels[i]} className="px-2 py-1.5 text-right whitespace-nowrap">
+                          {v === null ? "–" : formatKr(v).replace(" kr", "")}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-2 text-xs text-muted-foreground">What was left at the end of each month, in kr.</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </main>
   );
 }

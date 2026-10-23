@@ -11,7 +11,7 @@ export default async function CategoriesPage() {
   const { categories } = await loadMoney();
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6">
       <PageHeader
         title="Categories"
         description="What each month is made of. Hiding one keeps it in past months but leaves it out of new ones."

@@ -138,11 +138,27 @@ function parseColor(value, vars, seen = new Set()) {
 const failures = [];
 let checked = 0;
 
-for (const id of ids) {
-  for (const dark of [false, true]) {
-    const mode = dark ? "dark" : "light";
+// Workspace themes ([data-workspace="<id>"] and .dark [data-workspace="<id>"])
+// sit on top of the base palette, so check them the same way.
+const workspaces = [...blocks.keys()].map((k) => k.match(/^\[data-workspace="([\w-]+)"\]$/)?.[1]).filter(Boolean);
+const themes = [
+  ...ids.flatMap((id) => [false, true].map((dark) => {
     const { light, darkBlock, merged } = tokens(id, dark);
-    const own = dark ? darkBlock : light;
+    return { id, dark, own: dark ? darkBlock : light, merged, adjacentOnly: false };
+  })),
+  ...workspaces.flatMap((w) => [false, true].map((dark) => {
+    const ws = blocks.get(`[data-workspace="${w}"]`);
+    const wsDark = blocks.get(`.dark [data-workspace="${w}"]`);
+    const merged = { ...blocks.get(":root"), ...(dark ? blocks.get(".dark") : {}), ...ws, ...(dark ? wsDark : {}) };
+    // A workspace's chart colours are its chart series, used in a fixed order,
+    // so neighbours in that order are the pairs that must stay apart.
+    return { id: `workspace ${w}`, dark, own: dark ? wsDark : ws, merged, adjacentOnly: true };
+  })),
+];
+
+for (const { id, dark, own, merged, adjacentOnly } of themes) {
+  {
+    const mode = dark ? "dark" : "light";
     if (!own) {
       failures.push(`${id} ${mode}: no CSS block`);
       continue;
@@ -170,7 +186,7 @@ for (const id of ids) {
         const seen = charts.map((c) => (matrix ? simulate(c, matrix) : c));
         const min = vision === "normal" ? 0.1 : 0.05;
         for (let i = 0; i < 5; i++) {
-          for (let j = i + 1; j < 5; j++) {
+          for (let j = i + 1; j < (adjacentOnly ? Math.min(i + 2, 5) : 5); j++) {
             checked++;
             const d = distance(seen[i], seen[j]);
             if (d < min) {
@@ -188,4 +204,4 @@ if (failures.length > 0) {
   console.log(`\n${failures.length} problem(s) in ${ids.length} palettes.`);
   process.exit(1);
 }
-console.log(`All ${checked} checks pass across ${ids.length} palettes × light and dark.`);
+console.log(`All ${checked} checks pass across ${ids.length} palettes and ${workspaces.length} workspace theme(s) × light and dark.`);

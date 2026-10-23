@@ -188,4 +188,14 @@ export function ChartFrame({
 }
 
 export const axisText = "fill-muted-foreground text-[11px]";
+
+/**
+ * An x-axis label that fits its slot: "Feb–Mar" when there's room, "Feb"
+ * when it's narrow, and only every other one when it's very narrow.
+ */
+export function axisLabel(label: string, slot: number, index: number): string {
+  if (slot >= 52) return label;
+  if (slot < 26 && index % 2 === 1) return "";
+  return label.split("–")[0];
+}
 export const gridStroke = "var(--border)";

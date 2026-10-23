@@ -13,11 +13,11 @@ import { NoMonths } from "../money-bits";
 export default async function TrendsPage() {
   await connection();
   const { categories, periods } = await loadMoney();
-  const filled = periods.filter((p) => periodTotals(p, categories).started);
+  const filled = periods.filter((p) => periodTotals(p, categories).billsEntered);
 
   if (filled.length === 0) {
     return (
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
         <PageHeader title="Trends" description="Where the money goes, month by month." />
         {periods.length === 0 ? <NoMonths /> : <p className="text-muted-foreground">Fill in a month to see trends here.</p>}
       </main>
@@ -29,18 +29,18 @@ export default async function TrendsPage() {
   const amount = (categoryId: string) =>
     filled.map((p) => p.entries.find((e) => e.categoryId === categoryId)?.amount ?? null);
 
-  // Spending by category: the four biggest bills by total, then pots, one-offs, and the rest.
+  // Spending by category: the three biggest bills by total, then pots, one-offs, and the rest.
   const expenseCats = categories.filter((c) => c.kind === "expense");
   const byTotal = expenseCats
     .map((c) => ({ c, values: amount(c.id), total: amount(c.id).reduce<number>((t, v) => t + (v ?? 0), 0) }))
     .filter((x) => x.total > 0)
     .sort((a, b) => b.total - a.total);
-  const top = byTotal.slice(0, 4);
-  const rest = byTotal.slice(4);
+  const top = byTotal.slice(0, 3);
+  const rest = byTotal.slice(3);
   const spendingSeries: Series[] = [
     ...top.map((x, i) => ({ key: x.c.id, name: x.c.name, color: seriesColor(i), values: x.values })),
-    { key: "pots", name: "From pots", color: seriesColor(4), values: totals.map((t) => t.potSpent) },
-    { key: "one-offs", name: "One-offs", color: seriesColor(5), values: totals.map((t) => t.oneOffs) },
+    { key: "pots", name: "From pots", color: seriesColor(3), values: totals.map((t) => t.potSpent) },
+    { key: "one-offs", name: "One-offs", color: seriesColor(4), values: totals.map((t) => t.oneOffs) },
     {
       key: "rest",
       name: "Other bills",
@@ -55,7 +55,7 @@ export default async function TrendsPage() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6">
       <PageHeader
         title="Trends"
         description={`${filled.length} ${filled.length === 1 ? "month" : "months"}, ${labels[0]} to ${labels[labels.length - 1]}. Hover or tap a month for its numbers.`}
@@ -74,13 +74,14 @@ export default async function TrendsPage() {
         }}
       />
 
-      <ColumnChart title="Where the money goes" description="Your four biggest bills, pots, one-offs, and the rest." data={{ labels, series: spendingSeries }} stacked />
-
-      <ColumnChart
-        title="Free cash"
-        description="Left after bills, one-offs, pots and savings. Below zero means it came from savings or the buffer."
-        data={{ labels, series: [{ key: "free", name: "Free cash", color: seriesColor(5), values: totals.map((t) => t.freeCash) }] }}
-      />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ColumnChart title="Where the money goes" description="Your three biggest bills, pots, one-offs, and the rest." data={{ labels, series: spendingSeries }} stacked />
+        <ColumnChart
+          title="Free cash"
+          description="Left after bills, one-offs, pots and savings. Below zero means it came from savings or the buffer."
+          data={{ labels, series: [{ key: "free", name: "Free cash", color: seriesColor(0), values: totals.map((t) => t.freeCash) }] }}
+        />
+      </div>
 
       <Card>
         <CardHeader>

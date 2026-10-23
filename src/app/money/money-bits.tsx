@@ -41,11 +41,11 @@ export function StatTile({
   );
 }
 
-/** The months as pills, newest last; the chosen one highlighted. */
+/** The months as pills, newest first so the current one shows on phones; the chosen one highlighted. */
 export function MonthPicker({ periods, current, base }: { periods: MoneyPeriod[]; current: string; base: string }) {
   return (
     <nav aria-label="Month" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-      {periods.map((p) => (
+      {[...periods].reverse().map((p) => (
         <Link
           key={p.id}
           href={`${base}?month=${monthSlug(p.month)}`}
