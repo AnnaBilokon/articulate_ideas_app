@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChartFrame, Legend, Tooltip, axisText, gridStroke, niceTicks, useWidth, formatters, type TooltipState, type Unit } from "./chart-frame";
+import { ChartFrame, Legend, Tooltip, axisText, gridStroke, niceTicks, useWidth, formatters, axisLabel, type TooltipState, type Unit } from "./chart-frame";
 import type { ChartData } from "./series";
 
 // Lines over time: 2px lines, an end dot with a surface ring, a crosshair
@@ -112,7 +112,7 @@ export function LineChart({
             ))}
             {data.labels.map((label, i) => (
               <text key={label} x={x(i)} y={TOP + PLOT_HEIGHT + 18} textAnchor="middle" className={axisText}>
-                {label}
+                {axisLabel(label, n > 1 ? innerW / (n - 1) : innerW, i)}
               </text>
             ))}
             {tip && <line x1={x(tip.index)} x2={x(tip.index)} y1={TOP} y2={TOP + PLOT_HEIGHT} stroke="var(--muted-foreground)" strokeOpacity={0.6} strokeWidth={1} />}

@@ -4,20 +4,20 @@ import { seriesColor, type Series } from "@/components/charts/series";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadMoney } from "@/lib/money";
-import { formatKr, periodShort, periodTotals } from "@/lib/schemas";
-import { NoMonths } from "../money-bits";
+import { formatKr, periodShort, periodTotals, type MoneyColor } from "@/lib/schemas";
+import { ColorKey, NoMonths } from "../money-bits";
 
 // Spending trends over the months that have been filled in: income, spending
 // and savings side by side; where the money goes, by category; free cash;
 // and every category month by month.
 export default async function TrendsPage() {
   await connection();
-  const { categories, periods } = await loadMoney();
-  const filled = periods.filter((p) => periodTotals(p, categories).started);
+  const { categories, periods, colorLabels } = await loadMoney();
+  const filled = periods.filter((p) => periodTotals(p, categories).billsEntered);
 
   if (filled.length === 0) {
     return (
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
         <PageHeader title="Trends" description="Where the money goes, month by month." />
         {periods.length === 0 ? <NoMonths /> : <p className="text-muted-foreground">Fill in a month to see trends here.</p>}
       </main>
@@ -28,19 +28,20 @@ export default async function TrendsPage() {
   const totals = filled.map((p) => periodTotals(p, categories));
   const amount = (categoryId: string) =>
     filled.map((p) => p.entries.find((e) => e.categoryId === categoryId)?.amount ?? null);
+  const colorOf = (categoryId: string, i: number) => filled[i].entries.find((e) => e.categoryId === categoryId)?.colors.amount;
 
-  // Spending by category: the four biggest bills by total, then pots, one-offs, and the rest.
+  // Spending by category: the three biggest bills by total, then pots, one-offs, and the rest.
   const expenseCats = categories.filter((c) => c.kind === "expense");
   const byTotal = expenseCats
     .map((c) => ({ c, values: amount(c.id), total: amount(c.id).reduce<number>((t, v) => t + (v ?? 0), 0) }))
     .filter((x) => x.total > 0)
     .sort((a, b) => b.total - a.total);
-  const top = byTotal.slice(0, 4);
-  const rest = byTotal.slice(4);
+  const top = byTotal.slice(0, 3);
+  const rest = byTotal.slice(3);
   const spendingSeries: Series[] = [
     ...top.map((x, i) => ({ key: x.c.id, name: x.c.name, color: seriesColor(i), values: x.values })),
-    { key: "pots", name: "From pots", color: seriesColor(4), values: totals.map((t) => t.potSpent) },
-    { key: "one-offs", name: "One-offs", color: seriesColor(5), values: totals.map((t) => t.oneOffs) },
+    { key: "pots", name: "From pots", color: seriesColor(3), values: totals.map((t) => t.potSpent) },
+    { key: "one-offs", name: "One-offs", color: seriesColor(4), values: totals.map((t) => t.oneOffs) },
     {
       key: "rest",
       name: "Other bills",
@@ -55,7 +56,7 @@ export default async function TrendsPage() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6">
       <PageHeader
         title="Trends"
         description={`${filled.length} ${filled.length === 1 ? "month" : "months"}, ${labels[0]} to ${labels[labels.length - 1]}. Hover or tap a month for its numbers.`}
@@ -74,17 +75,22 @@ export default async function TrendsPage() {
         }}
       />
 
-      <ColumnChart title="Where the money goes" description="Your four biggest bills, pots, one-offs, and the rest." data={{ labels, series: spendingSeries }} stacked />
-
-      <ColumnChart
-        title="Free cash"
-        description="Left after bills, one-offs, pots and savings. Below zero means it came from savings or the buffer."
-        data={{ labels, series: [{ key: "free", name: "Free cash", color: seriesColor(5), values: totals.map((t) => t.freeCash) }] }}
-      />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ColumnChart title="Where the money goes" description="Your three biggest bills, pots, one-offs, and the rest." data={{ labels, series: spendingSeries }} stacked />
+        <ColumnChart
+          title="Free cash"
+          description="Left after bills, one-offs, pots and savings. Below zero means it came from savings or the buffer."
+          data={{ labels, series: [{ key: "free", name: "Free cash", color: seriesColor(0), values: totals.map((t) => t.freeCash) }] }}
+        />
+      </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-heading">Every bill, month by month</CardTitle>
+          <ColorKey
+            used={new Set(byTotal.flatMap(({ c }) => filled.map((_, i) => colorOf(c.id, i)).filter((x): x is MoneyColor => !!x)))}
+            labels={colorLabels}
+          />
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -103,11 +109,19 @@ export default async function TrendsPage() {
               {byTotal.map(({ c, values }) => (
                 <tr key={c.id} className="border-t border-border/60">
                   <td className="py-1.5 pr-3 whitespace-nowrap">{c.name}</td>
-                  {values.map((v, i) => (
-                    <td key={labels[i]} className="px-2 py-1.5 text-right whitespace-nowrap">
-                      {v === null ? "–" : formatKr(v).replace(" kr", "")}
-                    </td>
-                  ))}
+                  {values.map((v, i) => {
+                    const color = colorOf(c.id, i);
+                    return (
+                      <td
+                        key={labels[i]}
+                        className="px-2 py-1.5 text-right whitespace-nowrap"
+                        style={color ? { background: `var(--cell-${color})` } : undefined}
+                        title={color ? colorLabels[color] : undefined}
+                      >
+                        {v === null ? "–" : formatKr(v).replace(" kr", "")}
+                      </td>
+                    );
+                  })}
                   <td className="py-1.5 pl-2 text-right font-medium whitespace-nowrap">{formatKr(average(values)).replace(" kr", "")}</td>
                 </tr>
               ))}

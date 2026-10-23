@@ -676,11 +676,27 @@ export type Database = {
         }
         Relationships: []
       }
+      money_color_labels: {
+        Row: {
+          color: string
+          label: string
+        }
+        Insert: {
+          color: string
+          label: string
+        }
+        Update: {
+          color?: string
+          label?: string
+        }
+        Relationships: []
+      }
       money_entries: {
         Row: {
           amount: number | null
           balance: number | null
           category_id: string
+          colors: Json
           id: string
           note: string | null
           period_id: string
@@ -691,6 +707,7 @@ export type Database = {
           amount?: number | null
           balance?: number | null
           category_id: string
+          colors?: Json
           id?: string
           note?: string | null
           period_id: string
@@ -701,6 +718,7 @@ export type Database = {
           amount?: number | null
           balance?: number | null
           category_id?: string
+          colors?: Json
           id?: string
           note?: string | null
           period_id?: string
@@ -727,6 +745,7 @@ export type Database = {
       money_one_offs: {
         Row: {
           amount: number
+          color: string | null
           created_at: string
           id: string
           period_id: string
@@ -734,6 +753,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          color?: string | null
           created_at?: string
           id?: string
           period_id: string
@@ -741,6 +761,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          color?: string | null
           created_at?: string
           id?: string
           period_id?: string

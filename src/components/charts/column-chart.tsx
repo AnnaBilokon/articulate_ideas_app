@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChartFrame, Legend, Tooltip, axisText, gridStroke, niceTicks, useWidth, formatters, type TooltipState, type Unit } from "./chart-frame";
+import { ChartFrame, Legend, Tooltip, axisText, gridStroke, niceTicks, useWidth, formatters, axisLabel, type TooltipState, type Unit } from "./chart-frame";
 import type { ChartData } from "./series";
 
 // Columns over time: grouped (series side by side) or stacked (parts of a
@@ -108,7 +108,7 @@ export function ColumnChart({
                     );
                   })}
                   <text x={LEFT + band * i + band / 2} y={TOP + PLOT_HEIGHT + 18} textAnchor="middle" className={axisText}>
-                    {label}
+                    {axisLabel(label, band, i)}
                   </text>
                   {i === last && (stacked || data.series.length === 1) && (
                     <text

@@ -43,7 +43,17 @@ type NavItem = { href: string; label: string; icon: LucideIcon };
 
 // The app's workspaces, each with its own tabs. A page belongs to the
 // workspace whose prefixes match its path; Learning takes the rest.
-const workspaces: { id: string; label: string; href: string; icon: LucideIcon; prefixes: string[]; nav: NavItem[] }[] = [
+// A workspace can also be wide (dashboards) and have its own colours: its
+// header and layout carry data-workspace, themed in globals.css.
+const workspaces: {
+  id: string;
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  prefixes: string[];
+  nav: NavItem[];
+  wide?: boolean;
+}[] = [
   {
     id: "learning",
     label: "Learning",
@@ -77,6 +87,7 @@ const workspaces: { id: string; label: string; href: string; icon: LucideIcon; p
     href: "/money",
     icon: Wallet,
     prefixes: ["/money"],
+    wide: true,
     nav: [
       { href: "/money", label: "Overview", icon: LayoutDashboard },
       { href: "/money/months", label: "Months", icon: CalendarRange },
@@ -128,7 +139,7 @@ function WorkspaceMenu({ current }: { current: (typeof workspaces)[number] | nul
         <span className="max-md:sr-only">{current?.label ?? APP_NAME}</span>
         <ChevronDown className="size-3.5 text-muted-foreground" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-52">
+      <DropdownMenuContent data-workspace={current?.id} align="start" className="w-52">
         <DropdownMenuItem render={<Link href="/" />}>
           <House />
           Journey home
@@ -167,8 +178,13 @@ export function SiteHeader() {
   const active = current ? activeTab(pathname, nav) : undefined;
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border/70 bg-background/75 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full max-w-3xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
+    <header data-workspace={current?.id} className="sticky top-0 z-10 border-b border-border/70 bg-background/75 backdrop-blur-md">
+      <div
+        className={cn(
+          "mx-auto flex h-16 w-full items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6",
+          current?.wide ? "max-w-5xl" : "max-w-3xl",
+        )}
+      >
         <WorkspaceMenu current={current} />
         <nav className="flex items-center gap-1 text-sm">
           {nav.map(({ href, label, icon: Icon }) => (

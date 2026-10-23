@@ -6,7 +6,17 @@ import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { loadMoney } from "@/lib/money";
 import { localDate } from "@/lib/schedule";
-import { categoryInputSchema, nextMonth, periodInputSchema, type MoneyKind, type PeriodInput } from "@/lib/schemas";
+import {
+  categoryInputSchema,
+  colorLabelsSchema,
+  moneyColorNames,
+  moneyColors,
+  nextMonth,
+  periodInputSchema,
+  type MoneyColor,
+  type MoneyKind,
+  type PeriodInput,
+} from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
 // Saving a month, starting the next one, and managing categories.
@@ -41,6 +51,7 @@ export async function savePeriod(periodId: string, input: PeriodInput): Promise<
           spent: e.spent,
           balance: e.balance,
           note: e.note || null,
+          colors: e.colors,
         })),
         { onConflict: "period_id,category_id" },
       );
@@ -52,7 +63,7 @@ export async function savePeriod(periodId: string, input: PeriodInput): Promise<
   if (parsed.data.oneOffs.length > 0) {
     const { error } = await db()
       .from("money_one_offs")
-      .insert(parsed.data.oneOffs.map((o) => ({ period_id: periodId, title: o.title, amount: o.amount })));
+      .insert(parsed.data.oneOffs.map((o) => ({ period_id: periodId, title: o.title, amount: o.amount, color: o.color })));
     if (error) return { error: "Could not save the one-offs. Try again." };
   }
   refresh();
@@ -169,6 +180,18 @@ export async function moveCategory(id: string, direction: -1 | 1): Promise<Resul
   if (i < 0 || j < 0 || j >= ids.length) return { error: null };
   [ids[i], ids[j]] = [ids[j], ids[i]];
   await Promise.all(ids.map((cid, position) => db().from("money_categories").update({ position }).eq("id", cid)));
+  refresh();
+  return { error: null };
+}
+
+/** Names what each colour means; a blank name goes back to the colour's own. */
+export async function saveColorLabels(labels: Partial<Record<MoneyColor, string>>): Promise<Result> {
+  await requireSession();
+  const parsed = colorLabelsSchema.safeParse(labels);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const rows = moneyColors.map((color) => ({ color, label: parsed.data[color]?.trim() || moneyColorNames[color] }));
+  const { error } = await db().from("money_color_labels").upsert(rows, { onConflict: "color" });
+  if (error) return { error: "Could not save the names. Try again." };
   refresh();
   return { error: null };
 }

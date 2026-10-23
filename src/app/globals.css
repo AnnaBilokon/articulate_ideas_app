@@ -444,6 +444,141 @@
   }
 }
 
+/* ---- Workspace themes --------------------------------------------------------
+
+   A workspace can have its own look, whatever palette is chosen: its layout
+   and header carry data-workspace="<id>", and the block below redefines the
+   palette roles inside it. Same roles as a palette, checked by
+   npm run check:contrast, plus the chart series (validated for colour
+   vision deficiency on the card surface, in order).
+
+   Money: pacific blue #61a0af, sky blue #96c9dc, rose kiss #f06c9b,
+   powder blush #f9b9b7, soft peach #f5d491. The pastels make the surfaces
+   and highlights; deeper steps of the same hues carry text, buttons and charts.
+   ------------------------------------------------------------------------- */
+[data-workspace="money"] {
+  --background: #f4f9fa;
+  --foreground: #1b2e34;
+  --card: #fffefc;
+  --card-foreground: #1b2e34;
+  --popover: #fffefc;
+  --popover-foreground: #1b2e34;
+  --heading: #1d5462;
+  --primary: #2c6c7b;
+  --primary-foreground: #ffffff;
+  --secondary: #e4f1f5;
+  --secondary-foreground: #1d5462;
+  --muted: #ebf3f5;
+  --muted-foreground: #4b656d;
+  --accent: #fdeeed;
+  --accent-foreground: #8a2d4f;
+  --highlight: #96c9dc;
+  --highlight-foreground: #0f3542;
+  --destructive: #b42318;
+  --border: #d8e7ec;
+  --input: #c3d9e0;
+  --ring: #2c6c7b;
+  --chart-1: #0f8aa3;
+  --chart-2: #b8841c;
+  --chart-3: #e0538a;
+  --chart-4: #3f7fd0;
+  --chart-5: #e2726d;
+  --shadow-rgb: 27 46 52;
+  --series-1: #0f8aa3;
+  --series-2: #b8841c;
+  --series-3: #e0538a;
+  --series-4: #3f7fd0;
+  --series-5: #e2726d;
+  --series-6: #e2726d;
+  --series-other: #b6c3c7;
+  --logo: var(--primary);
+  --logo-foreground: var(--primary-foreground);
+  --glow-1: color-mix(in oklab, #96c9dc 70%, transparent);
+  --glow-2: color-mix(in oklab, #f9b9b7 55%, transparent);
+  --glow-3: color-mix(in oklab, #f5d491 45%, transparent);
+  /* Cell colours: soft tints of the palette behind any amount. */
+  --cell-sky: #d3e8f0;
+  --cell-blush: #fcdcdb;
+  --cell-peach: #f9e7c2;
+  --cell-rose: #fad4e1;
+  --cell-teal: #cde4e9;
+}
+
+.dark [data-workspace="money"] {
+  --background: #0b1316;
+  --foreground: #e2eef1;
+  --card: #132026;
+  --card-foreground: #e2eef1;
+  --popover: #16252c;
+  --popover-foreground: #e2eef1;
+  --heading: #f1f8fa;
+  --primary: #96c9dc;
+  --primary-foreground: #0b2731;
+  --secondary: #1b3640;
+  --secondary-foreground: #e2f2f7;
+  --muted: #172930;
+  --muted-foreground: #a2bcc4;
+  --accent: #2a1720;
+  --accent-foreground: #f9b9b7;
+  --highlight: #96c9dc;
+  --highlight-foreground: #0b2731;
+  --destructive: #f28b82;
+  --border: #213740;
+  --input: #2c4650;
+  --ring: #96c9dc;
+  --chart-1: #1f97ae;
+  --chart-2: #bd8519;
+  --chart-3: #e24f87;
+  --chart-4: #4f8ee0;
+  --chart-5: #dc645c;
+  --shadow-rgb: 0 0 0;
+  --series-1: #1f97ae;
+  --series-2: #bd8519;
+  --series-3: #e24f87;
+  --series-4: #4f8ee0;
+  --series-5: #dc645c;
+  --series-6: #dc645c;
+  --series-other: #56656a;
+  --glow-1: color-mix(in oklab, #61a0af 22%, transparent);
+  --glow-2: color-mix(in oklab, #f06c9b 12%, transparent);
+  --glow-3: color-mix(in oklab, #f5d491 8%, transparent);
+  --cell-sky: #22424d;
+  --cell-blush: #4a3135;
+  --cell-peach: #463c22;
+  --cell-rose: #4d2337;
+  --cell-teal: #1d3f47;
+}
+
+/* Money's top band: the palette as a soft gradient. */
+.money-hero {
+  background-image: linear-gradient(
+    120deg,
+    color-mix(in oklab, #96c9dc 42%, var(--card)),
+    color-mix(in oklab, #f9b9b7 34%, var(--card)) 55%,
+    color-mix(in oklab, #f5d491 38%, var(--card))
+  );
+}
+
+.dark .money-hero {
+  background-image: linear-gradient(
+    120deg,
+    color-mix(in oklab, #61a0af 22%, var(--card)),
+    color-mix(in oklab, #f06c9b 12%, var(--card)) 55%,
+    color-mix(in oklab, #f5d491 10%, var(--card))
+  );
+}
+
+/* The workspace's own page surface and glow, under its header. */
+.workspace-surface {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(ellipse 45% 40% at 90% -8%, var(--glow-1), transparent),
+    radial-gradient(ellipse 50% 35% at 10% -6%, var(--glow-2), transparent),
+    radial-gradient(ellipse 60% 30% at 50% -12%, var(--glow-3, transparent), transparent);
+  background-repeat: no-repeat;
+  color: var(--foreground);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

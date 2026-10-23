@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { PageHeader } from "@/components/page-header";
 import { loadMoney } from "@/lib/money";
 import { monthFromSlug, monthSlug, periodLabel, runningBalances } from "@/lib/schemas";
+import { ColorKey, colorsUsed } from "../../money-bits";
 import { MonthEditor } from "../month-editor";
 
 // Filling in one pay period.
@@ -12,7 +13,7 @@ export default async function MonthPage({ params }: PageProps<"/money/months/[mo
   const { month: slug } = await params;
   const month = monthFromSlug(slug);
   if (!month) notFound();
-  const { categories, periods } = await loadMoney();
+  const { categories, periods, colorLabels } = await loadMoney();
   const index = periods.findIndex((p) => p.month === month);
   if (index < 0) notFound();
   const period = periods[index];
@@ -28,13 +29,21 @@ export default async function MonthPage({ params }: PageProps<"/money/months/[mo
         <Link href={`/money?month=${monthSlug(period.month)}`} className="w-fit text-sm text-muted-foreground hover:text-foreground">
           See this month&apos;s overview
         </Link>
+        <p className="text-xs text-muted-foreground">Tap the dot in any field to colour it.</p>
+        <ColorKey used={colorsUsed([period])} labels={colorLabels} />
       </PageHeader>
       {categories.length === 0 ? (
         <p className="text-muted-foreground">
           Add your categories first: <Link href="/money/categories" className="underline underline-offset-4">Categories</Link>.
         </p>
       ) : (
-        <MonthEditor key={period.id} period={period} categories={categories} balancesBefore={Object.fromEntries(before ?? [])} />
+        <MonthEditor
+          key={period.id}
+          period={period}
+          categories={categories}
+          balancesBefore={Object.fromEntries(before ?? [])}
+          colorLabels={colorLabels}
+        />
       )}
     </main>
   );

@@ -43,7 +43,7 @@ export default async function JourneyHome() {
   const reminder = reminderFor(beliefs, today);
   const todaysHabits = habits.filter((h) => !h.archived && h.plannedToday);
   // Money: the latest month that's been filled in.
-  const moneyMonth = money.periods.filter((p) => periodTotals(p, money.categories).started).at(-1);
+  const moneyMonth = money.periods.filter((p) => periodTotals(p, money.categories).billsEntered).at(-1);
   const moneyTotals = moneyMonth ? periodTotals(moneyMonth, money.categories) : null;
   const moneySavings = moneyMonth
     ? [...(runningBalances(money.periods, money.categories).get(moneyMonth.id) ?? new Map<string, number>())]

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ChevronRight, Tags } from "lucide-react";
+import { ArrowRight, Tags } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { loadMoney } from "@/lib/money";
 import { formatKr, monthSlug, nextMonth, periodLabel, periodTotals } from "@/lib/schemas";
@@ -15,7 +15,7 @@ export default async function MonthsPage() {
   const latest = periods.at(-1);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
       <PageHeader title="Months" description="One pay period each, from one payday to the next.">
         <div className="flex flex-wrap items-center gap-3">
           {latest && <StartMonth label={`Start ${periodLabel(nextMonth(latest.month))}`} />}
@@ -28,29 +28,43 @@ export default async function MonthsPage() {
       {periods.length === 0 ? (
         <NoMonths />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[...periods].reverse().map((p) => {
             const t = periodTotals(p, categories);
             return (
               <li key={p.id}>
                 <Link
                   href={`/money/months/${monthSlug(p.month)}`}
-                  className="group flex items-center gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-colors hover:bg-accent/50"
+                  className={cn(
+                    "group flex h-full flex-col gap-3 rounded-xl p-4 ring-1 ring-foreground/10 transition-colors hover:ring-primary/40",
+                    t.billsEntered ? "bg-card" : "money-hero",
+                  )}
                 >
-                  <span className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="font-medium">{periodLabel(p.month)}</span>
-                    {t.started ? (
-                      <span className="flex flex-wrap gap-x-3 text-xs text-muted-foreground tabular-nums">
-                        <span>In {formatKr(t.income)}</span>
-                        <span>Spent {formatKr(t.spending)}</span>
-                        <span>Saved {formatKr(t.savingTransfers)}</span>
-                        <span className={cn(t.freeCash < 0 && "text-foreground")}>Free {formatKr(t.freeCash)}</span>
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Expected amounts only · fill it in</span>
-                    )}
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-heading">{periodLabel(p.month)}</span>
+                    <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                   </span>
-                  <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  {t.billsEntered ? (
+                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                      {(
+                        [
+                          ["In", t.income],
+                          ["Spent", t.spending],
+                          ["Saved", t.savingTransfers],
+                          ["Free", t.freeCash],
+                        ] as const
+                      ).map(([label, value]) => (
+                        <div key={label} className="flex flex-col">
+                          <dt className="text-xs text-muted-foreground">{label}</dt>
+                          <dd className="font-medium tabular-nums">{formatKr(value)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      {t.started ? "In progress: the bills aren't in yet." : "Expected amounts only. Fill it in after payday."}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
