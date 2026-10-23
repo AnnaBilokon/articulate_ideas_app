@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  cellStyle,
   formatKr,
   moneyKindInfo,
   periodTotals,
@@ -20,7 +21,7 @@ import {
 } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { deletePeriod, savePeriod } from "../actions";
-import { CellColorPicker, cellStyle } from "../cell-color";
+import { CellColorPicker } from "../cell-color";
 
 // Filling in a month: actual and expected per category, one-offs, pots
 // (transferred, spent, balance) and savings (transferred, balance), with

@@ -166,8 +166,10 @@ for (const { id, dark, own, merged, adjacentOnly } of themes) {
     for (const t of ROLE_TOKENS) if (!(t in own)) failures.push(`${id} ${mode}: missing --${t}`);
 
     const color = (name) => parseColor(name === "white" ? "white" : (merged[name] ?? ""), merged);
-    // Cell colours a workspace defines carry text, so they need text contrast too.
-    const cellPairs = Object.keys(own).filter((t) => t.startsWith("cell-")).flatMap((t) => [["foreground", t], ["muted-foreground", t]]);
+    // Cell colours a workspace defines carry text in their own text colour.
+    const cellPairs = Object.keys(merged)
+      .filter((t) => t.startsWith("cell-") && !t.endsWith("-foreground"))
+      .map((t) => [`${t}-foreground`, t]);
     for (const [pairs, min] of [[[...TEXT_PAIRS, ...cellPairs], 4.5], [UI_PAIRS, 3]]) {
       for (const [fg, bg] of pairs) {
         const a = color(fg);

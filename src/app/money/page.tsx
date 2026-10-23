@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadMoney } from "@/lib/money";
-import { formatKr, monthSlug, periodLabel, periodShort, periodTotals, runningBalances } from "@/lib/schemas";
+import { cellStyle, formatKr, monthSlug, periodLabel, periodShort, periodTotals, runningBalances } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { ColorKey, MonthPicker, NoMonths, StatTile, colorsUsed, pickPeriod, previousOf } from "./money-bits";
 
@@ -124,7 +124,7 @@ export default async function MoneyOverview({ searchParams }: PageProps<"/money"
                             {actual !== null ? (
                               <span
                                 className={cn(e?.colors.amount && "rounded px-1.5 py-0.5")}
-                                style={e?.colors.amount ? { background: `var(--cell-${e.colors.amount})` } : undefined}
+                                style={cellStyle(e?.colors.amount)}
                                 title={e?.colors.amount ? colorLabels[e.colors.amount] : undefined}
                               >
                                 {formatKr(actual)}
@@ -170,7 +170,7 @@ export default async function MoneyOverview({ searchParams }: PageProps<"/money"
                       <span>{o.title}</span>
                       <span
                         className={cn("tabular-nums", o.color && "rounded px-1.5 py-0.5")}
-                        style={o.color ? { background: `var(--cell-${o.color})` } : undefined}
+                        style={cellStyle(o.color)}
                         title={o.color ? colorLabels[o.color] : undefined}
                       >
                         {formatKr(o.amount)}

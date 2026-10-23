@@ -5,7 +5,7 @@ import { seriesColor } from "@/components/charts/series";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadMoney } from "@/lib/money";
-import { formatKr, periodShort, periodTotals, runningBalances, type MoneyColor } from "@/lib/schemas";
+import { cellStyle, formatKr, periodShort, periodTotals, runningBalances, type MoneyColor } from "@/lib/schemas";
 import { ColorKey, NoMonths, StatTile } from "../money-bits";
 
 // Savings growth and pots: balances over time, the savings rate per month,
@@ -154,7 +154,7 @@ export default async function SavingsPage() {
                           <td
                             key={labels[i]}
                             className="px-2 py-1.5 text-right whitespace-nowrap"
-                            style={color ? { background: `var(--cell-${color})` } : undefined}
+                            style={cellStyle(color)}
                             title={color ? colorLabels[color] : undefined}
                           >
                             {v === null ? "–" : formatKr(v).replace(" kr", "")}
