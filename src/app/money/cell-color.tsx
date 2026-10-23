@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -47,14 +48,16 @@ export function CellColorPicker({
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent data-workspace="money" align="start" className="w-48">
-        <DropdownMenuLabel>Colour</DropdownMenuLabel>
-        {moneyColors.map((c) => (
-          <DropdownMenuItem key={c} onClick={() => onChange(c)} className="gap-2">
-            <span className="size-3.5 rounded-full ring-1 ring-foreground/25" style={{ background: `var(--cell-${c})` }} />
-            <span className="flex-1 truncate">{labels[c]}</span>
-            {value === c && <Check className="size-3.5" />}
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Colour</DropdownMenuLabel>
+          {moneyColors.map((c) => (
+            <DropdownMenuItem key={c} onClick={() => onChange(c)} className="gap-2">
+              <span className="size-3.5 rounded-full ring-1 ring-foreground/25" style={{ background: `var(--cell-${c})` }} />
+              <span className="flex-1 truncate">{labels[c]}</span>
+              {value === c && <Check className="size-3.5" />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onChange(null)} disabled={!value} className="text-muted-foreground">
           No colour
