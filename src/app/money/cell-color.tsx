@@ -40,7 +40,7 @@ export function CellColorPicker({
         )}
       >
         <span
-          className={cn("size-3 rounded-full", value ? "ring-2 ring-white/90" : "border border-dashed border-foreground/35")}
+          className={cn("size-3 rounded-full", value ? "ring-2 ring-black/45" : "border border-dashed border-foreground/35")}
           style={value ? { background: `var(--cell-${value})` } : undefined}
         />
       </DropdownMenuTrigger>

@@ -65,7 +65,12 @@ function AmountInput({
         onChange={(e) => onChange(e.target.value)}
         title={color?.value ? color.labels[color.value] : undefined}
         style={cellStyle(color?.value)}
-        className={cn("h-9 w-full min-w-0 bg-background text-right tabular-nums", color && "pl-7")}
+        className={cn(
+          "h-9 w-full min-w-0 bg-background text-right tabular-nums",
+          color && "pl-7",
+          // On a coloured cell, hints like a carried-over balance use its text colour, softened.
+          color?.value && "placeholder:text-current placeholder:opacity-80",
+        )}
       />
       {color && (
         <CellColorPicker
