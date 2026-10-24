@@ -496,20 +496,20 @@
   --glow-1: color-mix(in oklab, #96c9dc 70%, transparent);
   --glow-2: color-mix(in oklab, #f9b9b7 55%, transparent);
   --glow-3: color-mix(in oklab, #f5d491 45%, transparent);
-  /* Cell colours: strong colours behind any amount, the same in dark mode,
-     each with a text colour that reads on it. */
-  --cell-red: #dc2626;
-  --cell-red-foreground: #ffffff;
-  --cell-yellow: #facc15;
-  --cell-yellow-foreground: #1b2e34;
-  --cell-green: #15803d;
-  --cell-green-foreground: #ffffff;
-  --cell-purple: #9333ea;
-  --cell-purple-foreground: #ffffff;
-  --cell-blue: #2563eb;
-  --cell-blue-foreground: #ffffff;
-  --cell-pink: #db2777;
-  --cell-pink-foreground: #ffffff;
+  /* Cell colours: bright colours behind any amount, the same in dark mode,
+     with dark text that reads on every one. */
+  --cell-red: #f87171;
+  --cell-red-foreground: #1b1416;
+  --cell-yellow: #fde047;
+  --cell-yellow-foreground: #1b1416;
+  --cell-green: #4ade80;
+  --cell-green-foreground: #1b1416;
+  --cell-purple: #c084fc;
+  --cell-purple-foreground: #1b1416;
+  --cell-blue: #60a5fa;
+  --cell-blue-foreground: #1b1416;
+  --cell-pink: #f472b6;
+  --cell-pink-foreground: #1b1416;
 }
 
 .dark [data-workspace="money"] {
