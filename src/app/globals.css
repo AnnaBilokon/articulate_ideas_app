@@ -510,6 +510,23 @@
   --cell-blue-foreground: #1b1416;
   --cell-pink: #f472b6;
   --cell-pink-foreground: #1b1416;
+  /* Spending category colours: behind each category's icon, dark icon on top. */
+  --spend-red: #f87171;
+  --spend-red-foreground: #1b1416;
+  --spend-orange: #fb923c;
+  --spend-orange-foreground: #1b1416;
+  --spend-yellow: #fde047;
+  --spend-yellow-foreground: #1b1416;
+  --spend-green: #4ade80;
+  --spend-green-foreground: #1b1416;
+  --spend-teal: #2dd4bf;
+  --spend-teal-foreground: #1b1416;
+  --spend-blue: #60a5fa;
+  --spend-blue-foreground: #1b1416;
+  --spend-purple: #c084fc;
+  --spend-purple-foreground: #1b1416;
+  --spend-pink: #f472b6;
+  --spend-pink-foreground: #1b1416;
 }
 
 .dark [data-workspace="money"] {
