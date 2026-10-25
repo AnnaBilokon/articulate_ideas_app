@@ -166,9 +166,9 @@ for (const { id, dark, own, merged, adjacentOnly } of themes) {
     for (const t of ROLE_TOKENS) if (!(t in own)) failures.push(`${id} ${mode}: missing --${t}`);
 
     const color = (name) => parseColor(name === "white" ? "white" : (merged[name] ?? ""), merged);
-    // Cell colours a workspace defines carry text in their own text colour.
+    // Cell and spending colours a workspace defines carry text or icons in their own colour.
     const cellPairs = Object.keys(merged)
-      .filter((t) => t.startsWith("cell-") && !t.endsWith("-foreground"))
+      .filter((t) => (t.startsWith("cell-") || t.startsWith("spend-")) && !t.endsWith("-foreground"))
       .map((t) => [`${t}-foreground`, t]);
     for (const [pairs, min] of [[[...TEXT_PAIRS, ...cellPairs], 4.5], [UI_PAIRS, 3]]) {
       for (const [fg, bg] of pairs) {

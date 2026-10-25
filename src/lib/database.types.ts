@@ -798,6 +798,21 @@ export type Database = {
         }
         Relationships: []
       }
+      money_settings: {
+        Row: {
+          id: number
+          payday: number
+        }
+        Insert: {
+          id?: number
+          payday?: number
+        }
+        Update: {
+          id?: number
+          payday?: number
+        }
+        Relationships: []
+      }
       pretest_answers: {
         Row: {
           answer: string
@@ -1156,6 +1171,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      spend_categories: {
+        Row: {
+          archived_at: string | null
+          color: string
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          position: number
+        }
+        Insert: {
+          archived_at?: string | null
+          color: string
+          created_at?: string
+          icon: string
+          id?: string
+          name: string
+          position?: number
+        }
+        Update: {
+          archived_at?: string | null
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          position?: number
+        }
+        Relationships: []
+      }
+      spend_purchases: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          id: string
+          note: string | null
+          spent_on: string
+        }
+        Insert: {
+          amount: number
+          category_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          spent_on: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          spent_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spend_purchases_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "spend_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       strength_achievements: {
         Row: {
