@@ -50,14 +50,16 @@ export default async function SavingsPage() {
   const isOther = (c: (typeof categories)[number]) => c.kind === "saving" && !c.countsAsSaved;
   const isPot = (c: (typeof categories)[number]) => c.kind === "pot";
 
-  // Goals: the balance now, what's left, and how long at the recent pace
-  // (the average transfer over the last three filled-in months).
+  // Goals: the balance now, what's left, and how long at the recent pace:
+  // how much the balance grew a month over the last three filled-in months,
+  // withdrawals and all.
   const goals = categories
     .filter((c) => c.kind === "saving" && c.target !== null)
     .map((c) => {
       const now = balances.get(latest.id)?.get(c.id) ?? 0;
-      const recent = filled.slice(-3).map((p) => p.entries.find((e) => e.categoryId === c.id)?.amount ?? 0);
-      const pace = recent.reduce((a, b) => a + b, 0) / Math.max(1, recent.length);
+      const from = filled[Math.max(0, filled.length - 4)];
+      const steps = filled.length - 1 - filled.indexOf(from);
+      const pace = steps > 0 ? (now - (balances.get(from.id)?.get(c.id) ?? 0)) / steps : 0;
       const left = Math.max(0, (c.target ?? 0) - now);
       return { c, now, target: c.target ?? 0, left, pace, months: left > 0 && pace > 0 ? Math.ceil(left / pace) : null };
     });
