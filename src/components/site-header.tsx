@@ -18,6 +18,7 @@ import {
   ListChecks,
   Mic,
   PiggyBank,
+  Receipt,
   Plus,
   Sprout,
   Target,
@@ -92,6 +93,7 @@ const workspaces: {
     wide: true,
     nav: [
       { href: "/money", label: "Overview", icon: LayoutDashboard },
+      { href: "/money/spending", label: "Spending", icon: Receipt },
       { href: "/money/months", label: "Months", icon: CalendarRange },
       { href: "/money/trends", label: "Trends", icon: BarChart3 },
       { href: "/money/savings", label: "Savings", icon: PiggyBank },

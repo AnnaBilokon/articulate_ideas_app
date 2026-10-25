@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, Wallet } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatKr, moneyColors, monthSlug, periodLabel, periodShort, type MoneyColor, type MoneyPeriod } from "@/lib/schemas";
+import { formatKr, formatPrice, moneyColors, monthSlug, periodLabel, periodShort, type MoneyColor, type MoneyPeriod } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { StartMonth } from "./start-month";
 
@@ -14,24 +14,28 @@ export function StatTile({
   previous,
   upIsGood,
   hint,
+  precise,
 }: {
   label: string;
   value: number;
   previous?: { value: number; label: string } | null;
   upIsGood: boolean;
   hint?: string;
+  /** Show öre, for amounts as paid. */
+  precise?: boolean;
 }) {
+  const format = precise ? formatPrice : formatKr;
   const delta = previous ? value - previous.value : 0;
   const good = delta === 0 ? null : delta > 0 === upIsGood;
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-1">
         <span className="text-xs text-muted-foreground">{label}</span>
-        <span className="text-xl font-semibold text-heading sm:text-2xl">{formatKr(value)}</span>
+        <span className="text-xl font-semibold text-heading sm:text-2xl">{format(value)}</span>
         {previous && delta !== 0 ? (
           <span className={cn("flex items-center gap-0.5 text-xs", good ? "text-success-foreground" : "text-muted-foreground")}>
             {delta > 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
-            {formatKr(Math.abs(delta))} vs {previous.label}
+            {format(Math.abs(delta))} vs {previous.label}
           </span>
         ) : (
           hint && <span className="text-xs text-muted-foreground">{hint}</span>
