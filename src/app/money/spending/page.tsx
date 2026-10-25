@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { SpendIconBadge } from "@/components/spend-icon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { localDate } from "@/lib/schedule";
-import { formatDay, formatKr, monthSlug, ordinal, payPeriodOf, payPeriodRange, periodLabel, periodShort } from "@/lib/schemas";
+import { formatDay, formatPrice, monthSlug, ordinal, payPeriodOf, payPeriodRange, spendMonthLabel, spendMonthShort } from "@/lib/schemas";
 import { loadSpending } from "@/lib/spending";
 import { cn } from "@/lib/utils";
 import { StatTile } from "../money-bits";
@@ -64,7 +64,7 @@ export default async function SpendingPage({ searchParams }: PageProps<"/money/s
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
       <section className="money-hero flex flex-col gap-5 rounded-2xl p-4 ring-1 ring-foreground/10 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <PageHeader title="Spending" description={`${periodLabel(month)}: ${formatDay(range.from)} to ${formatDay(range.to)}`} />
+          <PageHeader title="Spending" description={`${spendMonthLabel(month, payday)}: ${formatDay(range.from)} to ${formatDay(range.to)}`} />
           <Link href="/money/spending/categories" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <Tags className="size-4" /> Categories and payday
           </Link>
@@ -80,7 +80,7 @@ export default async function SpendingPage({ searchParams }: PageProps<"/money/s
                 m === month ? "bg-highlight font-medium text-highlight-foreground" : "bg-card/70 text-muted-foreground hover:bg-accent hover:text-accent-foreground",
               )}
             >
-              {periodShort(m)}
+              {spendMonthShort(m, payday)}
             </Link>
           ))}
         </nav>
@@ -88,8 +88,9 @@ export default async function SpendingPage({ searchParams }: PageProps<"/money/s
           <StatTile
             label="Spent"
             value={total}
-            previous={before && previousTotal !== null ? { value: previousTotal, label: periodShort(before) } : null}
+            previous={before && previousTotal !== null ? { value: previousTotal, label: spendMonthShort(before, payday) } : null}
             upIsGood={false}
+            precise
           />
           <Card size="sm">
             <CardContent className="flex flex-col gap-1">
@@ -105,7 +106,7 @@ export default async function SpendingPage({ searchParams }: PageProps<"/money/s
                 <span className="flex min-w-0 flex-col gap-0.5">
                   <span className="text-xs text-muted-foreground">Most went to</span>
                   <span className="truncate font-semibold text-heading">{byCategory[0].c.name}</span>
-                  <span className="text-xs text-muted-foreground">{formatKr(byCategory[0].total)}</span>
+                  <span className="text-xs text-muted-foreground">{formatPrice(byCategory[0].total)}</span>
                 </span>
               </CardContent>
             </Card>
@@ -116,10 +117,17 @@ export default async function SpendingPage({ searchParams }: PageProps<"/money/s
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
         <div className="flex flex-col gap-6">
           {month === current && <AddPurchase categories={categories.filter((c) => !c.archived)} today={today} />}
+          {categories.length < 5 && (
+            <Card size="sm">
+              <CardContent>
+                <StarterCategories existing={categories.map((c) => c.name)} />
+              </CardContent>
+            </Card>
+          )}
           <PurchaseList purchases={these} categories={categories} today={today} />
           {month !== current && (
             <Link href="/money/spending" className="w-fit text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-              Add a purchase in {periodShort(current)}
+              Add a purchase in {spendMonthShort(current, payday)}
             </Link>
           )}
         </div>
@@ -131,7 +139,7 @@ export default async function SpendingPage({ searchParams }: PageProps<"/money/s
             </CardHeader>
             <CardContent>
               {byCategory.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing logged in {periodShort(month)} yet.</p>
+                <p className="text-sm text-muted-foreground">Nothing logged in {spendMonthShort(month, payday)} yet.</p>
               ) : (
                 <ul className="flex flex-col gap-3">
                   {byCategory.map(({ c, total: sum, count }) => (
@@ -143,7 +151,7 @@ export default async function SpendingPage({ searchParams }: PageProps<"/money/s
                             {c.name} <span className="text-xs text-muted-foreground">· {count}</span>
                           </span>
                           <span className="shrink-0 font-medium tabular-nums">
-                            {formatKr(sum)}
+                            {formatPrice(sum)}
                             <span className="ml-1.5 text-xs font-normal text-muted-foreground">{total > 0 ? Math.round((sum / total) * 100) : 0}%</span>
                           </span>
                         </div>
@@ -163,7 +171,7 @@ export default async function SpendingPage({ searchParams }: PageProps<"/money/s
               title="Month by month"
               description={`Everything logged, per pay period from the ${ordinal(payday)}.`}
               data={{
-                labels: trendMonths.map(periodShort),
+                labels: trendMonths.map((m) => spendMonthShort(m, payday)),
                 series: [{ key: "spent", name: "Spent", color: seriesColor(0), values: trendMonths.map((m) => inMonth(m).reduce((t, p) => t + p.amount, 0)) }],
               }}
             />

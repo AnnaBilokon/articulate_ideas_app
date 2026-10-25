@@ -6,7 +6,7 @@ import { SpendIconBadge } from "@/components/spend-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { formatKr, type SpendCategory } from "@/lib/schemas";
+import { formatPrice, type SpendCategory } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { addPurchase } from "./actions";
 
@@ -68,7 +68,7 @@ export function AddPurchase({ categories, today }: { categories: SpendCategory[]
       setError(result.error);
       if (!result.error) {
         const name = categories.find((c) => c.id === categoryId)?.name ?? "";
-        setAdded(`${formatKr(value)} to ${name}`);
+        setAdded(`${formatPrice(value)} to ${name}`);
         setAmount("");
         setNote("");
       }

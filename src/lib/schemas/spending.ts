@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { nextMonth } from "./money";
+import { formatKr, nextMonth, periodLabel, periodShort } from "./money";
 
 // Money: the spending tracker. Categories with an icon and a colour, and
 // purchases, which count in the pay period they fall in. Separate from the
@@ -80,3 +80,20 @@ export function ordinal(n: number): string {
   const suffix = tens >= 11 && tens <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th");
   return `${n}${suffix}`;
 }
+
+const priceFormat = new Intl.NumberFormat("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** A price as paid: "129 kr", or "129.50 kr" when there are öre. */
+export const formatPrice = (value: number) =>
+  Number.isInteger(value) ? formatKr(value) : `${priceFormat.format(value).replace("-", "−")} kr`;
+
+const fullMonth = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+const shortMonth = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
+
+/** A spending month's name: "Oct–Nov 2026", or "October 2026" when pay comes on the 1st. */
+export const spendMonthLabel = (month: string, payday: number) =>
+  payday === 1 ? fullMonth.format(new Date(`${month}T00:00:00Z`)) : periodLabel(month);
+
+/** Short, for pills and chart axes: "Oct–Nov", or "Oct" when pay comes on the 1st. */
+export const spendMonthShort = (month: string, payday: number) =>
+  payday === 1 ? shortMonth.format(new Date(`${month}T00:00:00Z`)) : periodShort(month);

@@ -6,7 +6,7 @@ import { SpendIconBadge } from "@/components/spend-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { formatKr, type SpendCategory, type SpendPurchase } from "@/lib/schemas";
+import { formatPrice, type SpendCategory, type SpendPurchase } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { deletePurchase, updatePurchase } from "./actions";
 import { CategoryChips, parseKr } from "./add-purchase";
@@ -64,7 +64,7 @@ export function PurchaseList({
                 <section key={day} className="flex flex-col gap-1">
                   <h3 className="flex justify-between text-xs font-medium text-muted-foreground">
                     <span>{dayFormat.format(new Date(`${day}T00:00:00Z`))}</span>
-                    <span className="tabular-nums">{formatKr(list.reduce((t, p) => t + p.amount, 0))}</span>
+                    <span className="tabular-nums">{formatPrice(list.reduce((t, p) => t + p.amount, 0))}</span>
                   </h3>
                   <ul className="flex flex-col">
                     {list.map((p) => {
@@ -78,7 +78,7 @@ export function PurchaseList({
                               type="button"
                               onClick={() => setEditing(p.id)}
                               className="flex w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left hover:bg-muted/70"
-                              aria-label={`${c?.name ?? "Purchase"} ${formatKr(p.amount)}${p.note ? `, ${p.note}` : ""}. Edit`}
+                              aria-label={`${c?.name ?? "Purchase"} ${formatPrice(p.amount)}${p.note ? `, ${p.note}` : ""}. Edit`}
                             >
                               {c && <SpendIconBadge icon={c.icon} color={c.color} size="sm" />}
                               <span className="flex min-w-0 flex-1 flex-col">
@@ -86,7 +86,7 @@ export function PurchaseList({
                                 {p.note && <span className="truncate text-xs text-muted-foreground">{p.note}</span>}
                               </span>
                               <span className={cn("shrink-0 text-sm font-medium tabular-nums", p.amount < 0 && "text-success-foreground")}>
-                                {formatKr(p.amount)}
+                                {formatPrice(p.amount)}
                               </span>
                             </button>
                           )}
