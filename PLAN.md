@@ -504,6 +504,7 @@ Income, spending and savings per pay period, replacing the budget spreadsheet. M
 - [x] Import of Feb–Mar to Okt–Nov 2026 from the sheet (bill totals and free cash checked against it)
 - [x] Its own palette (pacific blue, sky blue, rose kiss, powder blush, soft peach) and a wider dashboard layout; workspaces can now each have their own look
 - [x] Colour any amount, like highlighting a cell, with colours you name ("to check", "paused"...)
+- [x] Palettes per workspace: each workspace has its own list to choose from and remembers its choice (Money: Pacific; home, Learning, Growth: Orchard, Lagoon, Rose mist)
 
 ## Best practices and pitfalls
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Monitor, Moon, Settings, Sun } from "lucide-react";
 import {
@@ -15,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePalette } from "@/hooks/use-palette";
-import { PALETTES, isPaletteId } from "@/lib/palettes";
+import { PALETTES, WORKSPACE_NAMES, WORKSPACE_PALETTES, isPaletteId, paletteWorkspaceOf } from "@/lib/palettes";
 
 export const MODES = [
   { value: "system", label: "System", icon: Monitor },
@@ -36,7 +37,10 @@ export function PaletteDots({ swatches }: { swatches: readonly string[] }) {
 
 export function AppearanceMenu() {
   const { theme, setTheme } = useTheme();
-  const [palette, setPalette] = usePalette();
+  // Colours are per workspace: this menu changes the one you're in.
+  const workspace = paletteWorkspaceOf(usePathname());
+  const [palette, setPalette] = usePalette(workspace);
+  const offered = PALETTES.filter((p) => WORKSPACE_PALETTES[workspace].includes(p.id));
 
   return (
     <DropdownMenu>
@@ -62,14 +66,14 @@ export function AppearanceMenu() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Colours</DropdownMenuLabel>
+          <DropdownMenuLabel>Colours for {WORKSPACE_NAMES[workspace]}</DropdownMenuLabel>
           <DropdownMenuRadioGroup
             value={palette ?? ""}
             onValueChange={(value) => {
               if (isPaletteId(value)) setPalette(value);
             }}
           >
-            {PALETTES.map((p) => (
+            {offered.map((p) => (
               <DropdownMenuRadioItem key={p.id} value={p.id} className="gap-2.5">
                 <PaletteDots swatches={p.swatches} />
                 {p.name}

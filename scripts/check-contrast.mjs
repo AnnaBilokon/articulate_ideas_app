@@ -138,39 +138,37 @@ function parseColor(value, vars, seen = new Set()) {
 const failures = [];
 let checked = 0;
 
-// Workspace themes ([data-workspace="<id>"] and .dark [data-workspace="<id>"])
-// sit on top of the base palette, so check them the same way.
+// Workspace colours ([data-workspace="<id>"]): coloured cells and icons that
+// stay the same whatever the palette, each with its own text colour.
 const workspaces = [...blocks.keys()].map((k) => k.match(/^\[data-workspace="([\w-]+)"\]$/)?.[1]).filter(Boolean);
 const themes = [
   ...ids.flatMap((id) => [false, true].map((dark) => {
     const { light, darkBlock, merged } = tokens(id, dark);
-    return { id, dark, own: dark ? darkBlock : light, merged, adjacentOnly: false };
+    return { id, dark, own: dark ? darkBlock : light, merged, colorsOnly: false };
   })),
   ...workspaces.flatMap((w) => [false, true].map((dark) => {
     const ws = blocks.get(`[data-workspace="${w}"]`);
-    const wsDark = blocks.get(`.dark [data-workspace="${w}"]`);
-    const merged = { ...blocks.get(":root"), ...(dark ? blocks.get(".dark") : {}), ...ws, ...(dark ? wsDark : {}) };
-    // A workspace's chart colours are its chart series, used in a fixed order,
-    // so neighbours in that order are the pairs that must stay apart.
-    return { id: `workspace ${w}`, dark, own: dark ? wsDark : ws, merged, adjacentOnly: true };
+    const wsDark = blocks.get(`.dark [data-workspace="${w}"]`) ?? {};
+    return { id: `workspace ${w}`, dark, own: ws, merged: { ...ws, ...(dark ? wsDark : {}) }, colorsOnly: true };
   })),
 ];
 
-for (const { id, dark, own, merged, adjacentOnly } of themes) {
+for (const { id, dark, own, merged, colorsOnly } of themes) {
   {
     const mode = dark ? "dark" : "light";
     if (!own) {
       failures.push(`${id} ${mode}: no CSS block`);
       continue;
     }
-    for (const t of ROLE_TOKENS) if (!(t in own)) failures.push(`${id} ${mode}: missing --${t}`);
+    if (!colorsOnly) for (const t of ROLE_TOKENS) if (!(t in own)) failures.push(`${id} ${mode}: missing --${t}`);
 
     const color = (name) => parseColor(name === "white" ? "white" : (merged[name] ?? ""), merged);
-    // Cell colours a workspace defines carry text in their own text colour.
+    // Coloured cells and icons carry text in their own text colour.
     const cellPairs = Object.keys(merged)
-      .filter((t) => t.startsWith("cell-") && !t.endsWith("-foreground"))
+      .filter((t) => (t.startsWith("cell-") || t.startsWith("spend-")) && !t.endsWith("-foreground"))
       .map((t) => [`${t}-foreground`, t]);
-    for (const [pairs, min] of [[[...TEXT_PAIRS, ...cellPairs], 4.5], [UI_PAIRS, 3]]) {
+    const checks = colorsOnly ? [[cellPairs, 4.5]] : [[[...TEXT_PAIRS, ...cellPairs], 4.5], [UI_PAIRS, 3]];
+    for (const [pairs, min] of checks) {
       for (const [fg, bg] of pairs) {
         const a = color(fg);
         const b = color(bg);
@@ -185,12 +183,12 @@ for (const { id, dark, own, merged, adjacentOnly } of themes) {
     }
 
     const charts = [1, 2, 3, 4, 5].map((n) => color(`chart-${n}`));
-    if (charts.every(Boolean)) {
+    if (!colorsOnly && charts.every(Boolean)) {
       for (const [vision, matrix] of [["normal", null], ...Object.entries(CVD)]) {
         const seen = charts.map((c) => (matrix ? simulate(c, matrix) : c));
         const min = vision === "normal" ? 0.1 : 0.05;
         for (let i = 0; i < 5; i++) {
-          for (let j = i + 1; j < (adjacentOnly ? Math.min(i + 2, 5) : 5); j++) {
+          for (let j = i + 1; j < 5; j++) {
             checked++;
             const d = distance(seen[i], seen[j]);
             if (d < min) {

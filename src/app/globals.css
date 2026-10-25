@@ -309,6 +309,10 @@
   /* The soft glow at the top of every page. */
   --glow-1: color-mix(in oklab, var(--highlight) 60%, transparent);
   --glow-2: color-mix(in oklab, var(--accent) 90%, transparent);
+  /* Money's top band; a palette can set its own. */
+  --hero-1: var(--highlight);
+  --hero-2: var(--accent);
+  --hero-3: var(--secondary);
 
   --sunflower: oklch(0.87 0.16 92);
   --sunflower-foreground: oklch(0.42 0.09 75);
@@ -444,19 +448,12 @@
   }
 }
 
-/* ---- Workspace themes --------------------------------------------------------
-
-   A workspace can have its own look, whatever palette is chosen: its layout
-   and header carry data-workspace="<id>", and the block below redefines the
-   palette roles inside it. Same roles as a palette, checked by
-   npm run check:contrast, plus the chart series (validated for colour
-   vision deficiency on the card surface, in order).
-
-   Money: pacific blue #61a0af, sky blue #96c9dc, rose kiss #f06c9b,
-   powder blush #f9b9b7, soft peach #f5d491. The pastels make the surfaces
-   and highlights; deeper steps of the same hues carry text, buttons and charts.
-   ------------------------------------------------------------------------- */
-[data-workspace="money"] {
+/* Pacific (Money's palette): pacific blue #61a0af, sky blue #96c9dc, rose
+   kiss #f06c9b, powder blush #f9b9b7, soft peach #f5d491. The pastels make the
+   surfaces and highlights; deeper steps of the same hues carry text, buttons
+   and charts. Chart series are validated for colour vision deficiency on the
+   card surface, in order. */
+:root[data-palette="pacific"] {
   --background: #f4f9fa;
   --foreground: #1b2e34;
   --card: #fffefc;
@@ -481,8 +478,8 @@
   --chart-1: #0f8aa3;
   --chart-2: #b8841c;
   --chart-3: #e0538a;
-  --chart-4: #3f7fd0;
-  --chart-5: #e2726d;
+  --chart-4: #2c4a86;
+  --chart-5: #a3431f;
   --shadow-rgb: 27 46 52;
   --series-1: #0f8aa3;
   --series-2: #b8841c;
@@ -491,28 +488,15 @@
   --series-5: #e2726d;
   --series-6: #e2726d;
   --series-other: #b6c3c7;
-  --logo: var(--primary);
-  --logo-foreground: var(--primary-foreground);
   --glow-1: color-mix(in oklab, #96c9dc 70%, transparent);
   --glow-2: color-mix(in oklab, #f9b9b7 55%, transparent);
   --glow-3: color-mix(in oklab, #f5d491 45%, transparent);
-  /* Cell colours: bright colours behind any amount, the same in dark mode,
-     with dark text that reads on every one. */
-  --cell-red: #f87171;
-  --cell-red-foreground: #1b1416;
-  --cell-yellow: #fde047;
-  --cell-yellow-foreground: #1b1416;
-  --cell-green: #4ade80;
-  --cell-green-foreground: #1b1416;
-  --cell-purple: #c084fc;
-  --cell-purple-foreground: #1b1416;
-  --cell-blue: #60a5fa;
-  --cell-blue-foreground: #1b1416;
-  --cell-pink: #f472b6;
-  --cell-pink-foreground: #1b1416;
+  --hero-1: #96c9dc;
+  --hero-2: #f9b9b7;
+  --hero-3: #f5d491;
 }
 
-.dark [data-workspace="money"] {
+.dark[data-palette="pacific"] {
   --background: #0b1316;
   --foreground: #e2eef1;
   --card: #132026;
@@ -537,8 +521,8 @@
   --chart-1: #1f97ae;
   --chart-2: #bd8519;
   --chart-3: #e24f87;
-  --chart-4: #4f8ee0;
-  --chart-5: #dc645c;
+  --chart-4: #a8c8f5;
+  --chart-5: #f2a27e;
   --shadow-rgb: 0 0 0;
   --series-1: #1f97ae;
   --series-2: #bd8519;
@@ -550,24 +534,50 @@
   --glow-1: color-mix(in oklab, #61a0af 22%, transparent);
   --glow-2: color-mix(in oklab, #f06c9b 12%, transparent);
   --glow-3: color-mix(in oklab, #f5d491 8%, transparent);
+  --hero-1: #61a0af;
+  --hero-2: #f06c9b;
+  --hero-3: #f5d491;
 }
 
-/* Money's top band: the palette as a soft gradient. */
+/* ---- Workspace colours --------------------------------------------------------
+
+   Colours that belong to a workspace whatever its palette: its layout and
+   header carry data-workspace="<id>". Each comes with its own text colour,
+   checked by npm run check:contrast.
+   ------------------------------------------------------------------------- */
+[data-workspace="money"] {
+  /* Cell colours: bright colours behind any amount, the same in dark mode,
+     with dark text that reads on every one. */
+  --cell-red: #f87171;
+  --cell-red-foreground: #1b1416;
+  --cell-yellow: #fde047;
+  --cell-yellow-foreground: #1b1416;
+  --cell-green: #4ade80;
+  --cell-green-foreground: #1b1416;
+  --cell-purple: #c084fc;
+  --cell-purple-foreground: #1b1416;
+  --cell-blue: #60a5fa;
+  --cell-blue-foreground: #1b1416;
+  --cell-pink: #f472b6;
+  --cell-pink-foreground: #1b1416;
+}
+
+/* Money's top band: the palette's hero colours as a soft gradient. */
 .money-hero {
   background-image: linear-gradient(
     120deg,
-    color-mix(in oklab, #96c9dc 42%, var(--card)),
-    color-mix(in oklab, #f9b9b7 34%, var(--card)) 55%,
-    color-mix(in oklab, #f5d491 38%, var(--card))
+    color-mix(in oklab, var(--hero-1) 42%, var(--card)),
+    color-mix(in oklab, var(--hero-2) 34%, var(--card)) 55%,
+    color-mix(in oklab, var(--hero-3) 38%, var(--card))
   );
 }
 
 .dark .money-hero {
   background-image: linear-gradient(
     120deg,
-    color-mix(in oklab, #61a0af 22%, var(--card)),
-    color-mix(in oklab, #f06c9b 12%, var(--card)) 55%,
-    color-mix(in oklab, #f5d491 10%, var(--card))
+    color-mix(in oklab, var(--hero-1) 22%, var(--card)),
+    color-mix(in oklab, var(--hero-2) 12%, var(--card)) 55%,
+    color-mix(in oklab, var(--hero-3) 10%, var(--card))
   );
 }
 

@@ -35,6 +35,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useWorkspacePalette } from "@/hooks/use-palette";
+import { paletteWorkspaceOf } from "@/lib/palettes";
 import { cn } from "@/lib/utils";
 
 export const APP_NAME = "My Self Journey";
@@ -171,6 +173,7 @@ const tabClass = (active: boolean) =>
 
 export function SiteHeader() {
   const pathname = usePathname();
+  useWorkspacePalette(paletteWorkspaceOf(pathname));
   if (pathname === "/login") return null;
   const current = currentWorkspace(pathname);
   // Journey home lists the workspaces; inside one, its tabs.
