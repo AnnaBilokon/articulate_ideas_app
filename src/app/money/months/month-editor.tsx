@@ -387,7 +387,7 @@ export function MonthEditor({
             {[
               ["Income", totals.income],
               ["Spent", totals.spending],
-              ["Saved", totals.savingTransfers],
+              ["Saved", totals.saved],
               ["Free cash", totals.freeCash],
             ].map(([label, value]) => (
               <div key={label} className="flex gap-1">

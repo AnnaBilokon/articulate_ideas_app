@@ -13,9 +13,11 @@ import {
   moneyColors,
   nextMonth,
   periodInputSchema,
+  savingSettingsSchema,
   type MoneyColor,
   type MoneyKind,
   type PeriodInput,
+  type SavingSettings,
 } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
@@ -192,6 +194,22 @@ export async function saveColorLabels(labels: Partial<Record<MoneyColor, string>
   const rows = moneyColors.map((color) => ({ color, label: parsed.data[color]?.trim() || moneyColorNames[color] }));
   const { error } = await db().from("money_color_labels").upsert(rows, { onConflict: "color" });
   if (error) return { error: "Could not save the names. Try again." };
+  refresh();
+  return { error: null };
+}
+
+/** A savings category: whether it counts as saved, and its goal. */
+export async function saveSavingSettings(id: string, input: SavingSettings): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Category not found." };
+  const parsed = savingSettingsSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { error } = await db()
+    .from("money_categories")
+    .update({ counts_as_saved: parsed.data.countsAsSaved, target: parsed.data.target })
+    .eq("id", id)
+    .eq("kind", "saving");
+  if (error) return { error: "Could not save it. Try again." };
   refresh();
   return { error: null };
 }

@@ -50,7 +50,7 @@ export default async function MonthsPage() {
                         [
                           ["In", t.income],
                           ["Spent", t.spending],
-                          ["Saved", t.savingTransfers],
+                          ["Saved", t.saved],
                           ["Free", t.freeCash],
                         ] as const
                       ).map(([label, value]) => (

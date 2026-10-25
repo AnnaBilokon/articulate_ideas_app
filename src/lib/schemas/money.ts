@@ -5,7 +5,8 @@ import { z } from "zod";
 //
 // Free cash = income − expenses − one-offs − pot transfers − savings
 // transfers, as in the budget sheet. Spending = expenses + one-offs + what
-// was spent from pots (money moved into a pot isn't spent yet).
+// was spent from pots (money moved into a pot isn't spent yet). Saved counts
+// only the savings marked as really saved; the rest still leaves free cash.
 
 export const moneyKinds = ["income", "expense", "pot", "saving"] as const;
 export type MoneyKind = (typeof moneyKinds)[number];
@@ -17,7 +18,23 @@ export const moneyKindInfo: Record<MoneyKind, { label: string; plural: string; h
   saving: { label: "Saving", plural: "Savings", hint: "Transfers into savings and investments, with their balance" },
 };
 
-export type MoneyCategory = { id: string; name: string; kind: MoneyKind; position: number; archived: boolean };
+export type MoneyCategory = {
+  id: string;
+  name: string;
+  kind: MoneyKind;
+  position: number;
+  archived: boolean;
+  /** Savings: whether it counts as really saved (an investment or someone else's money may not). */
+  countsAsSaved: boolean;
+  /** Savings: the balance to reach, if it has a goal. */
+  target: number | null;
+};
+
+export const savingSettingsSchema = z.object({
+  countsAsSaved: z.boolean(),
+  target: z.number().positive("A goal is above 0.").max(1e10).nullable(),
+});
+export type SavingSettings = z.infer<typeof savingSettingsSchema>;
 
 /** Colours to mark any amount with, like highlighting a cell; each gets a name of your choosing. */
 export const moneyColors = ["red", "yellow", "green", "purple", "blue", "pink"] as const;
@@ -110,13 +127,19 @@ export type PeriodTotals = {
   oneOffs: number;
   potTransfers: number;
   potSpent: number;
+  /** Every transfer into savings, saved or not: it leaves free cash. */
   savingTransfers: number;
+  /** Transfers into the savings that count as really saved. */
+  saved: number;
+  /** Transfers into the other savings, like investments. */
+  otherSavingTransfers: number;
   plannedPotTransfers: number;
   plannedSavingTransfers: number;
+  plannedSaved: number;
   freeCash: number;
   /** What actually left: expenses, one-offs, and spending from pots. */
   spending: number;
-  /** Savings transfers as a share of income, 0-1; null without income. */
+  /** What's really saved as a share of income, 0-1; null without income. */
   savingsRate: number | null;
   /** Any actual amount entered yet. */
   started: boolean;
@@ -125,7 +148,7 @@ export type PeriodTotals = {
 };
 
 export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): PeriodTotals {
-  const kindOf = new Map(categories.map((c) => [c.id, c.kind]));
+  const byId = new Map(categories.map((c) => [c.id, c]));
   const t = {
     income: 0,
     plannedIncome: 0,
@@ -134,13 +157,16 @@ export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): 
     potTransfers: 0,
     potSpent: 0,
     savingTransfers: 0,
+    saved: 0,
     plannedPotTransfers: 0,
     plannedSavingTransfers: 0,
+    plannedSaved: 0,
   };
   let started = false;
   let billsEntered = false;
   for (const e of period.entries) {
-    const kind = kindOf.get(e.categoryId);
+    const category = byId.get(e.categoryId);
+    const kind = category?.kind;
     const amount = e.amount ?? 0;
     if (e.amount !== null) started = true;
     if (kind === "income") {
@@ -157,6 +183,10 @@ export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): 
     } else if (kind === "saving") {
       t.savingTransfers += amount;
       t.plannedSavingTransfers += e.planned ?? e.amount ?? 0;
+      if (category?.countsAsSaved) {
+        t.saved += amount;
+        t.plannedSaved += e.planned ?? e.amount ?? 0;
+      }
     }
   }
   const oneOffs = period.oneOffs.reduce((s, o) => s + o.amount, 0);
@@ -166,7 +196,8 @@ export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): 
     oneOffs,
     freeCash: t.income - t.expenses - oneOffs - t.potTransfers - t.savingTransfers,
     spending: t.expenses + oneOffs + t.potSpent,
-    savingsRate: t.income > 0 ? t.savingTransfers / t.income : null,
+    otherSavingTransfers: t.savingTransfers - t.saved,
+    savingsRate: t.income > 0 ? t.saved / t.income : null,
     started,
     billsEntered,
   };

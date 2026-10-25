@@ -652,27 +652,33 @@ export type Database = {
       money_categories: {
         Row: {
           archived_at: string | null
+          counts_as_saved: boolean
           created_at: string
           id: string
           kind: string
           name: string
           position: number
+          target: number | null
         }
         Insert: {
           archived_at?: string | null
+          counts_as_saved?: boolean
           created_at?: string
           id?: string
           kind: string
           name: string
           position?: number
+          target?: number | null
         }
         Update: {
           archived_at?: string | null
+          counts_as_saved?: boolean
           created_at?: string
           id?: string
           kind?: string
           name?: string
           position?: number
+          target?: number | null
         }
         Relationships: []
       }

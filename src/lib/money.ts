@@ -25,7 +25,7 @@ const num = (v: number | string | null) => (v === null ? null : Number(v));
 
 export async function loadMoney(): Promise<MoneyData> {
   const [{ data: categories }, { data: periods }, { data: labels }] = await Promise.all([
-    db().from("money_categories").select("id, name, kind, position, archived_at").order("position").order("created_at"),
+    db().from("money_categories").select("id, name, kind, position, archived_at, counts_as_saved, target").order("position").order("created_at"),
     db()
       .from("money_periods")
       .select(
@@ -42,6 +42,8 @@ export async function loadMoney(): Promise<MoneyData> {
       kind: c.kind as MoneyKind,
       position: c.position,
       archived: c.archived_at !== null,
+      countsAsSaved: c.counts_as_saved,
+      target: c.target === null ? null : Number(c.target),
     })),
     periods: (periods ?? []).map((p) => ({
       id: p.id,

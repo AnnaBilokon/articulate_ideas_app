@@ -35,6 +35,11 @@ export default async function MoneyOverview({ searchParams }: PageProps<"/money"
   const of = (kind: string) => categories.filter((c) => c.kind === kind && (entry.has(c.id) || balances.has(c.id)));
   // Until the bills are in, show what's expected; income as soon as it's entered.
   const expected = !totals.billsEntered;
+  // Savings that move money but don't count as saved, like investments.
+  const otherSavings = categories
+    .filter((c) => c.kind === "saving" && !c.countsAsSaved && (entry.get(c.id)?.amount ?? 0) !== 0)
+    .map((c) => c.name)
+    .join(", ");
   const income = totals.income > 0 ? totals.income : totals.plannedIncome;
   const expectedFree = income - totals.plannedExpenses - totals.plannedPotTransfers - totals.plannedSavingTransfers;
 
@@ -83,10 +88,15 @@ export default async function MoneyOverview({ searchParams }: PageProps<"/money"
           />
           <StatTile
             label={expected ? "To save" : "Saved"}
-            value={expected ? totals.plannedSavingTransfers : totals.savingTransfers}
-            previous={!expected && prev ? { value: prev.totals.savingTransfers, label: prev.label } : null}
+            value={expected ? totals.plannedSaved : totals.saved}
+            previous={!expected && prev ? { value: prev.totals.saved, label: prev.label } : null}
             upIsGood
-            hint={!expected && totals.savingsRate !== null ? `${Math.round(totals.savingsRate * 100)}% of income` : undefined}
+            hint={[
+              !expected && totals.savingsRate !== null ? `${Math.round(totals.savingsRate * 100)}% of income` : null,
+              !expected && totals.otherSavingTransfers !== 0 ? `also ${formatKr(totals.otherSavingTransfers)} to ${otherSavings}` : null,
+            ]
+              .filter(Boolean)
+              .join(", ")}
           />
           <StatTile
             label={expected ? "Free cash, expected" : "Free cash"}
@@ -196,16 +206,36 @@ export default async function MoneyOverview({ searchParams }: PageProps<"/money"
                   <ul className="flex flex-col gap-2 text-sm">
                     {list.map((c) => {
                       const e = entry.get(c.id);
+                      const balance = balances.get(c.id) ?? 0;
+                      const share = c.target ? Math.min(1, balance / c.target) : null;
                       return (
-                        <li key={c.id} className="flex items-baseline justify-between gap-3">
-                          <span className="flex min-w-0 flex-col">
-                            <span className="truncate">{c.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {e?.amount != null ? `+${formatKr(e.amount)}` : e?.planned != null ? `${formatKr(e.planned)} expected` : "Nothing in"}
-                              {kind === "pot" && e?.spent != null && e.spent !== 0 && ` · ${formatKr(e.spent)} spent`}
+                        <li key={c.id} className="flex flex-col gap-1">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="flex min-w-0 flex-col">
+                              <span className="truncate">
+                                {c.name}
+                                {kind === "saving" && !c.countsAsSaved && <span className="ml-1.5 text-xs text-muted-foreground">not counted as saved</span>}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {e?.amount != null ? `+${formatKr(e.amount)}` : e?.planned != null ? `${formatKr(e.planned)} expected` : "Nothing in"}
+                                {kind === "pot" && e?.spent != null && e.spent !== 0 && ` · ${formatKr(e.spent)} spent`}
+                              </span>
                             </span>
-                          </span>
-                          <span className="shrink-0 font-medium tabular-nums">{formatKr(balances.get(c.id) ?? 0)}</span>
+                            <span className="shrink-0 font-medium tabular-nums">{formatKr(balance)}</span>
+                          </div>
+                          {share !== null && c.target && (
+                            <div className="flex items-center gap-2">
+                              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted" aria-hidden>
+                                <div
+                                  className={share >= 1 ? "h-full rounded-full bg-success" : "h-full rounded-full bg-primary"}
+                                  style={{ width: `${Math.max(share > 0 ? 3 : 0, share * 100)}%` }}
+                                />
+                              </div>
+                              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                                {share >= 1 ? "Goal reached" : `${Math.round(share * 100)}% of ${formatKr(c.target)}`}
+                              </span>
+                            </div>
+                          )}
                         </li>
                       );
                     })}

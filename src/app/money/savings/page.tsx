@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { connection } from "next/server";
+import { Target } from "lucide-react";
 import { ColumnChart } from "@/components/charts/column-chart";
 import { LineChart } from "@/components/charts/line-chart";
 import { seriesColor } from "@/components/charts/series";
@@ -8,8 +10,9 @@ import { loadMoney } from "@/lib/money";
 import { cellStyle, formatKr, periodShort, periodTotals, runningBalances, type MoneyColor } from "@/lib/schemas";
 import { ColorKey, NoMonths, StatTile } from "../money-bits";
 
-// Savings growth and pots: balances over time, the savings rate per month,
-// and what's in each pot now.
+// Savings growth and pots: your savings and their goals, investments and
+// other savings apart from them, the savings rate per month, and what's in
+// each pot now.
 export default async function SavingsPage() {
   await connection();
   const { categories, periods, colorLabels } = await loadMoney();
@@ -26,24 +29,40 @@ export default async function SavingsPage() {
 
   const balances = runningBalances(periods, categories);
   const labels = filled.map((p) => periodShort(p.month));
-  const balanceSeries = (kind: "pot" | "saving") =>
+  const balanceSeries = (keep: (c: (typeof categories)[number]) => boolean) =>
     categories
-      .filter((c) => c.kind === kind && filled.some((p) => balances.get(p.id)?.has(c.id)))
+      .filter((c) => keep(c) && filled.some((p) => balances.get(p.id)?.has(c.id)))
       .map((c, i) => ({
         key: c.id,
         name: c.name,
         color: seriesColor(i),
         values: filled.map((p) => balances.get(p.id)?.get(c.id) ?? null),
       }));
-  const savings = balanceSeries("saving");
-  const pots = balanceSeries("pot");
+  // What's really saved, and investments and other savings apart from it.
+  const saved = balanceSeries((c) => c.kind === "saving" && c.countsAsSaved);
+  const others = balanceSeries((c) => c.kind === "saving" && !c.countsAsSaved);
+  const pots = balanceSeries((c) => c.kind === "pot");
   const latest = filled[filled.length - 1];
   const before = filled.length > 1 ? filled[filled.length - 2] : null;
-  const totalOf = (p: typeof latest, kind: "pot" | "saving") =>
-    categories.filter((c) => c.kind === kind).reduce((t, c) => t + (balances.get(p.id)?.get(c.id) ?? 0), 0);
+  const totalOf = (p: typeof latest, keep: (c: (typeof categories)[number]) => boolean) =>
+    categories.filter(keep).reduce((t, c) => t + (balances.get(p.id)?.get(c.id) ?? 0), 0);
+  const isSaved = (c: (typeof categories)[number]) => c.kind === "saving" && c.countsAsSaved;
+  const isOther = (c: (typeof categories)[number]) => c.kind === "saving" && !c.countsAsSaved;
+  const isPot = (c: (typeof categories)[number]) => c.kind === "pot";
+
+  // Goals: the balance now, what's left, and how long at the recent pace
+  // (the average transfer over the last three filled-in months).
+  const goals = categories
+    .filter((c) => c.kind === "saving" && c.target !== null)
+    .map((c) => {
+      const now = balances.get(latest.id)?.get(c.id) ?? 0;
+      const recent = filled.slice(-3).map((p) => p.entries.find((e) => e.categoryId === c.id)?.amount ?? 0);
+      const pace = recent.reduce((a, b) => a + b, 0) / Math.max(1, recent.length);
+      const left = Math.max(0, (c.target ?? 0) - now);
+      return { c, now, target: c.target ?? 0, left, pace, months: left > 0 && pace > 0 ? Math.ceil(left / pace) : null };
+    });
   const rates = filled.map((p) => periodTotals(p, categories).savingsRate);
   const known = rates.filter((r): r is number => r !== null);
-  const emergency = savings.find((s) => /emergency/i.test(s.name));
   const potsNow = pots
     .map((s) => ({ name: s.name, value: s.values[s.values.length - 1] ?? 0 }))
     .sort((a, b) => b.value - a.value);
@@ -55,20 +74,20 @@ export default async function SavingsPage() {
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile
-          label="All savings"
-          value={totalOf(latest, "saving")}
-          previous={before ? { value: totalOf(before, "saving"), label: periodShort(before.month) } : null}
+          label="Saved"
+          value={totalOf(latest, isSaved)}
+          previous={before ? { value: totalOf(before, isSaved), label: periodShort(before.month) } : null}
           upIsGood
+          hint={saved.map((s) => s.name).join(" and ")}
         />
-        {emergency && (
-          <StatTile
-            label={emergency.name}
-            value={emergency.values[emergency.values.length - 1] ?? 0}
-            previous={before && emergency.values.length > 1 ? { value: emergency.values[emergency.values.length - 2] ?? 0, label: periodShort(before.month) } : null}
-            upIsGood
-          />
-        )}
-        <StatTile label="In pots" value={totalOf(latest, "pot")} upIsGood hint="Set aside to spend" />
+        <StatTile
+          label="Investments and other"
+          value={totalOf(latest, isOther)}
+          previous={before ? { value: totalOf(before, isOther), label: periodShort(before.month) } : null}
+          upIsGood
+          hint={others.map((s) => s.name).join(", ")}
+        />
+        <StatTile label="In pots" value={totalOf(latest, isPot)} upIsGood hint="Set aside to spend" />
         <Card size="sm">
           <CardContent className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">Savings rate</span>
@@ -80,17 +99,80 @@ export default async function SavingsPage() {
         </Card>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        {savings.length > 0 && (
-          <LineChart title="Savings over time" description="Each account's balance at the end of the month." data={{ labels, series: savings }} />
+      {goals.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-heading">
+              <Target className="size-4.5" /> Goals
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="grid gap-5 sm:grid-cols-2">
+              {goals.map((g) => {
+                const share = Math.min(1, g.now / g.target);
+                return (
+                  <li key={g.c.id} className="flex flex-col gap-2">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="font-medium">{g.c.name}</span>
+                      <span className="text-sm tabular-nums">
+                        <span className="font-semibold text-heading">{formatKr(g.now)}</span>
+                        <span className="text-muted-foreground"> of {formatKr(g.target)}</span>
+                      </span>
+                    </div>
+                    <div
+                      className="h-3 overflow-hidden rounded-full bg-muted"
+                      role="progressbar"
+                      aria-label={`${g.c.name}: ${Math.round(share * 100)}% of the goal`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(share * 100)}
+                    >
+                      <div
+                        className={share >= 1 ? "h-full rounded-full bg-success" : "h-full rounded-full bg-primary"}
+                        style={{ width: `${Math.max(share > 0 ? 3 : 0, share * 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {g.left === 0
+                        ? `Goal reached${g.now > g.target ? `, ${formatKr(g.now - g.target)} over` : ""}.`
+                        : `${formatKr(g.left)} to go · ${Math.round(share * 100)}%${
+                            g.months ? ` · about ${g.months} ${g.months === 1 ? "month" : "months"} at ${formatKr(g.pace)} a month` : ""
+                          }`}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <Link href="/money/categories" className="mt-4 inline-block text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+              Change goals
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {saved.length > 0 && (
+          <LineChart
+            title="Your savings"
+            description={`What you really save: ${saved.map((s) => s.name).join(" and ")}, at the end of each month.`}
+            data={{ labels, series: saved }}
+          />
         )}
-        <ColumnChart
-          title="Savings rate"
-          description="Share of each month's income that went to savings."
-          unit="percent"
-          data={{ labels, series: [{ key: "rate", name: "Savings rate", color: seriesColor(0), values: rates }] }}
-        />
+        {others.length > 0 && (
+          <LineChart
+            title="Investments and other"
+            description="Moved out of your budget, but not counted as saved."
+            data={{ labels, series: others }}
+          />
+        )}
       </div>
+
+      <ColumnChart
+        title="Savings rate"
+        description={`Share of each month's income you really saved${saved.length ? ` (${saved.map((s) => s.name).join(" and ")})` : ""}.`}
+        unit="percent"
+        data={{ labels, series: [{ key: "rate", name: "Savings rate", color: seriesColor(0), values: rates }] }}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start">
         {potsNow.length > 0 && (
