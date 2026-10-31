@@ -81,7 +81,15 @@ export type MoneyEntry = {
 
 export type MoneyOneOff = { id: string; title: string; amount: number; color: MoneyColor | null };
 
-export type MoneyPeriod = { id: string; month: string; note: string | null; entries: MoneyEntry[]; oneOffs: MoneyOneOff[] };
+export type MoneyPeriod = {
+  id: string;
+  month: string;
+  note: string | null;
+  entries: MoneyEntry[];
+  oneOffs: MoneyOneOff[];
+  /** Pots: purchases from the spending tracker taken from them this period, by pot id. */
+  potSpending?: Record<string, number>;
+};
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -189,6 +197,8 @@ export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): 
       }
     }
   }
+  // Purchases taken from pots in the spending tracker count as spent from them.
+  t.potSpent += Object.values(period.potSpending ?? {}).reduce((s, v) => s + v, 0);
   const oneOffs = period.oneOffs.reduce((s, o) => s + o.amount, 0);
   if (period.oneOffs.length > 0) started = true;
   return {
@@ -206,7 +216,8 @@ export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): 
 /**
  * Balances of pots and savings at the end of each period, oldest first. An
  * entered balance wins; otherwise the one before, plus what went in, minus
- * what was spent. Keyed by period id, then category id.
+ * what was spent (including purchases taken from a pot in the spending
+ * tracker). Keyed by period id, then category id.
  */
 export function runningBalances(periods: MoneyPeriod[], categories: MoneyCategory[]): Map<string, Map<string, number>> {
   const tracked = categories.filter((c) => c.kind === "pot" || c.kind === "saving");
@@ -218,8 +229,9 @@ export function runningBalances(periods: MoneyPeriod[], categories: MoneyCategor
     for (const c of tracked) {
       const e = byCategory.get(c.id);
       const before = last.get(c.id);
-      if (!e && before === undefined) continue;
-      const value = e?.balance ?? (before ?? 0) + (e?.amount ?? 0) - (e?.spent ?? 0);
+      const tracked = p.potSpending?.[c.id] ?? 0;
+      if (!e && before === undefined && tracked === 0) continue;
+      const value = e?.balance ?? (before ?? 0) + (e?.amount ?? 0) - (e?.spent ?? 0) - tracked;
       balances.set(c.id, value);
       last.set(c.id, value);
     }

@@ -10,27 +10,37 @@ import { spendColors, spendIcons, starterCategories, type SpendCategory, type Sp
 import { cn } from "@/lib/utils";
 import { deleteSpendCategory, saveSpendCategory, setPayday, setSpendCategoryArchived } from "./actions";
 
-// Spending categories: a name, an icon and a colour each.
+// Spending categories: a name, an icon and a colour each, and optionally a
+// Money pot that purchases in it can be taken from.
+
+export type PotOption = { id: string; name: string };
+
+const potNamed = (pots: PotOption[], name: string) => pots.find((p) => p.name.toLowerCase() === name.trim().toLowerCase())?.id ?? null;
 
 function CategoryForm({
   id,
   initial,
+  pots,
   onDone,
 }: {
   id: string | null;
-  initial: { name: string; icon: SpendIcon; color: SpendColor };
+  initial: { name: string; icon: SpendIcon; color: SpendColor; potCategoryId: string | null };
+  pots: PotOption[];
   onDone: () => void;
 }) {
   const [name, setName] = useState(initial.name);
   const [icon, setIcon] = useState<SpendIcon>(initial.icon);
   const [color, setColor] = useState<SpendColor>(initial.color);
+  const [potId, setPotId] = useState<string | null>(initial.potCategoryId);
+  // A new category picks the pot with its name until a pot is chosen by hand.
+  const [potChosen, setPotChosen] = useState(id !== null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const key = id ?? "new";
 
   const save = () =>
     start(async () => {
-      const result = await saveSpendCategory(id, { name, icon, color });
+      const result = await saveSpendCategory(id, { name, icon, color, potCategoryId: potId });
       setError(result.error);
       if (!result.error) onDone();
     });
@@ -43,7 +53,10 @@ function CategoryForm({
           aria-label="Category name"
           id={`spend-name-${key}`}
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (!potChosen) setPotId(potNamed(pots, e.target.value));
+          }}
           maxLength={40}
           placeholder="e.g. Groceries"
           className="h-10 bg-background md:text-base"
@@ -86,6 +99,27 @@ function CategoryForm({
           );
         })}
       </div>
+      {pots.length > 0 && (
+        <label className="flex flex-wrap items-center gap-2 text-sm">
+          <span>Takes from pot</span>
+          <select
+            value={potId ?? ""}
+            onChange={(e) => {
+              setPotId(e.target.value || null);
+              setPotChosen(true);
+            }}
+            className="h-9 rounded-lg border border-input bg-background px-2.5"
+          >
+            <option value="">None</option>
+            {pots.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-muted-foreground">You&apos;ll be asked each time whether to take a purchase from it.</span>
+        </label>
+      )}
       {error && (
         <p className="text-sm text-coral-foreground" role="alert">
           {error}
@@ -103,7 +137,7 @@ function CategoryForm({
   );
 }
 
-export function NewSpendCategory() {
+export function NewSpendCategory({ pots }: { pots: PotOption[] }) {
   const [open, setOpen] = useState(false);
   if (!open) {
     return (
@@ -115,14 +149,14 @@ export function NewSpendCategory() {
   return (
     <Card>
       <CardContent>
-        <CategoryForm id={null} initial={{ name: "", icon: "cart", color: "blue" }} onDone={() => setOpen(false)} />
+        <CategoryForm id={null} initial={{ name: "", icon: "cart", color: "blue", potCategoryId: null }} pots={pots} onDone={() => setOpen(false)} />
       </CardContent>
     </Card>
   );
 }
 
 /** One tap adds a suggested category. */
-export function StarterCategories({ existing }: { existing: string[] }) {
+export function StarterCategories({ existing, pots = [] }: { existing: string[]; pots?: PotOption[] }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
@@ -140,7 +174,7 @@ export function StarterCategories({ existing }: { existing: string[] }) {
             onClick={() => {
               setBusy(s.name);
               start(async () => {
-                setError((await saveSpendCategory(null, s)).error);
+                setError((await saveSpendCategory(null, { ...s, potCategoryId: potNamed(pots, s.name) })).error);
                 setBusy(null);
               });
             }}
@@ -156,7 +190,7 @@ export function StarterCategories({ existing }: { existing: string[] }) {
   );
 }
 
-export function SpendCategoryRow({ category: c, purchases }: { category: SpendCategory; purchases: number }) {
+export function SpendCategoryRow({ category: c, purchases, pots }: { category: SpendCategory; purchases: number; pots: PotOption[] }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -166,7 +200,12 @@ export function SpendCategoryRow({ category: c, purchases }: { category: SpendCa
     return (
       <Card size="sm">
         <CardContent>
-          <CategoryForm id={c.id} initial={{ name: c.name, icon: c.icon, color: c.color }} onDone={() => setEditing(false)} />
+          <CategoryForm
+            id={c.id}
+            initial={{ name: c.name, icon: c.icon, color: c.color, potCategoryId: c.potCategoryId }}
+            pots={pots}
+            onDone={() => setEditing(false)}
+          />
         </CardContent>
       </Card>
     );
@@ -180,6 +219,7 @@ export function SpendCategoryRow({ category: c, purchases }: { category: SpendCa
           <span className="truncate font-medium">{c.name}</span>
           <span className="text-xs text-muted-foreground">
             {purchases === 0 ? "No purchases yet" : `${purchases} ${purchases === 1 ? "purchase" : "purchases"}`}
+            {c.potCategoryId && ` · from the ${pots.find((p) => p.id === c.potCategoryId)?.name ?? ""} pot`}
             {c.archived && " · hidden"}
           </span>
         </span>

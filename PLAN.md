@@ -506,6 +506,7 @@ Income, spending and savings per pay period, replacing the budget spreadsheet. M
 - [x] Colour any amount, like highlighting a cell, with colours you name ("to check", "paused"...)
 - [x] Spending tracker (like Spendee), separate from the budget: categories with icons and colours, every purchase logged per pay period (payday setting), by category, month by month, purchases list
 - [x] Saved counts only what's really saved (Emergency fund, Save); investments and Tomas are shown apart. Savings goals with progress, what's left and months to go (Emergency fund 60,000, Save 100,000)
+- [x] Spending categories can be linked to a pot; adding a purchase asks whether to take it from the pot, and the pot counts it as spent and shows what's left
 - [x] Palettes per workspace: each workspace has its own list to choose from and remembers its choice (Money: Pacific; home, Learning, Growth: Orchard, Lagoon, Rose mist)
 
 ## Best practices and pitfalls

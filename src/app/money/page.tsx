@@ -218,7 +218,12 @@ export default async function MoneyOverview({ searchParams }: PageProps<"/money"
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {e?.amount != null ? `+${formatKr(e.amount)}` : e?.planned != null ? `${formatKr(e.planned)} expected` : "Nothing in"}
-                                {kind === "pot" && e?.spent != null && e.spent !== 0 && ` · ${formatKr(e.spent)} spent`}
+                                {kind === "pot" && (() => {
+                                  const tracked = period.potSpending?.[c.id] ?? 0;
+                                  const spent = (e?.spent ?? 0) + tracked;
+                                  if (spent === 0) return null;
+                                  return ` · ${formatKr(spent)} spent${tracked ? ` (${formatKr(tracked)} from Spending)` : ""}`;
+                                })()}
                               </span>
                             </span>
                             <span className="shrink-0 font-medium tabular-nums">{formatKr(balance)}</span>

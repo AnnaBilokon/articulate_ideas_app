@@ -1187,6 +1187,7 @@ export type Database = {
           id: string
           name: string
           position: number
+          pot_category_id: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -1196,6 +1197,7 @@ export type Database = {
           id?: string
           name: string
           position?: number
+          pot_category_id?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -1205,14 +1207,24 @@ export type Database = {
           id?: string
           name?: string
           position?: number
+          pot_category_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "spend_categories_pot_category_id_fkey"
+            columns: ["pot_category_id"]
+            isOneToOne: false
+            referencedRelation: "money_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spend_purchases: {
         Row: {
           amount: number
           category_id: string
           created_at: string
+          from_pot: boolean
           id: string
           note: string | null
           spent_on: string
@@ -1221,6 +1233,7 @@ export type Database = {
           amount: number
           category_id: string
           created_at?: string
+          from_pot?: boolean
           id?: string
           note?: string | null
           spent_on: string
@@ -1229,6 +1242,7 @@ export type Database = {
           amount?: number
           category_id?: string
           created_at?: string
+          from_pot?: boolean
           id?: string
           note?: string | null
           spent_on?: string

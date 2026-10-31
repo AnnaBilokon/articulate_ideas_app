@@ -21,8 +21,17 @@ export const spendIcons = [
 ] as const;
 export type SpendIcon = (typeof spendIcons)[number];
 
-export type SpendCategory = { id: string; name: string; icon: SpendIcon; color: SpendColor; position: number; archived: boolean };
-export type SpendPurchase = { id: string; categoryId: string; spentOn: string; amount: number; note: string | null };
+export type SpendCategory = {
+  id: string;
+  name: string;
+  icon: SpendIcon;
+  color: SpendColor;
+  position: number;
+  archived: boolean;
+  /** The Money pot purchases here can be taken from. */
+  potCategoryId: string | null;
+};
+export type SpendPurchase = { id: string; categoryId: string; spentOn: string; amount: number; note: string | null; fromPot: boolean };
 
 /** Suggestions to start from, one tap each. */
 export const starterCategories: { name: string; icon: SpendIcon; color: SpendColor }[] = [
@@ -42,8 +51,9 @@ export const spendCategorySchema = z.object({
   name: z.string().trim().min(1, "Name the category.").max(40, "Keep the name under 40 characters."),
   icon: z.enum(spendIcons),
   color: z.enum(spendColors),
+  potCategoryId: z.uuid().nullable().default(null),
 });
-export type SpendCategoryInput = z.infer<typeof spendCategorySchema>;
+export type SpendCategoryInput = z.input<typeof spendCategorySchema>;
 
 export const purchaseSchema = z.object({
   categoryId: z.uuid("Pick a category."),
@@ -53,8 +63,10 @@ export const purchaseSchema = z.object({
     .refine((v) => v !== 0, "Enter an amount.")
     .refine((v) => Math.abs(v) <= 1e9, "That's a lot. Check the amount."),
   note: z.string().trim().max(200, "Keep the note under 200 characters."),
+  /** Taken from the category's pot. */
+  fromPot: z.boolean().default(false),
 });
-export type PurchaseInput = z.infer<typeof purchaseSchema>;
+export type PurchaseInput = z.input<typeof purchaseSchema>;
 
 export const paydaySchema = z.number().int().min(1).max(28);
 
