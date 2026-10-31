@@ -8,7 +8,7 @@ import { NewSpendCategory, PaydayPicker, SpendCategoryRow, StarterCategories } f
 // Spending categories (name, icon, colour) and the payday months run from.
 export default async function SpendCategoriesPage() {
   await connection();
-  const { categories, purchases, payday } = await loadSpending();
+  const { categories, purchases, payday, pots } = await loadSpending();
   const count = (id: string) => purchases.filter((p) => p.categoryId === id).length;
   const active = categories.filter((c) => !c.archived);
   const hidden = categories.filter((c) => c.archived);
@@ -20,19 +20,19 @@ export default async function SpendCategoriesPage() {
         description="Each with an icon and a colour. Hiding one keeps its purchases."
         back={{ href: "/money/spending", label: "Spending" }}
       >
-        <NewSpendCategory />
+        <NewSpendCategory pots={pots} />
       </PageHeader>
 
       {active.length > 0 && (
         <ul className="grid gap-2 sm:grid-cols-2">
           {active.map((c) => (
             <li key={c.id}>
-              <SpendCategoryRow category={c} purchases={count(c.id)} />
+              <SpendCategoryRow category={c} purchases={count(c.id)} pots={pots} />
             </li>
           ))}
         </ul>
       )}
-      <StarterCategories existing={categories.map((c) => c.name)} />
+      <StarterCategories existing={categories.map((c) => c.name)} pots={pots} />
 
       {hidden.length > 0 && (
         <section className="flex flex-col gap-2">
@@ -40,7 +40,7 @@ export default async function SpendCategoriesPage() {
           <ul className="grid gap-2 sm:grid-cols-2">
             {hidden.map((c) => (
               <li key={c.id}>
-                <SpendCategoryRow category={c} purchases={count(c.id)} />
+                <SpendCategoryRow category={c} purchases={count(c.id)} pots={pots} />
               </li>
             ))}
           </ul>

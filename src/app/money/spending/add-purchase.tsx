@@ -49,30 +49,45 @@ export function CategoryChips({
 }
 
 // Logging a purchase: amount, category, date (today unless changed), note.
-// The category and date stay for the next one.
-export function AddPurchase({ categories, today }: { categories: SpendCategory[]; today: string }) {
+// The category and date stay for the next one. In a category linked to a
+// Money pot, it asks whether to take the purchase from the pot.
+export function AddPurchase({
+  categories,
+  today,
+  potNames,
+}: {
+  categories: SpendCategory[];
+  today: string;
+  /** Money pot names by id. */
+  potNames: Record<string, string>;
+}) {
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [spentOn, setSpentOn] = useState(today);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
   const [pending, start] = useTransition();
   const value = parseKr(amount);
   const bad = amount.trim() !== "" && (Number.isNaN(value) || value === 0);
+  const category = categories.find((c) => c.id === categoryId);
+  const pot = category?.potCategoryId ? potNames[category.potCategoryId] : undefined;
 
-  const add = () =>
+  const save = (fromPot: boolean) =>
     start(async () => {
       if (!categoryId) return setError("Pick a category.");
-      const result = await addPurchase({ categoryId, spentOn, amount: value, note });
+      const result = await addPurchase({ categoryId, spentOn, amount: value, note, fromPot });
       setError(result.error);
+      setAsking(false);
       if (!result.error) {
-        const name = categories.find((c) => c.id === categoryId)?.name ?? "";
-        setAdded(`${formatPrice(value)} to ${name}`);
+        setAdded(`${formatPrice(value)} to ${category?.name ?? ""}${fromPot ? `, from the ${pot} pot` : ""}`);
         setAmount("");
         setNote("");
       }
     });
+  // A category with a pot asks first; the others just save.
+  const add = () => (pot ? setAsking(true) : save(false));
 
   return (
     <Card>
@@ -89,6 +104,7 @@ export function AddPurchase({ categories, today }: { categories: SpendCategory[]
             onChange={(e) => {
               setAmount(e.target.value);
               setAdded(null);
+              setAsking(false);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !bad && amount.trim() && categoryId) add();
@@ -98,7 +114,14 @@ export function AddPurchase({ categories, today }: { categories: SpendCategory[]
           />
           <span className="text-lg text-muted-foreground">kr</span>
         </div>
-        <CategoryChips categories={categories} value={categoryId} onChange={setCategoryId} />
+        <CategoryChips
+          categories={categories}
+          value={categoryId}
+          onChange={(id) => {
+            setCategoryId(id);
+            setAsking(false);
+          }}
+        />
         <div className="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)]">
           <Input
             type="date"
@@ -117,18 +140,35 @@ export function AddPurchase({ categories, today }: { categories: SpendCategory[]
             className="h-10 bg-background"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={add} disabled={pending || bad || !amount.trim() || !categoryId || !spentOn}>
-            {pending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Add
-          </Button>
-          <span className={cn("flex items-center gap-1 text-sm", error ? "text-coral-foreground" : "text-success-foreground")} role="status">
-            {error ?? (added && (
-              <>
-                <Check className="size-4" /> Added {added}
-              </>
-            ))}
-          </span>
-        </div>
+        {asking && pot ? (
+          <div className="flex flex-col gap-3 rounded-xl bg-accent/70 p-3" role="alertdialog" aria-label="Take it from the pot?">
+            <p className="text-sm font-medium">
+              {value < 0 ? `Put ${formatPrice(-value)} back in your ${pot} pot?` : `Take ${formatPrice(value)} from your ${pot} pot?`}
+            </p>
+            <p className="-mt-2 text-xs text-muted-foreground">It then counts as spent from the pot in Money, and what&apos;s left goes down.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" disabled={pending} onClick={() => save(true)}>
+                {pending && <Loader2 className="size-3.5 animate-spin" />} {value < 0 ? "Yes, back in the pot" : "Yes, from the pot"}
+              </Button>
+              <Button size="sm" variant="outline" disabled={pending} onClick={() => save(false)}>
+                No, just log it
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={add} disabled={pending || bad || !amount.trim() || !categoryId || !spentOn}>
+              {pending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Add
+            </Button>
+            <span className={cn("flex items-center gap-1 text-sm", error ? "text-coral-foreground" : "text-success-foreground")} role="status">
+              {error ?? (added && (
+                <>
+                  <Check className="size-4" /> Added {added}
+                </>
+              ))}
+            </span>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">A refund? Enter it with a minus: −120.</p>
       </CardContent>
     </Card>

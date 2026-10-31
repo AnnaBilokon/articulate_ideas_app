@@ -20,7 +20,8 @@ import { PurchaseList } from "./purchase-list";
 export default async function SpendingPage({ searchParams }: PageProps<"/money/spending">) {
   await connection();
   const { month: slug } = await searchParams;
-  const { categories, purchases, payday } = await loadSpending();
+  const { categories, purchases, payday, pots } = await loadSpending();
+  const potNames = Object.fromEntries(pots.map((p) => [p.id, p.name]));
   const today = localDate();
   const current = payPeriodOf(today, payday);
 
@@ -31,7 +32,7 @@ export default async function SpendingPage({ searchParams }: PageProps<"/money/s
         <Card>
           <CardContent className="flex flex-col gap-4">
             <p className="text-sm">Start with a few categories. You can change their icons and colours any time.</p>
-            <StarterCategories existing={[]} />
+            <StarterCategories existing={[]} pots={pots} />
             <Link href="/money/spending/categories" className="w-fit text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
               Or make your own
             </Link>
@@ -116,15 +117,15 @@ export default async function SpendingPage({ searchParams }: PageProps<"/money/s
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
         <div className="flex flex-col gap-6">
-          {month === current && <AddPurchase categories={categories.filter((c) => !c.archived)} today={today} />}
+          {month === current && <AddPurchase categories={categories.filter((c) => !c.archived)} today={today} potNames={potNames} />}
           {categories.length < 5 && (
             <Card size="sm">
               <CardContent>
-                <StarterCategories existing={categories.map((c) => c.name)} />
+                <StarterCategories existing={categories.map((c) => c.name)} pots={pots} />
               </CardContent>
             </Card>
           )}
-          <PurchaseList purchases={these} categories={categories} today={today} />
+          <PurchaseList purchases={these} categories={categories} today={today} potNames={potNames} />
           {month !== current && (
             <Link href="/money/spending" className="w-fit text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
               Add a purchase in {spendMonthShort(current, payday)}

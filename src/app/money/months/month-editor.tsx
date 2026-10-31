@@ -228,7 +228,8 @@ export function MonthEditor({
   /** What a pot or saving would hold without an entered balance. */
   const computed = (c: MoneyCategory) => {
     const r = rows[c.id];
-    return (balancesBefore[c.id] ?? 0) + (num(r.amount) ?? 0) - (c.kind === "pot" ? (num(r.spent) ?? 0) : 0);
+    const tracked = c.kind === "pot" ? (period.potSpending?.[c.id] ?? 0) : 0;
+    return (balancesBefore[c.id] ?? 0) + (num(r.amount) ?? 0) - (c.kind === "pot" ? (num(r.spent) ?? 0) : 0) - tracked;
   };
 
   return (
@@ -322,6 +323,16 @@ export function MonthEditor({
           key={kind}
           kind={kind}
           list={shown.filter((c) => c.kind === kind)}
+          extra={
+            kind === "pot"
+              ? (c) =>
+                  period.potSpending?.[c.id] ? (
+                    <span className="text-xs text-muted-foreground">
+                      Plus {formatKr(period.potSpending[c.id])} from Spending, taken off what&apos;s left
+                    </span>
+                  ) : null
+              : undefined
+          }
           inputs={(c) => (
             <>
               {field(c, "amount", "in", toText(entries.get(c.id)?.planned ?? null))}
@@ -424,11 +435,14 @@ function Section({
   list,
   inputs,
   note,
+  extra,
 }: {
   kind: MoneyKind;
   list: MoneyCategory[];
   inputs: (c: MoneyCategory) => React.ReactNode;
   note?: (c: MoneyCategory) => React.ReactNode;
+  /** A line under a row, across it. */
+  extra?: (c: MoneyCategory) => React.ReactNode;
 }) {
   if (list.length === 0) return null;
   const cols = columns[kind];
@@ -450,13 +464,17 @@ function Section({
           ))}
           {note && <span className="hidden text-xs font-medium text-muted-foreground sm:block">Note</span>}
         </div>
-        {list.map((c) => (
-          <div key={c.id} className={cn("grid items-center gap-x-2 gap-y-1.5", rowTemplate[kind])}>
-            <span className={cn("min-w-0 truncate text-sm", c.archived && "text-muted-foreground")}>{c.name}</span>
-            <div className={cn("grid gap-2 sm:contents", phoneCols)}>{inputs(c)}</div>
-            {note?.(c)}
-          </div>
-        ))}
+        {list.map((c) => {
+          const below = extra?.(c);
+          return (
+            <div key={c.id} className={cn("grid items-center gap-x-2 gap-y-1.5", rowTemplate[kind])}>
+              <span className={cn("min-w-0 truncate text-sm", c.archived && "text-muted-foreground")}>{c.name}</span>
+              <div className={cn("grid gap-2 sm:contents", phoneCols)}>{inputs(c)}</div>
+              {note?.(c)}
+              {below && <div className="col-span-full sm:text-right">{below}</div>}
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );

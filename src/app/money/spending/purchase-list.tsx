@@ -18,10 +18,12 @@ export function PurchaseList({
   purchases,
   categories,
   today,
+  potNames,
 }: {
   purchases: SpendPurchase[];
   categories: SpendCategory[];
   today: string;
+  potNames: Record<string, string>;
 }) {
   const [filter, setFilter] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export function PurchaseList({
                       return (
                         <li key={p.id}>
                           {editing === p.id ? (
-                            <EditPurchase purchase={p} categories={categories} today={today} onDone={() => setEditing(null)} />
+                            <EditPurchase purchase={p} categories={categories} today={today} potNames={potNames} onDone={() => setEditing(null)} />
                           ) : (
                             <button
                               type="button"
@@ -83,7 +85,11 @@ export function PurchaseList({
                               {c && <SpendIconBadge icon={c.icon} color={c.color} size="sm" />}
                               <span className="flex min-w-0 flex-1 flex-col">
                                 <span className="truncate text-sm">{c?.name}</span>
-                                {p.note && <span className="truncate text-xs text-muted-foreground">{p.note}</span>}
+                                {(p.note || (p.fromPot && c?.potCategoryId)) && (
+                                  <span className="truncate text-xs text-muted-foreground">
+                                    {[p.note, p.fromPot && c?.potCategoryId ? `from the ${potNames[c.potCategoryId] ?? ""} pot` : null].filter(Boolean).join(" · ")}
+                                  </span>
+                                )}
                               </span>
                               <span className={cn("shrink-0 text-sm font-medium tabular-nums", p.amount < 0 && "text-success-foreground")}>
                                 {formatPrice(p.amount)}
@@ -108,22 +114,26 @@ function EditPurchase({
   purchase,
   categories,
   today,
+  potNames,
   onDone,
 }: {
   purchase: SpendPurchase;
   categories: SpendCategory[];
   today: string;
+  potNames: Record<string, string>;
   onDone: () => void;
 }) {
   const [amount, setAmount] = useState(String(purchase.amount));
   const [categoryId, setCategoryId] = useState(purchase.categoryId);
   const [spentOn, setSpentOn] = useState(purchase.spentOn);
   const [note, setNote] = useState(purchase.note ?? "");
+  const [fromPot, setFromPot] = useState(purchase.fromPot);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const value = parseKr(amount);
   // Its own category stays pickable even if hidden since.
   const choices = categories.filter((c) => !c.archived || c.id === purchase.categoryId);
+  const potId = categories.find((c) => c.id === categoryId)?.potCategoryId;
 
   const run = (action: () => Promise<{ error: string | null }>) =>
     start(async () => {
@@ -140,13 +150,19 @@ function EditPurchase({
         <Input aria-label="Note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Note" className="h-9 bg-background" />
       </div>
       <CategoryChips categories={choices} value={categoryId} onChange={setCategoryId} />
+      {potId && (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={fromPot} onChange={(e) => setFromPot(e.target.checked)} className="size-4 accent-primary" />
+          Taken from the {potNames[potId] ?? ""} pot
+        </label>
+      )}
       {error && (
         <p className="text-sm text-coral-foreground" role="alert">
           {error}
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" disabled={pending || Number.isNaN(value) || value === 0} onClick={() => run(() => updatePurchase(purchase.id, { categoryId, spentOn, amount: value, note }))}>
+        <Button size="sm" disabled={pending || Number.isNaN(value) || value === 0} onClick={() => run(() => updatePurchase(purchase.id, { categoryId, spentOn, amount: value, note, fromPot: Boolean(potId) && fromPot }))}>
           {pending && <Loader2 className="size-3.5 animate-spin" />} Save
         </Button>
         <Button size="sm" variant="ghost" disabled={pending} onClick={onDone}>
