@@ -220,7 +220,7 @@ export default async function JourneyHome() {
               <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
                   ["Spent", moneyTotals.spending],
-                  ["Saved", moneyTotals.savingTransfers],
+                  ["Saved", moneyTotals.saved],
                   ["Free cash", moneyTotals.freeCash],
                   ["All savings", moneySavings],
                 ].map(([label, value]) => (

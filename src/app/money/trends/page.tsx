@@ -70,7 +70,7 @@ export default async function TrendsPage() {
           series: [
             { key: "income", name: "Income", color: seriesColor(0), values: totals.map((t) => t.income) },
             { key: "spending", name: "Spent", color: seriesColor(1), values: totals.map((t) => t.spending) },
-            { key: "saved", name: "Saved", color: seriesColor(2), values: totals.map((t) => t.savingTransfers) },
+            { key: "saved", name: "Saved", color: seriesColor(2), values: totals.map((t) => t.saved) },
           ],
         }}
       />

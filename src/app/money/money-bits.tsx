@@ -32,14 +32,13 @@ export function StatTile({
       <CardContent className="flex flex-col gap-1">
         <span className="text-xs text-muted-foreground">{label}</span>
         <span className="text-xl font-semibold text-heading sm:text-2xl">{format(value)}</span>
-        {previous && delta !== 0 ? (
+        {previous && delta !== 0 && (
           <span className={cn("flex items-center gap-0.5 text-xs", good ? "text-success-foreground" : "text-muted-foreground")}>
             {delta > 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
             {format(Math.abs(delta))} vs {previous.label}
           </span>
-        ) : (
-          hint && <span className="text-xs text-muted-foreground">{hint}</span>
         )}
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </CardContent>
     </Card>
   );

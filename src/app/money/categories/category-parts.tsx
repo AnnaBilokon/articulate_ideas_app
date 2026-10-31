@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { moneyColorNames, moneyColors, moneyKindInfo, type MoneyCategory, type MoneyColor, type MoneyKind } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { addCategory, moveCategory, renameCategory, saveColorLabels, setCategoryArchived } from "../actions";
+import { addCategory, moveCategory, renameCategory, saveColorLabels, saveSavingSettings, setCategoryArchived } from "../actions";
 
 export function AddCategory({ kind }: { kind: MoneyKind }) {
   const [name, setName] = useState("");
@@ -117,7 +117,72 @@ export function CategoryRow({ category: c, first, last }: { category: MoneyCateg
         )}
       </div>
       {error && <span className="text-xs text-coral-foreground">{error}</span>}
+      {c.kind === "saving" && !c.archived && !editing && <SavingSettingsForm category={c} />}
     </li>
+  );
+}
+
+// A savings category: whether it counts as really saved, and a goal to reach.
+function SavingSettingsForm({ category: c }: { category: MoneyCategory }) {
+  const [counts, setCounts] = useState(c.countsAsSaved);
+  const [goal, setGoal] = useState(c.target === null ? "" : String(c.target));
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [pending, start] = useTransition();
+  const parsed = goal.trim() === "" ? null : Number(goal.replace(/\s/g, "").replace(",", "."));
+  const bad = parsed !== null && (!Number.isFinite(parsed) || parsed <= 0);
+  const dirty = counts !== c.countsAsSaved || parsed !== c.target;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pl-1 text-xs text-muted-foreground">
+      <label className="flex cursor-pointer items-center gap-1.5">
+        <input
+          type="checkbox"
+          checked={counts}
+          onChange={(e) => {
+            setCounts(e.target.checked);
+            setSaved(false);
+          }}
+          className="size-3.5 accent-primary"
+        />
+        Counts as saved
+      </label>
+      <label className="flex items-center gap-1.5">
+        Goal
+        <Input
+          aria-label={`${c.name}: goal`}
+          aria-invalid={bad || undefined}
+          inputMode="decimal"
+          value={goal}
+          onChange={(e) => {
+            setGoal(e.target.value);
+            setSaved(false);
+          }}
+          placeholder="None"
+          className="h-7 w-24 bg-background text-right text-xs tabular-nums md:text-xs"
+        />
+        kr
+      </label>
+      {dirty && (
+        <Button
+          size="sm"
+          variant="secondary"
+          className="h-7"
+          disabled={pending || bad}
+          onClick={() =>
+            start(async () => {
+              const result = await saveSavingSettings(c.id, { countsAsSaved: counts, target: parsed });
+              setError(result.error);
+              setSaved(!result.error);
+            })
+          }
+        >
+          {pending && <Loader2 className="size-3 animate-spin" />} Save
+        </Button>
+      )}
+      {saved && !dirty && <span>Saved.</span>}
+      {error && <span className="text-coral-foreground">{error}</span>}
+    </div>
   );
 }
 
