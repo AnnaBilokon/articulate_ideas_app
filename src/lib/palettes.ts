@@ -10,6 +10,7 @@ export const PALETTES = [
   { id: "lagoon", name: "Lagoon", swatches: ["#dbfe87", "#03b5aa", "#b2aa8e", "#7a306c", "#0c1b33"] },
   { id: "rose-mist", name: "Rose mist", swatches: ["#c0e8f9", "#b8d3d1", "#ce7b91", "#635255", "#1a281f"] },
   { id: "pacific", name: "Pacific", swatches: ["#61a0af", "#96c9dc", "#f06c9b", "#f9b9b7", "#f5d491"] },
+  { id: "periwinkle", name: "Periwinkle", swatches: ["#e3d7ff", "#afa2ff", "#7a89c2", "#72788d", "#636b61"] },
 ] as const;
 
 export type PaletteId = (typeof PALETTES)[number]["id"];
@@ -20,8 +21,9 @@ export function isPaletteId(value: unknown): value is PaletteId {
   return PALETTES.some((p) => p.id === value);
 }
 
-// Workspaces for colours: Journey home counts as its own.
-export const PALETTE_WORKSPACES = ["home", "learning", "growth", "money"] as const;
+// Workspaces for colours: Journey home counts as its own, and so does the
+// Wishlist inside Money.
+export const PALETTE_WORKSPACES = ["home", "learning", "growth", "money", "wishlist"] as const;
 export type PaletteWorkspace = (typeof PALETTE_WORKSPACES)[number];
 
 export const WORKSPACE_NAMES: Record<PaletteWorkspace, string> = {
@@ -29,6 +31,7 @@ export const WORKSPACE_NAMES: Record<PaletteWorkspace, string> = {
   learning: "Learning",
   growth: "Growth",
   money: "Money",
+  wishlist: "Wishlist",
 };
 
 /** The palettes each workspace offers; the first is its default. */
@@ -37,12 +40,14 @@ export const WORKSPACE_PALETTES: Record<PaletteWorkspace, readonly PaletteId[]> 
   learning: ["orchard", "lagoon", "rose-mist"],
   growth: ["orchard", "lagoon", "rose-mist"],
   money: ["pacific"],
+  wishlist: ["periwinkle"],
 };
 
 /** The workspace a page belongs to, for its colours. */
 export function paletteWorkspaceOf(pathname: string): PaletteWorkspace {
   if (pathname === "/") return "home";
   if (pathname === "/growth" || pathname.startsWith("/growth/")) return "growth";
+  if (pathname === "/money/wishlist" || pathname.startsWith("/money/wishlist/")) return "wishlist";
   if (pathname === "/money" || pathname.startsWith("/money/")) return "money";
   return "learning";
 }
@@ -66,7 +71,7 @@ export function paletteFor(workspace: PaletteWorkspace, choices: PaletteChoices,
 export const paletteScript = `(function(){try{
 var offered=${JSON.stringify(WORKSPACE_PALETTES)};
 var p=location.pathname;
-var w=p==="/"?"home":/^\\/growth(\\/|$)/.test(p)?"growth":/^\\/money(\\/|$)/.test(p)?"money":"learning";
+var w=p==="/"?"home":/^\\/growth(\\/|$)/.test(p)?"growth":/^\\/money\\/wishlist(\\/|$)/.test(p)?"wishlist":/^\\/money(\\/|$)/.test(p)?"money":"learning";
 var c={};try{c=JSON.parse(localStorage.getItem(${JSON.stringify(PALETTES_STORAGE_KEY)})||"{}")||{}}catch(e){}
 var v=c[w]||localStorage.getItem(${JSON.stringify(LEGACY_PALETTE_KEY)});
 document.documentElement.setAttribute("data-palette",offered[w].indexOf(v)>=0?v:offered[w][0]);
