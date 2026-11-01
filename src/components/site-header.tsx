@@ -143,7 +143,8 @@ function WorkspaceMenu({ current }: { current: (typeof workspaces)[number] | nul
         <LogoMark />
         {/* The name from 768px up; on narrower screens the tabs need the room. */}
         <span className="max-md:sr-only">{current?.label ?? APP_NAME}</span>
-        <ChevronDown className="size-3.5 text-muted-foreground" />
+        {/* On phones the logo alone opens the menu, to leave room for the tabs. */}
+        <ChevronDown className="size-3.5 text-muted-foreground max-sm:hidden" />
       </DropdownMenuTrigger>
       <DropdownMenuContent data-workspace={current?.id} align="start" className="w-52">
         <DropdownMenuItem render={<Link href="/" />}>
@@ -169,7 +170,7 @@ function WorkspaceMenu({ current }: { current: (typeof workspaces)[number] | nul
 
 const tabClass = (active: boolean) =>
   cn(
-    "flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors hover:bg-accent hover:text-accent-foreground max-sm:px-2",
+    "flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors hover:bg-accent hover:text-accent-foreground max-sm:px-1.5",
     active
       ? "bg-highlight text-highlight-foreground hover:bg-highlight hover:text-highlight-foreground"
       : "text-muted-foreground",
@@ -193,7 +194,7 @@ export function SiteHeader() {
         )}
       >
         <WorkspaceMenu current={current} />
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex items-center gap-1 text-sm max-sm:gap-0.5">
           {nav.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
