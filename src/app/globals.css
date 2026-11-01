@@ -629,6 +629,96 @@
   --hero-3: #636b61;
 }
 
+/* Grape soda (Goals and Achievements): grape soda #88498f, pacific blue
+   #779fa1, pale oak #e0cba8, tomato #ff6542, mauve shadow #564154. Pale oak
+   warms the surfaces and highlights, grape carries buttons and focus, mauve
+   shadow the headings; pacific blue and tomato add the glow and chart accents. */
+:root[data-palette="grape-soda"] {
+  --background: #fbf7f1;
+  --foreground: #2b2029;
+  --card: #fffdf9;
+  --card-foreground: #2b2029;
+  --popover: #fffdf9;
+  --popover-foreground: #2b2029;
+  --heading: #564154;
+  --primary: #88498f;
+  --primary-foreground: #ffffff;
+  --secondary: #f3ebdc;
+  --secondary-foreground: #564154;
+  --muted: #f4eee6;
+  --muted-foreground: #6a5a67;
+  --accent: #f4ebf4;
+  --accent-foreground: #6d3873;
+  --highlight: #e0cba8;
+  --highlight-foreground: #3b2a39;
+  --destructive: #b42318;
+  --border: #ebe1d2;
+  --input: #dacdb8;
+  --ring: #88498f;
+  --chart-1: #88498f;
+  --chart-2: #2f9094;
+  --chart-3: #d8441f;
+  --chart-4: #564154;
+  --chart-5: #2a3f8c;
+  --shadow-rgb: 43 32 41;
+  --series-1: #88498f;
+  --series-2: #2f9094;
+  --series-3: #d8441f;
+  --series-4: #564154;
+  --series-5: #2a3f8c;
+  --series-6: #2a3f8c;
+  --series-other: #c5bab6;
+  --glow-1: color-mix(in oklab, #e0cba8 60%, transparent);
+  --glow-2: color-mix(in oklab, #88498f 16%, transparent);
+  --glow-3: color-mix(in oklab, #779fa1 22%, transparent);
+  --hero-1: #e0cba8;
+  --hero-2: #779fa1;
+  --hero-3: #ff6542;
+}
+
+.dark[data-palette="grape-soda"] {
+  --background: #141013;
+  --foreground: #ece4ea;
+  --card: #1d171c;
+  --card-foreground: #ece4ea;
+  --popover: #221b21;
+  --popover-foreground: #ece4ea;
+  --heading: #f8f0f6;
+  --primary: #cf9fd6;
+  --primary-foreground: #2a1430;
+  --secondary: #3a2a38;
+  --secondary-foreground: #f2e6f0;
+  --muted: #2d242b;
+  --muted-foreground: #b5a7b2;
+  --accent: #2b1f2b;
+  --accent-foreground: #e0cba8;
+  --highlight: #e0cba8;
+  --highlight-foreground: #2a1d14;
+  --destructive: #f28b82;
+  --border: #33282f;
+  --input: #45383f;
+  --ring: #cf9fd6;
+  --chart-1: #c48ccb;
+  --chart-2: #8fc0c2;
+  --chart-3: #ff7a5c;
+  --chart-4: #e3b85a;
+  --chart-5: #6b8cf2;
+  --shadow-rgb: 0 0 0;
+  --series-1: #c48ccb;
+  --series-2: #8fc0c2;
+  --series-3: #ff7a5c;
+  --series-4: #e3b85a;
+  --series-5: #6b8cf2;
+  --series-6: #6b8cf2;
+  --series-other: #5c5058;
+  --glow-1: color-mix(in oklab, #88498f 24%, transparent);
+  --glow-2: color-mix(in oklab, #779fa1 14%, transparent);
+  --glow-3: color-mix(in oklab, #ff6542 6%, transparent);
+  --hero-1: #88498f;
+  --hero-2: #779fa1;
+  --hero-3: #ff6542;
+}
+
 /* ---- Workspace colours --------------------------------------------------------
 
    Colours that belong to a workspace whatever its palette: its layout and
