@@ -15,7 +15,7 @@ export type SpendingData = {
 
 export async function loadSpending(): Promise<SpendingData> {
   const [{ data: categories }, { data: purchases }, { data: settings }, { data: pots }] = await Promise.all([
-    db().from("spend_categories").select("id, name, icon, color, position, archived_at, pot_category_id").order("position").order("created_at"),
+    db().from("spend_categories").select("id, name, icon, color, position, archived_at, pot_category_id, pot_always").order("position").order("created_at"),
     db()
       .from("spend_purchases")
       .select("id, category_id, spent_on, amount, note, from_pot")
@@ -34,6 +34,7 @@ export async function loadSpending(): Promise<SpendingData> {
       position: c.position,
       archived: c.archived_at !== null,
       potCategoryId: c.pot_category_id,
+      potAlways: c.pot_category_id !== null && c.pot_always,
     })),
     purchases: (purchases ?? []).map((p) => ({
       id: p.id,

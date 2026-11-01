@@ -1187,6 +1187,7 @@ export type Database = {
           id: string
           name: string
           position: number
+          pot_always: boolean
           pot_category_id: string | null
         }
         Insert: {
@@ -1197,6 +1198,7 @@ export type Database = {
           id?: string
           name: string
           position?: number
+          pot_always?: boolean
           pot_category_id?: string | null
         }
         Update: {
@@ -1207,6 +1209,7 @@ export type Database = {
           id?: string
           name?: string
           position?: number
+          pot_always?: boolean
           pot_category_id?: string | null
         }
         Relationships: [

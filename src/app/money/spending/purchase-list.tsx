@@ -133,7 +133,8 @@ function EditPurchase({
   const value = parseKr(amount);
   // Its own category stays pickable even if hidden since.
   const choices = categories.filter((c) => !c.archived || c.id === purchase.categoryId);
-  const potId = categories.find((c) => c.id === categoryId)?.potCategoryId;
+  const chosen = categories.find((c) => c.id === categoryId);
+  const potId = chosen?.potCategoryId;
 
   const run = (action: () => Promise<{ error: string | null }>) =>
     start(async () => {
@@ -150,7 +151,8 @@ function EditPurchase({
         <Input aria-label="Note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Note" className="h-9 bg-background" />
       </div>
       <CategoryChips categories={choices} value={categoryId} onChange={setCategoryId} />
-      {potId && (
+      {potId && chosen?.potAlways && <p className="text-sm text-muted-foreground">Taken from the {potNames[potId] ?? ""} pot, like every purchase in {chosen.name}.</p>}
+      {potId && !chosen?.potAlways && (
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={fromPot} onChange={(e) => setFromPot(e.target.checked)} className="size-4 accent-primary" />
           Taken from the {potNames[potId] ?? ""} pot
