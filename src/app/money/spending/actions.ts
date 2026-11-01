@@ -31,7 +31,14 @@ export async function saveSpendCategory(id: string | null, input: SpendCategoryI
   const parsed = spendCategorySchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (!(await isPot(parsed.data.potCategoryId))) return { error: "Pick one of your pots." };
-  const columns = { name: parsed.data.name, icon: parsed.data.icon, color: parsed.data.color, pot_category_id: parsed.data.potCategoryId };
+  const always = parsed.data.potCategoryId !== null && parsed.data.potAlways;
+  const columns = {
+    name: parsed.data.name,
+    icon: parsed.data.icon,
+    color: parsed.data.color,
+    pot_category_id: parsed.data.potCategoryId,
+    pot_always: always,
+  };
   let error;
   if (id) {
     ({ error } = await db().from("spend_categories").update(columns).eq("id", id));
@@ -41,6 +48,11 @@ export async function saveSpendCategory(id: string | null, input: SpendCategoryI
   }
   if (error?.code === "23505") return { error: "You have a category with that name already." };
   if (error) return { error: "Could not save the category. Try again." };
+  if (id && always) {
+    // Every purchase means the ones already logged too.
+    const { error: purchasesError } = await db().from("spend_purchases").update({ from_pot: true }).eq("category_id", id).eq("from_pot", false);
+    if (purchasesError) return { error: "The category is saved, but its earlier purchases weren't moved to the pot. Try saving again." };
+  }
   refresh();
   return { error: null };
 }
@@ -73,11 +85,11 @@ async function checkPurchase(input: PurchaseInput) {
   const parsed = purchaseSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message, data: null };
   if (parsed.data.spentOn > localDate(new Date(), 1)) return { error: "That date hasn't come yet.", data: null };
-  if (parsed.data.fromPot) {
-    // Only a category linked to a pot can take from one.
-    const { data } = await db().from("spend_categories").select("pot_category_id").eq("id", parsed.data.categoryId).maybeSingle();
-    if (!data?.pot_category_id) return { error: null, data: { ...parsed.data, fromPot: false } };
-  }
+  // Only a category linked to a pot can take from one, and one set to take
+  // every purchase always does.
+  const { data } = await db().from("spend_categories").select("pot_category_id, pot_always").eq("id", parsed.data.categoryId).maybeSingle();
+  if (!data?.pot_category_id) return { error: null, data: { ...parsed.data, fromPot: false } };
+  if (data.pot_always) return { error: null, data: { ...parsed.data, fromPot: true } };
   return { error: null, data: parsed.data };
 }
 

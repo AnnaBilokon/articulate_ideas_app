@@ -24,7 +24,7 @@ function CategoryForm({
   onDone,
 }: {
   id: string | null;
-  initial: { name: string; icon: SpendIcon; color: SpendColor; potCategoryId: string | null };
+  initial: { name: string; icon: SpendIcon; color: SpendColor; potCategoryId: string | null; potAlways: boolean };
   pots: PotOption[];
   onDone: () => void;
 }) {
@@ -32,6 +32,7 @@ function CategoryForm({
   const [icon, setIcon] = useState<SpendIcon>(initial.icon);
   const [color, setColor] = useState<SpendColor>(initial.color);
   const [potId, setPotId] = useState<string | null>(initial.potCategoryId);
+  const [potAlways, setPotAlways] = useState(initial.potAlways);
   // A new category picks the pot with its name until a pot is chosen by hand.
   const [potChosen, setPotChosen] = useState(id !== null);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,7 @@ function CategoryForm({
 
   const save = () =>
     start(async () => {
-      const result = await saveSpendCategory(id, { name, icon, color, potCategoryId: potId });
+      const result = await saveSpendCategory(id, { name, icon, color, potCategoryId: potId, potAlways: potId !== null && potAlways });
       setError(result.error);
       if (!result.error) onDone();
     });
@@ -100,25 +101,44 @@ function CategoryForm({
         })}
       </div>
       {pots.length > 0 && (
-        <label className="flex flex-wrap items-center gap-2 text-sm">
-          <span>Takes from pot</span>
-          <select
-            value={potId ?? ""}
-            onChange={(e) => {
-              setPotId(e.target.value || null);
-              setPotChosen(true);
-            }}
-            className="h-9 rounded-lg border border-input bg-background px-2.5"
-          >
-            <option value="">None</option>
-            {pots.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <span className="text-xs text-muted-foreground">You&apos;ll be asked each time whether to take a purchase from it.</span>
-        </label>
+        <div className="flex flex-col gap-2">
+          <label className="flex flex-wrap items-center gap-2 text-sm">
+            <span>Takes from pot</span>
+            <select
+              value={potId ?? ""}
+              onChange={(e) => {
+                setPotId(e.target.value || null);
+                setPotChosen(true);
+              }}
+              className="h-9 rounded-lg border border-input bg-background px-2.5"
+            >
+              <option value="">None</option>
+              {pots.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {potId && (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={potAlways}
+                onChange={(e) => setPotAlways(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-primary"
+              />
+              <span className="flex flex-col">
+                <span>Every purchase comes off the pot</span>
+                <span className="text-xs text-muted-foreground">
+                  {potAlways
+                    ? "No asking: each purchase, and the ones already logged, counts as spent from the pot."
+                    : "Off: you'll be asked each time whether to take a purchase from it."}
+                </span>
+              </span>
+            </label>
+          )}
+        </div>
       )}
       {error && (
         <p className="text-sm text-coral-foreground" role="alert">
@@ -149,7 +169,7 @@ export function NewSpendCategory({ pots }: { pots: PotOption[] }) {
   return (
     <Card>
       <CardContent>
-        <CategoryForm id={null} initial={{ name: "", icon: "cart", color: "blue", potCategoryId: null }} pots={pots} onDone={() => setOpen(false)} />
+        <CategoryForm id={null} initial={{ name: "", icon: "cart", color: "blue", potCategoryId: null, potAlways: false }} pots={pots} onDone={() => setOpen(false)} />
       </CardContent>
     </Card>
   );
@@ -202,7 +222,7 @@ export function SpendCategoryRow({ category: c, purchases, pots }: { category: S
         <CardContent>
           <CategoryForm
             id={c.id}
-            initial={{ name: c.name, icon: c.icon, color: c.color, potCategoryId: c.potCategoryId }}
+            initial={{ name: c.name, icon: c.icon, color: c.color, potCategoryId: c.potCategoryId, potAlways: c.potAlways }}
             pots={pots}
             onDone={() => setEditing(false)}
           />
@@ -219,7 +239,8 @@ export function SpendCategoryRow({ category: c, purchases, pots }: { category: S
           <span className="truncate font-medium">{c.name}</span>
           <span className="text-xs text-muted-foreground">
             {purchases === 0 ? "No purchases yet" : `${purchases} ${purchases === 1 ? "purchase" : "purchases"}`}
-            {c.potCategoryId && ` · from the ${pots.find((p) => p.id === c.potCategoryId)?.name ?? ""} pot`}
+            {c.potCategoryId &&
+              ` · ${c.potAlways ? "every purchase " : ""}from the ${pots.find((p) => p.id === c.potCategoryId)?.name ?? ""} pot`}
             {c.archived && " · hidden"}
           </span>
         </span>

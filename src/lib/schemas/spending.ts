@@ -30,6 +30,8 @@ export type SpendCategory = {
   archived: boolean;
   /** The Money pot purchases here can be taken from. */
   potCategoryId: string | null;
+  /** Every purchase comes off the pot, without asking. */
+  potAlways: boolean;
 };
 export type SpendPurchase = { id: string; categoryId: string; spentOn: string; amount: number; note: string | null; fromPot: boolean };
 
@@ -52,6 +54,7 @@ export const spendCategorySchema = z.object({
   icon: z.enum(spendIcons),
   color: z.enum(spendColors),
   potCategoryId: z.uuid().nullable().default(null),
+  potAlways: z.boolean().default(false),
 });
 export type SpendCategoryInput = z.input<typeof spendCategorySchema>;
 
