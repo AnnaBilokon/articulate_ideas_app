@@ -11,6 +11,7 @@ export const PALETTES = [
   { id: "rose-mist", name: "Rose mist", swatches: ["#c0e8f9", "#b8d3d1", "#ce7b91", "#635255", "#1a281f"] },
   { id: "pacific", name: "Pacific", swatches: ["#61a0af", "#96c9dc", "#f06c9b", "#f9b9b7", "#f5d491"] },
   { id: "periwinkle", name: "Periwinkle", swatches: ["#e3d7ff", "#afa2ff", "#7a89c2", "#72788d", "#636b61"] },
+  { id: "grape-soda", name: "Grape soda", swatches: ["#88498f", "#779fa1", "#e0cba8", "#ff6542", "#564154"] },
 ] as const;
 
 export type PaletteId = (typeof PALETTES)[number]["id"];
@@ -21,15 +22,16 @@ export function isPaletteId(value: unknown): value is PaletteId {
   return PALETTES.some((p) => p.id === value);
 }
 
-// Workspaces for colours: Journey home counts as its own, and so does the
-// Wishlist inside Money.
-export const PALETTE_WORKSPACES = ["home", "learning", "growth", "money", "wishlist"] as const;
+// Workspaces for colours: Journey home counts as its own, and so do the
+// Wishlist inside Money and Goals and Achievements inside Growth.
+export const PALETTE_WORKSPACES = ["home", "learning", "growth", "goals", "money", "wishlist"] as const;
 export type PaletteWorkspace = (typeof PALETTE_WORKSPACES)[number];
 
 export const WORKSPACE_NAMES: Record<PaletteWorkspace, string> = {
   home: "Journey home",
   learning: "Learning",
   growth: "Growth",
+  goals: "Goals and Achievements",
   money: "Money",
   wishlist: "Wishlist",
 };
@@ -39,17 +41,27 @@ export const WORKSPACE_PALETTES: Record<PaletteWorkspace, readonly PaletteId[]> 
   home: ["orchard", "lagoon", "rose-mist"],
   learning: ["orchard", "lagoon", "rose-mist"],
   growth: ["orchard", "lagoon", "rose-mist"],
+  goals: ["grape-soda"],
   money: ["pacific"],
   wishlist: ["periwinkle"],
 };
 
+// Which pages take which workspace's colours: the first matching path wins
+// (a path matches itself and everything under it), and anything else is
+// Learning. Journey home is "/" alone.
+const WORKSPACE_PATHS: readonly [string, PaletteWorkspace][] = [
+  ["/growth/goals", "goals"],
+  ["/growth/achievements", "goals"],
+  ["/growth", "growth"],
+  ["/money/wishlist", "wishlist"],
+  ["/money", "money"],
+];
+
 /** The workspace a page belongs to, for its colours. */
 export function paletteWorkspaceOf(pathname: string): PaletteWorkspace {
   if (pathname === "/") return "home";
-  if (pathname === "/growth" || pathname.startsWith("/growth/")) return "growth";
-  if (pathname === "/money/wishlist" || pathname.startsWith("/money/wishlist/")) return "wishlist";
-  if (pathname === "/money" || pathname.startsWith("/money/")) return "money";
-  return "learning";
+  const match = WORKSPACE_PATHS.find(([path]) => pathname === path || pathname.startsWith(`${path}/`));
+  return match ? match[1] : "learning";
 }
 
 /** Each workspace's choice, saved as {"learning": "lagoon", ...}. */
@@ -71,7 +83,9 @@ export function paletteFor(workspace: PaletteWorkspace, choices: PaletteChoices,
 export const paletteScript = `(function(){try{
 var offered=${JSON.stringify(WORKSPACE_PALETTES)};
 var p=location.pathname;
-var w=p==="/"?"home":/^\\/growth(\\/|$)/.test(p)?"growth":/^\\/money\\/wishlist(\\/|$)/.test(p)?"wishlist":/^\\/money(\\/|$)/.test(p)?"money":"learning";
+var paths=${JSON.stringify(WORKSPACE_PATHS)};
+var w=p==="/"?"home":"learning";
+for(var i=0;i<paths.length&&p!=="/";i++)if(p===paths[i][0]||p.indexOf(paths[i][0]+"/")===0){w=paths[i][1];break}
 var c={};try{c=JSON.parse(localStorage.getItem(${JSON.stringify(PALETTES_STORAGE_KEY)})||"{}")||{}}catch(e){}
 var v=c[w]||localStorage.getItem(${JSON.stringify(LEGACY_PALETTE_KEY)});
 document.documentElement.setAttribute("data-palette",offered[w].indexOf(v)>=0?v:offered[w][0]);
