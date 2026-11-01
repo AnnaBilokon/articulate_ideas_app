@@ -2,24 +2,34 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Plus, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MAX_GOAL_STEPS, type GoalInput } from "@/lib/schemas";
+import { MAX_GOAL_STEPS, goalColorNames, goalColorStyle, goalColors, type GoalColor, type GoalInput } from "@/lib/schemas";
+import { cn } from "@/lib/utils";
 import { createGoal, updateGoal } from "../actions";
 
 // A goal's name and why, and the optional ways to track it: a target year,
-// a number to reach, and (for a new goal) its first steps.
-export function GoalForm({ goalId, initial }: { goalId?: string; initial?: GoalInput }) {
+// a number to reach, its colour, and (for a new goal) its first steps.
+export function GoalForm({
+  goalId,
+  initial,
+  suggestedColor = "blue",
+}: {
+  goalId?: string;
+  initial?: GoalInput;
+  suggestedColor?: GoalColor;
+}) {
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [why, setWhy] = useState(initial?.why ?? "");
   const [targetYear, setTargetYear] = useState(initial?.targetYear?.toString() ?? "");
   const [metricTarget, setMetricTarget] = useState(initial?.metricTarget?.toString() ?? "");
   const [metricUnit, setMetricUnit] = useState(initial?.metricUnit ?? "");
+  const [color, setColor] = useState<GoalColor>(initial?.color ?? suggestedColor);
   const [steps, setSteps] = useState<string[]>([]);
   const [newStep, setNewStep] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +54,14 @@ export function GoalForm({ goalId, initial }: { goalId?: string; initial?: GoalI
         setError("The number to reach should be a number, like 12 or 2.5.");
         return;
       }
-      const goal: GoalInput = { title, why, targetYear: targetYear ? Number(targetYear) : null, metricTarget: target, metricUnit };
+      const goal: GoalInput = {
+        title,
+        why,
+        targetYear: targetYear ? Number(targetYear) : null,
+        metricTarget: target,
+        metricUnit,
+        color,
+      };
       // A step typed but not added yet still counts.
       const allSteps = newStep.trim() ? [...steps, newStep.trim()] : steps;
       const result = goalId ? await updateGoal(goalId, goal) : await createGoal({ ...goal, steps: allSteps });
@@ -124,6 +141,36 @@ export function GoalForm({ goalId, initial }: { goalId?: string; initial?: GoalI
             <p className="text-xs text-muted-foreground">Optional. For goals you can count.</p>
           </div>
         </div>
+
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-2 text-sm font-medium">Colour</legend>
+          <p className="-mt-1 text-sm text-muted-foreground">Its card on the Goals page, so goals are easy to tell apart.</p>
+          <div className="flex flex-wrap gap-2.5">
+            {goalColors.map((c) => (
+              <label key={c} className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="goal-color"
+                  value={c}
+                  checked={color === c}
+                  onChange={() => setColor(c)}
+                  className="peer sr-only"
+                />
+                <span
+                  style={{ ...goalColorStyle(c), borderColor: `var(--goal-${c}-bar)` }}
+                  className={cn(
+                    "flex size-9 items-center justify-center rounded-full border-2 transition-shadow",
+                    "peer-checked:ring-2 peer-checked:ring-ring peer-checked:ring-offset-2 peer-checked:ring-offset-card",
+                    "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-ring",
+                  )}
+                >
+                  {color === c && <Check className="size-4" />}
+                </span>
+                <span className="sr-only">{goalColorNames[c]}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         {!goalId && (
           <fieldset className="flex flex-col gap-2">

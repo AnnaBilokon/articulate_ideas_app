@@ -1,9 +1,21 @@
-import { formatAmount, type GoalStatus } from "@/lib/schemas";
+import { formatAmount, type GoalColor, type GoalStatus } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
 // Small pieces shared by the goal pages and Journey home.
 
-export function ProgressBar({ value, label, className }: { value: number; label: string; className?: string }) {
+/** A goal's progress; in the goal's own colour when it has one. */
+export function ProgressBar({
+  value,
+  label,
+  color,
+  className,
+}: {
+  value: number;
+  label: string;
+  color?: GoalColor;
+  className?: string;
+}) {
+  const bar = color && `var(--goal-${color}-bar)`;
   return (
     <div
       role="progressbar"
@@ -12,10 +24,11 @@ export function ProgressBar({ value, label, className }: { value: number; label:
       aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)}
       className={cn("h-2 overflow-hidden rounded-full bg-muted", className)}
+      style={bar ? { background: `color-mix(in oklab, ${bar} 18%, transparent)` } : undefined}
     >
       <div
-        className={cn("h-full rounded-full transition-[width] duration-500", value >= 1 ? "bg-success" : "bg-primary")}
-        style={{ width: `${Math.max(value > 0 ? 4 : 0, value * 100)}%` }}
+        className={cn("h-full rounded-full transition-[width] duration-500", bar ? "" : value >= 1 ? "bg-success" : "bg-primary")}
+        style={{ width: `${Math.max(value > 0 ? 4 : 0, value * 100)}%`, background: bar }}
       />
     </div>
   );

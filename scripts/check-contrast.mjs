@@ -163,11 +163,17 @@ for (const { id, dark, own, merged, colorsOnly } of themes) {
     if (!colorsOnly) for (const t of ROLE_TOKENS) if (!(t in own)) failures.push(`${id} ${mode}: missing --${t}`);
 
     const color = (name) => parseColor(name === "white" ? "white" : (merged[name] ?? ""), merged);
-    // Coloured cells and icons carry text in their own text colour.
+    // Coloured cells, icons and goal cards carry text in their own text colour.
     const cellPairs = Object.keys(merged)
-      .filter((t) => (t.startsWith("cell-") || t.startsWith("spend-")) && !t.endsWith("-foreground"))
+      .filter((t) => /^(cell|spend|goal)-/.test(t) && !/-(foreground|bar)$/.test(t))
       .map((t) => [`${t}-foreground`, t]);
-    const checks = colorsOnly ? [[cellPairs, 4.5]] : [[[...TEXT_PAIRS, ...cellPairs], 4.5], [UI_PAIRS, 3]];
+    // A goal's progress bar sits on its own card and on the page's cards.
+    const barPairs = Object.keys(merged)
+      .filter((t) => t.startsWith("goal-") && t.endsWith("-bar"))
+      .flatMap((t) => [[t, t.replace(/-bar$/, "")], ...(colorsOnly ? [] : [[t, "card"]])]);
+    const checks = colorsOnly
+      ? [[cellPairs, 4.5], [barPairs, 3]]
+      : [[[...TEXT_PAIRS, ...cellPairs], 4.5], [[...UI_PAIRS, ...barPairs], 3]];
     for (const [pairs, min] of checks) {
       for (const [fg, bg] of pairs) {
         const a = color(fg);

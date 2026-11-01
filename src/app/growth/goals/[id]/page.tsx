@@ -77,7 +77,7 @@ export default async function GoalPage({ params }: PageProps<"/growth/goals/[id]
           <CardContent className="flex flex-col gap-5">
             {goal.progress !== null && (
               <div className="flex flex-col gap-1.5">
-                <ProgressBar value={goal.progress} label={`Progress: ${text}`} className="h-2.5" />
+                <ProgressBar value={goal.progress} label={`Progress: ${text}`} color={goal.color} className="h-2.5" />
                 <span className="text-sm text-muted-foreground tabular-nums">
                   {text} · {Math.round(goal.progress * 100)}%
                 </span>

@@ -1,5 +1,5 @@
 import "server-only";
-import { goalProgress, type GoalStatus } from "@/lib/schemas";
+import { goalProgress, type GoalColor, type GoalStatus } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
 // Goals and achievements for the Growth workspace.
@@ -13,6 +13,7 @@ export type GoalSummary = {
   title: string;
   why: string | null;
   status: GoalStatus;
+  color: GoalColor;
   targetYear: number | null;
   metricTarget: number | null;
   metricCurrent: number;
@@ -37,7 +38,7 @@ export type Achievement = {
 };
 
 const GOAL_COLUMNS =
-  "id, created_at, title, why, status, target_year, metric_target, metric_current, metric_unit, achieved_at, goal_steps(id, title, position, done_at)";
+  "id, created_at, title, why, status, color, target_year, metric_target, metric_current, metric_unit, achieved_at, goal_steps(id, title, position, done_at)";
 
 type GoalRow = {
   id: string;
@@ -45,6 +46,7 @@ type GoalRow = {
   title: string;
   why: string | null;
   status: string;
+  color: string;
   target_year: number | null;
   metric_target: number | null;
   metric_current: number;
@@ -68,6 +70,7 @@ function fromRow(r: GoalRow): { summary: GoalSummary; steps: GoalStep[] } {
     title: r.title,
     why: r.why,
     status: r.status as GoalStatus,
+    color: r.color as GoalColor,
     targetYear: r.target_year,
     ...metric,
     metricUnit: r.metric_unit,
@@ -78,9 +81,13 @@ function fromRow(r: GoalRow): { summary: GoalSummary; steps: GoalStep[] } {
   return { summary, steps };
 }
 
-/** Every goal, newest first. */
+/** Every goal, in your order (dragged on the Goals page), then newest first. */
 export async function listGoals(): Promise<GoalSummary[]> {
-  const { data } = await db().from("goals").select(GOAL_COLUMNS).order("created_at", { ascending: false });
+  const { data } = await db()
+    .from("goals")
+    .select(GOAL_COLUMNS)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: false });
   return (data ?? []).map((r) => fromRow(r).summary);
 }
 

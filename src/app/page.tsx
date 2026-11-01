@@ -214,7 +214,7 @@ export default async function JourneyHome() {
                         <span className="font-medium">{g.title}</span>
                         {g.progress !== null && (
                           <span className="flex items-center gap-2">
-                            <ProgressBar value={g.progress} label={`${g.title}: ${text}`} className="flex-1" />
+                            <ProgressBar value={g.progress} label={`${g.title}: ${text}`} color={g.color} className="flex-1" />
                             <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{text}</span>
                           </span>
                         )}
