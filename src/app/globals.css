@@ -719,6 +719,66 @@
   --hero-3: #ff6542;
 }
 
+/* ---- Goal colours ---------------------------------------------------------
+
+   Each goal has its own colour, the same in every palette: a soft card
+   background, its text, and a stronger bar for progress (3:1 on the card and
+   on the page's card). Checked by npm run check:contrast.
+   ------------------------------------------------------------------------- */
+:root {
+  --goal-red: #fde4e1;
+  --goal-red-foreground: #5c1a14;
+  --goal-red-bar: #d4402b;
+  --goal-orange: #fde8d5;
+  --goal-orange-foreground: #5a2a08;
+  --goal-orange-bar: #c4600c;
+  --goal-yellow: #fbf0c4;
+  --goal-yellow-foreground: #4d3c05;
+  --goal-yellow-bar: #9a7400;
+  --goal-green: #e0f3df;
+  --goal-green-foreground: #173f1c;
+  --goal-green-bar: #2f8a3c;
+  --goal-teal: #d8f1ee;
+  --goal-teal-foreground: #0f3f3c;
+  --goal-teal-bar: #1b857d;
+  --goal-blue: #dde9fb;
+  --goal-blue-foreground: #15315c;
+  --goal-blue-bar: #3a6fd0;
+  --goal-purple: #ece2fb;
+  --goal-purple-foreground: #36195e;
+  --goal-purple-bar: #7c4ad0;
+  --goal-pink: #fbe1ee;
+  --goal-pink-foreground: #5a1538;
+  --goal-pink-bar: #c93c84;
+}
+
+.dark {
+  --goal-red: #3a1d1b;
+  --goal-red-foreground: #fbd5cf;
+  --goal-red-bar: #f2765f;
+  --goal-orange: #3a2513;
+  --goal-orange-foreground: #fbdcc0;
+  --goal-orange-bar: #f29a4a;
+  --goal-yellow: #352d10;
+  --goal-yellow-foreground: #f6e6a6;
+  --goal-yellow-bar: #e0bb3a;
+  --goal-green: #18301b;
+  --goal-green-foreground: #cdeccf;
+  --goal-green-bar: #5fc06c;
+  --goal-teal: #142f2d;
+  --goal-teal-foreground: #c4ebe7;
+  --goal-teal-bar: #4cc2b8;
+  --goal-blue: #172640;
+  --goal-blue-foreground: #cfe0fb;
+  --goal-blue-bar: #6f9ef0;
+  --goal-purple: #271c3d;
+  --goal-purple-foreground: #e2d4fb;
+  --goal-purple-bar: #a988f0;
+  --goal-pink: #371a29;
+  --goal-pink-foreground: #f9d3e5;
+  --goal-pink-bar: #ec7cb3;
+}
+
 /* ---- Workspace colours --------------------------------------------------------
 
    Colours that belong to a workspace whatever its palette: its layout and

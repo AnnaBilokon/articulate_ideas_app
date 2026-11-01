@@ -16,6 +16,37 @@ export const goalStatusLabels: Record<GoalStatus, string> = {
 
 export const MAX_GOAL_STEPS = 30;
 
+/** Each goal has its own colour, so the cards are easy to tell apart. */
+export const goalColors = ["red", "orange", "yellow", "green", "teal", "blue", "purple", "pink"] as const;
+export type GoalColor = (typeof goalColors)[number];
+
+export const goalColorNames: Record<GoalColor, string> = {
+  red: "Red",
+  orange: "Orange",
+  yellow: "Yellow",
+  green: "Green",
+  teal: "Teal",
+  blue: "Blue",
+  purple: "Purple",
+  pink: "Pink",
+};
+
+// The order new goals take colours in: neighbours differ as much as possible.
+// The migration that added colours used the same order.
+const GOAL_COLOR_ORDER: readonly GoalColor[] = ["blue", "pink", "green", "orange", "purple", "teal", "yellow", "red"];
+
+/** The colour for a new goal: the one the fewest goals have, earliest in GOAL_COLOR_ORDER on a tie. */
+export function nextGoalColor(used: readonly GoalColor[]): GoalColor {
+  const count = (c: GoalColor) => used.filter((u) => u === c).length;
+  return GOAL_COLOR_ORDER.reduce((best, c) => (count(c) < count(best) ? c : best));
+}
+
+/** A goal card's background and text, from the --goal-* colours in globals.css. */
+export const goalColorStyle = (color: GoalColor) => ({
+  background: `var(--goal-${color})`,
+  color: `var(--goal-${color}-foreground)`,
+});
+
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
 
 export const goalSchema = z
@@ -25,6 +56,7 @@ export const goalSchema = z
     targetYear: z.number().int().min(2000).max(2100).nullable(),
     metricTarget: z.number().positive("The number to reach should be above 0.").max(1e12).nullable(),
     metricUnit: optionalText(40, "Keep the unit short, like “books” or “km”."),
+    color: z.enum(goalColors),
   })
   .refine((g) => !g.metricUnit || g.metricTarget !== null, {
     message: "Add the number to reach, or clear the unit.",

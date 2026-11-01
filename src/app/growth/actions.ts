@@ -38,6 +38,7 @@ const goalColumns = (g: GoalInput) => ({
   target_year: g.targetYear,
   metric_target: g.metricTarget,
   metric_unit: g.metricTarget === null ? null : g.metricUnit || null,
+  color: g.color,
 });
 
 export async function createGoal(input: NewGoalInput): Promise<Result & { id?: string }> {
@@ -45,7 +46,13 @@ export async function createGoal(input: NewGoalInput): Promise<Result & { id?: s
   const parsed = newGoalSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { data, error } = await db().from("goals").insert(goalColumns(parsed.data)).select("id").single();
+  // A new goal goes last; drag it up if it comes first.
+  const { data: last } = await db().from("goals").select("position").order("position", { ascending: false }).limit(1).maybeSingle();
+  const { data, error } = await db()
+    .from("goals")
+    .insert({ ...goalColumns(parsed.data), position: (last?.position ?? -1) + 1 })
+    .select("id")
+    .single();
   if (error) return { error: "Could not save the goal. Try again." };
   if (parsed.data.steps.length > 0) {
     const { error: stepsError } = await db()
@@ -68,6 +75,17 @@ export async function updateGoal(id: string, input: GoalInput): Promise<Result> 
     .eq("id", id);
   if (error) return { error: "Could not save the goal. Try again." };
   refresh(id);
+  return { error: null };
+}
+
+/** Saves the order of goals dragged on the Goals page: the first id comes first. */
+export async function reorderGoals(ids: string[]): Promise<Result> {
+  await requireSession();
+  const parsed = z.array(z.uuid()).max(500).safeParse(ids);
+  if (!parsed.success) return { error: "Could not save the order. Try again." };
+  const results = await Promise.all(parsed.data.map((id, position) => db().from("goals").update({ position }).eq("id", id)));
+  if (results.some((r) => r.error)) return { error: "Could not save the order. Try again." };
+  refresh();
   return { error: null };
 }
 

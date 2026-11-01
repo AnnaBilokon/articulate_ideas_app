@@ -510,11 +510,13 @@ export type Database = {
       goals: {
         Row: {
           achieved_at: string | null
+          color: string
           created_at: string
           id: string
           metric_current: number
           metric_target: number | null
           metric_unit: string | null
+          position: number
           status: string
           target_year: number | null
           title: string
@@ -523,11 +525,13 @@ export type Database = {
         }
         Insert: {
           achieved_at?: string | null
+          color?: string
           created_at?: string
           id?: string
           metric_current?: number
           metric_target?: number | null
           metric_unit?: string | null
+          position?: number
           status?: string
           target_year?: number | null
           title: string
@@ -536,11 +540,13 @@ export type Database = {
         }
         Update: {
           achieved_at?: string | null
+          color?: string
           created_at?: string
           id?: string
           metric_current?: number
           metric_target?: number | null
           metric_unit?: string | null
+          position?: number
           status?: string
           target_year?: number | null
           title?: string

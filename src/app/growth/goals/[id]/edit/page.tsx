@@ -22,6 +22,7 @@ export default async function EditGoalPage({ params }: PageProps<"/growth/goals/
           targetYear: goal.targetYear,
           metricTarget: goal.metricTarget,
           metricUnit: goal.metricUnit ?? "",
+          color: goal.color,
         }}
       />
     </main>
