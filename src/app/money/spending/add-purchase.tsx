@@ -50,7 +50,8 @@ export function CategoryChips({
 
 // Logging a purchase: amount, category, date (today unless changed), note.
 // The category and date stay for the next one. In a category linked to a
-// Money pot, it asks whether to take the purchase from the pot.
+// Money pot, it asks whether to take the purchase from the pot, unless the
+// category takes every purchase from it.
 export function AddPurchase({
   categories,
   today,
@@ -86,8 +87,8 @@ export function AddPurchase({
         setNote("");
       }
     });
-  // A category with a pot asks first; the others just save.
-  const add = () => (pot ? setAsking(true) : save(false));
+  // A category with a pot asks first, unless it takes every purchase; the others just save.
+  const add = () => (!pot ? save(false) : category?.potAlways ? save(true) : setAsking(true));
 
   return (
     <Card>
