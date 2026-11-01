@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Feather,
   Gem,
+  Gift,
   GraduationCap,
   House,
   LayoutDashboard,
@@ -94,6 +95,7 @@ const workspaces: {
     nav: [
       { href: "/money", label: "Overview", icon: LayoutDashboard },
       { href: "/money/spending", label: "Spending", icon: Receipt },
+      { href: "/money/wishlist", label: "Wishlist", icon: Gift },
       { href: "/money/months", label: "Months", icon: CalendarRange },
       { href: "/money/trends", label: "Trends", icon: BarChart3 },
       { href: "/money/savings", label: "Savings", icon: PiggyBank },
