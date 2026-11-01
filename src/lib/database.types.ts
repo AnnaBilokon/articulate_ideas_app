@@ -1657,6 +1657,71 @@ export type Database = {
           },
         ]
       }
+      wish_items: {
+        Row: {
+          bought_at: string | null
+          created_at: string
+          id: string
+          image_path: string | null
+          list_id: string | null
+          note: string | null
+          price: number | null
+          title: string
+          url: string | null
+        }
+        Insert: {
+          bought_at?: string | null
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          list_id?: string | null
+          note?: string | null
+          price?: number | null
+          title: string
+          url?: string | null
+        }
+        Update: {
+          bought_at?: string | null
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          list_id?: string | null
+          note?: string | null
+          price?: number | null
+          title?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wish_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "wish_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wish_lists: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowRight, CheckCircle2, Feather, Flame, GraduationCap, Repeat, Sprout, Trophy, Wallet, WholeWord } from "lucide-react";
+import { ArrowRight, CheckCircle2, Feather, Flame, Gift, GraduationCap, Plus, Repeat, Sprout, Trophy, Wallet, WholeWord } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { listBeliefs, reminderFor } from "@/lib/beliefs";
 import { listAchievements, listGoals } from "@/lib/goals";
 import { listHabits, todayDetail } from "@/lib/habits";
 import { loadMoney } from "@/lib/money";
+import { loadWishlist } from "@/lib/wishlist";
 import { reviewOverview } from "@/lib/reviews";
 import { APP_TIME_ZONE, localDate } from "@/lib/schedule";
 import { formatKr, periodLabel, periodTotals, runningBalances } from "@/lib/schemas";
@@ -30,7 +31,7 @@ export default async function JourneyHome() {
   await connection(); // Read fresh data on every visit, not once at build.
   const now = new Date();
   const today = localDate(now);
-  const [review, words, streak, goals, achievements, habits, beliefs, money] = await Promise.all([
+  const [review, words, streak, goals, achievements, habits, beliefs, money, wishlist] = await Promise.all([
     reviewOverview(),
     practiceOverview(),
     learningStreak(),
@@ -39,7 +40,9 @@ export default async function JourneyHome() {
     listHabits(today),
     listBeliefs(),
     loadMoney(),
+    loadWishlist(),
   ]);
+  const wanted = wishlist.items.filter((i) => !i.boughtAt);
   const reminder = reminderFor(beliefs, today);
   const todaysHabits = habits.filter((h) => !h.archived && h.plannedToday);
   // Money: the latest month that's been filled in.
@@ -124,6 +127,37 @@ export default async function JourneyHome() {
           </ul>
         </section>
       )}
+
+      <section className="flex items-center gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/10" aria-label="Want to buy">
+        <Link href="/money/wishlist" className="flex min-w-0 flex-1 items-center gap-3">
+          <span className="flex -space-x-2">
+            {wanted.slice(0, 3).map((i) =>
+              i.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- a private, short-lived link, already resized
+                <img key={i.id} src={i.imageUrl} alt="" className="size-10 rounded-lg object-cover ring-2 ring-card" />
+              ) : (
+                <span key={i.id} className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground ring-2 ring-card">
+                  <Gift className="size-4" />
+                </span>
+              ),
+            )}
+            {wanted.length === 0 && (
+              <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <Gift className="size-4" />
+              </span>
+            )}
+          </span>
+          <span className="flex min-w-0 flex-col">
+            <span className="font-medium text-heading">Want to buy</span>
+            <span className="truncate text-xs text-muted-foreground">
+              {wanted.length === 0 ? "Keep a list of things to buy later" : `${wanted.length} ${wanted.length === 1 ? "thing" : "things"} · ${wanted.slice(0, 2).map((i) => i.title).join(", ")}`}
+            </span>
+          </span>
+        </Link>
+        <Link href="/money/wishlist?add=1" className={cn(buttonVariants({ size: "sm" }), "shrink-0")}>
+          <Plus className="size-3.5" /> Add
+        </Link>
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
