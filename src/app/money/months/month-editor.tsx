@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { Check, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -232,6 +232,41 @@ export function MonthEditor({
     return (balancesBefore[c.id] ?? 0) + (num(r.amount) ?? 0) - (c.kind === "pot" ? (num(r.spent) ?? 0) : 0) - tracked;
   };
 
+  /**
+   * A pot or saving with nothing in "In" yet: offers to fill it in, from the
+   * balance if it went up on last month, else from what was expected. Only
+   * "In" counts as moved (and, for savings, as saved).
+   */
+  const inHint = (c: MoneyCategory) => {
+    const r = rows[c.id];
+    if (r.amount.trim() !== "") return null;
+    const planned = num(r.planned);
+    const balance = num(r.balance);
+    const before = balancesBefore[c.id];
+    // In = balance - last month's + what went out of it this month.
+    const out = c.kind === "pot" ? (num(r.spent) ?? 0) + (period.potSpending?.[c.id] ?? 0) : 0;
+    const rise = balance !== null && before !== undefined ? Math.round((balance - before + out) * 100) / 100 : null;
+    const offer =
+      rise !== null && rise > 0
+        ? {
+            amount: rise,
+            text: `Going by the ${c.kind === "pot" ? "amount left" : "balance"}, ${formatKr(rise)} went in${rise === planned ? ", as expected" : ""}.`,
+            button: `Count ${formatKr(rise)} as in`,
+          }
+        : planned
+          ? { amount: planned, text: `${formatKr(planned)} expected, not counted until it's in.`, button: "Moved it" }
+          : null;
+    if (!offer) return null;
+    return (
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground sm:justify-end">
+        {offer.text}
+        <Button size="xs" variant="secondary" onClick={() => set(c.id, "amount", String(offer.amount))}>
+          <Check /> {offer.button}
+        </Button>
+      </span>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-5 pb-32">
       {(["income", "expense"] as const).map((kind) => (
@@ -323,19 +358,24 @@ export function MonthEditor({
           key={kind}
           kind={kind}
           list={shown.filter((c) => c.kind === kind)}
-          extra={
-            kind === "pot"
-              ? (c) =>
-                  period.potSpending?.[c.id] ? (
-                    <span className="text-xs text-muted-foreground">
-                      Plus {formatKr(period.potSpending[c.id])} from Spending, taken off what&apos;s left
-                    </span>
-                  ) : null
-              : undefined
-          }
+          extra={(c) => {
+            const hint = inHint(c);
+            const fromSpending =
+              kind === "pot" && period.potSpending?.[c.id] ? (
+                <span className="text-xs text-muted-foreground">
+                  Plus {formatKr(period.potSpending[c.id])} from Spending, taken off what&apos;s left
+                </span>
+              ) : null;
+            return hint || fromSpending ? (
+              <span className="flex flex-col gap-1">
+                {hint}
+                {fromSpending}
+              </span>
+            ) : null;
+          }}
           inputs={(c) => (
             <>
-              {field(c, "amount", "in", toText(entries.get(c.id)?.planned ?? null))}
+              {field(c, "amount", "in")}
               {kind === "pot" && field(c, "spent", "spent")}
               {field(c, "balance", kind === "pot" ? "left" : "balance", String(Math.round(computed(c))))}
             </>
