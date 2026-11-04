@@ -32,7 +32,7 @@ export function DailyCapSetting({ cap: initialCap }: { cap: number }) {
         Review questions per day
       </h2>
       <p className="-mt-1 text-sm text-muted-foreground">
-        About a minute each. Questions over the limit wait for the next days, oldest first. Saved for every device.
+        About a minute each. Questions over the limit wait for the next days, oldest first, and at most 2 a day come from one topic. Saved for every device.
       </p>
       <div role="radiogroup" aria-labelledby="cap-heading" className="flex flex-wrap gap-2">
         {DAILY_CAP_OPTIONS.map((value) => (

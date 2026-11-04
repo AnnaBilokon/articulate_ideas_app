@@ -19,7 +19,7 @@ export default async function TopicProgressPage({ params }: PageProps<"/topics/[
   const { data: topic } = await db()
     .from("topics")
     .select(
-      "title, mastery_level, lesson_chunks(id), dumps(id), recall_questions(id, position, text, attempts(score, confidence, created_at, feedback), review_state(due_at, step))",
+      "title, mastery_level, lesson_chunks(id), dumps(id), recall_questions(id, position, text, attempts(score, confidence, created_at, feedback), review_state(due_at, step, interval_days))",
     )
     .eq("id", id)
     .order("position", { referencedTable: "recall_questions" })

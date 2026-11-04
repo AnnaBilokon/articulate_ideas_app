@@ -35,7 +35,7 @@ export function ReviewSession({ questions }: { questions: SessionQuestion[] }) {
                       </p>
                     ) : summary && summary.overflow > 0 ? (
                       <p className="max-w-md text-sm">
-                        That&apos;s today&apos;s {summary.cap}. {summary.overflow} more{" "}
+                        That&apos;s today&apos;s set. {summary.overflow} more{" "}
                         {summary.overflow === 1 ? "question is" : "questions are"} due and will come in the next days,
                         oldest first.
                       </p>

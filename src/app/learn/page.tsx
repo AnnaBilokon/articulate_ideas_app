@@ -25,6 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { favoriteAreas } from "@/lib/discover";
 import { nextLearnStep } from "@/lib/learn-flow";
 import { LIGHT_DAY_CAP, reviewOverview } from "@/lib/reviews";
+import { MAX_PER_TOPIC } from "@/lib/schedule";
 import { savedQuestionsToLearn } from "@/lib/saved-questions";
 import { learningStreak } from "@/lib/streak";
 import { isTopicLevel, topicLevelLabels } from "@/lib/schemas/topic";
@@ -118,7 +119,7 @@ export default async function LearnToday() {
               <div className="text-sm text-muted-foreground">
                 {review.lightDay && "Light day. "}
                 From {formatList([...new Set(review.today.map((q) => q.topicTitle))])}
-                {review.overflow > 0 && `. ${review.overflow} more wait for the next days (${review.cap} a day)`}.
+                {review.overflow > 0 && `. ${review.overflow} more wait for the next days (up to ${review.cap} a day, ${MAX_PER_TOPIC} per topic)`}.
               </div>
             </div>
             <Link href="/review" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4")}>

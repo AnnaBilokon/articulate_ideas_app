@@ -7,7 +7,7 @@ export type ReviewQuestion = { id: string; text: string; topicId: string; topicT
 
 // "Too much?": a light day reviews at most this many questions. The choice is
 // kept in a cookie that names the day, so it ends by itself at midnight.
-export const LIGHT_DAY_CAP = 5;
+export const LIGHT_DAY_CAP = 3;
 export const LIGHT_DAY_COOKIE = "light-day";
 
 /** The day's key for the light-day cookie: midnight in the app's time zone. */
@@ -16,6 +16,9 @@ export const dayKey = (now: Date = new Date()) => startOfDay(now).toISOString();
 export async function isLightDay(now: Date = new Date()): Promise<boolean> {
   return (await cookies()).get(LIGHT_DAY_COOKIE)?.value === dayKey(now);
 }
+
+// Questions a day when Settings has none: about five minutes.
+export const DEFAULT_REVIEW_CAP = 5;
 
 export type ReviewOverview = {
   // Today's review: due questions within the daily cap, topics mixed.
@@ -45,22 +48,26 @@ export async function reviewOverview(now: Date = new Date()): Promise<ReviewOver
       .order("due_at"),
     supabase
       .from("attempts")
-      .select("question_id")
+      .select("question_id, recall_questions(topic_id)")
       .eq("mode", "review")
       .gte("created_at", startOfDay(now).toISOString()),
     supabase.from("review_state").select("due_at").gt("due_at", now.toISOString()).order("due_at").limit(1),
   ]);
 
   const lightDay = await isLightDay(now);
-  const cap = Math.min(settings?.daily_review_cap ?? 10, lightDay ? LIGHT_DAY_CAP : Infinity);
+  const cap = Math.min(settings?.daily_review_cap ?? DEFAULT_REVIEW_CAP, lightDay ? LIGHT_DAY_CAP : Infinity);
   // Distinct questions, so re-asks at the end of a session don't use up the cap.
-  const reviewedToday = new Set((reviewed ?? []).map((a) => a.question_id)).size;
+  const reviewedIds = new Map((reviewed ?? []).map((a) => [a.question_id, a.recall_questions?.topic_id]));
+  const reviewedToday = reviewedIds.size;
+  const reviewedByTopic = new Map<string, number>();
+  for (const topicId of reviewedIds.values())
+    if (topicId) reviewedByTopic.set(topicId, (reviewedByTopic.get(topicId) ?? 0) + 1);
   const dueQuestions = (due ?? []).flatMap(({ last_score, recall_questions: q }) =>
     q?.topics
       ? [{ id: q.id, text: q.text, topicId: q.topic_id, topicTitle: q.topics.title, lastScore: last_score }]
       : [],
   );
-  const { today, overflow } = planTodaysReview(dueQuestions, cap - reviewedToday);
+  const { today, overflow } = planTodaysReview(dueQuestions, cap - reviewedToday, reviewedByTopic);
 
   return {
     today,

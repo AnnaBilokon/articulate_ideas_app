@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { PageHeader } from "@/components/page-header";
+import { DEFAULT_REVIEW_CAP } from "@/lib/reviews";
 import { db } from "@/lib/supabase";
 import { AppearanceSettings } from "./appearance-settings";
 import { DailyCapSetting } from "./daily-cap-setting";
@@ -11,7 +12,7 @@ export default async function SettingsPage() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
       <PageHeader title="Settings" description="Your daily reviews, and how the app looks." />
-      <DailyCapSetting cap={settings?.daily_review_cap ?? 10} />
+      <DailyCapSetting cap={settings?.daily_review_cap ?? DEFAULT_REVIEW_CAP} />
       <AppearanceSettings />
     </main>
   );

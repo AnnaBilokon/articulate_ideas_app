@@ -341,13 +341,17 @@ Each recall question has its own schedule. A topic review is just the set of tha
 
 | Score | What happens |
 | --- | --- |
-| 4-5 | Move up one step |
-| 3 | Stay on the same step |
-| 0-2 | Back to step 1 (Day 1) |
-| Score 4-5 but confidence 1 | Stay on the same step (a lucky guess) |
-| Score 0-2 with confidence 3 (confident miss) | Back to step 1, shown with the correct answer side by side with yours, re-asked at the end of the session and again the next day (hypercorrection) |
+| 3-5 | Move up one step (a half-remembered answer no longer comes back every day) |
+| 4-5, sure, after a gap at least twice the planned one | Move up two steps (it stuck through a long break) |
+| 0-2 | Down two steps, and back tomorrow to relearn; a right answer then climbs on from the lower step |
+| 0-2 with confidence 3 (confident miss) | As above, shown with the correct answer side by side with yours and re-asked at the end of the session (hypercorrection) |
+| Any score before the question is due (quiz again, a re-ask) | No change, except a miss on a question not already back by tomorrow |
 
-**Daily cap:** show at most 10 questions a day, changeable in Settings (5, 10, 15, 20 or 30). "Too much?" makes today a light day of 5, until midnight. Each review starts with up to two questions answered well last time, as a warm-up. Overflow moves to the next days, oldest first, so a missed week doesn't create an 80-question wall. When reviews are already waiting past the limit, the New topic page says so (a nudge, not a block).
+Changed 2026-11-04 (gentler reviews): misses used to reset to step 1 and a 3 kept the step, so weak questions came back daily and the same topic kept repeating.
+
+**Daily cap:** show at most 5 questions a day by default (about five minutes), changeable in Settings (5, 10, 15, 20 or 30), and at most 2 a day from one topic, so no topic fills a day. "Too much?" makes today a light day of 3, until midnight. Each review starts with up to two questions answered well last time, as a warm-up. Overflow moves to the next days, oldest first, so a missed week doesn't create an 80-question wall. When reviews are already waiting past the limit, the New topic page says so (a nudge, not a block).
+
+**Questions ask about ideas, not trivia:** no names of people, years, dates, numbers or who did a study; the grader never requires them, even in older questions whose key points have them.
 
 **Review load grows for months.** Questions never leave the ladder, so the daily load keeps rising as topics add up. Simulated at about 80% recall with 6 questions per topic, the reviews needed per day (month 2 → 4 → 6) are: 1 topic a week 5 → 7 → 10; 2 a week 10 → 16 → 20; 3 a week 16 → 25 → 30. So 10 a day keeps up with 1-2 new topics a week. Fewer questions for "New to it" topics, and FSRS (longer gaps for well-known questions), both lower it.
 

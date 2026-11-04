@@ -68,7 +68,7 @@ export type QuestionInput = {
   position: number;
   text: string;
   attempts: AttemptInput[];
-  review_state: { due_at: string; step: number } | null;
+  review_state: { due_at: string; step: number; interval_days: number } | null;
 };
 
 export type QuestionProgress = {
@@ -83,7 +83,7 @@ export type QuestionProgress = {
   mistake: string | null;
   /** Latest answer scored 0-2 with confidence 3. */
   confidentMiss: boolean;
-  /** "Step 3 of 7 · every 7 days", null before the first review is scheduled. */
+  /** "Step 3 of 7 · every 7 days", or "· relearning" after a miss; null before the first review is scheduled. */
   ladder: string | null;
   nextReview: string | null;
 };
@@ -112,7 +112,13 @@ export function questionProgress(q: QuestionInput, now: Date = new Date()): Ques
     // "no answer" adds nothing to a blank answer.
     mistake: feedback?.success && feedback.data.mistake_cause !== "no answer" ? feedback.data.mistake_cause : null,
     confidentMiss: Boolean(last && last.score <= 2 && last.confidence === 3),
-    ladder: step === null ? null : `Step ${step + 1} of ${STEP_DAYS.length} · every ${days} ${days === 1 ? "day" : "days"}`,
+    ladder:
+      step === null
+        ? null
+        : `Step ${step + 1} of ${STEP_DAYS.length} · ${
+            // A miss keeps a lower step but brings the question back the next day.
+            q.review_state!.interval_days < days ? "relearning" : `every ${days} ${days === 1 ? "day" : "days"}`
+          }`,
     nextReview: q.review_state ? formatDue(q.review_state.due_at, now) : null,
   };
 }
