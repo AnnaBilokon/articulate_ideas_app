@@ -12,14 +12,22 @@ export const APP_TIME_ZONE = "Europe/Stockholm";
 export type ReviewState = { step: number; interval_days: number; due_at: string };
 export type NextReview = ReviewState & { last_score: number };
 
+// A miss drops a question this many steps, not back to the start, so one bad
+// day doesn't undo weeks of good answers.
+const MISS_DROP = 2;
+
 /**
  * Where a question goes after an answer.
- * - Missed (0-2), confident misses included: back to the first step, due tomorrow.
  * - First answer ever: first review tomorrow.
- * - Not due yet (quiz again, a re-ask at the end of a quiz): the schedule stays
- *   as it is, so extra practice can't rush a question up the ladder.
- * - Due, scored 3, or 4-5 while guessing (a lucky guess): same step again.
- * - Due and 4-5: one step up.
+ * - Missed (0-2), confident misses included: two steps down, and back tomorrow
+ *   to relearn it. A right answer then climbs on from the lower step.
+ * - Not due yet (quiz again, a re-ask at the end of a session): the schedule
+ *   stays as it is, so extra practice can't rush a question up the ladder. A
+ *   miss still counts, unless the question already comes back by tomorrow.
+ * - Due and 3-5: one step up, so a half-remembered answer doesn't come back
+ *   every day.
+ * - Due, 4-5 and sure (not a guess), after a gap at least twice as long as
+ *   planned: two steps up. Recalling it after a long break shows it has stuck.
  */
 export function nextReview(
   current: ReviewState | null,
@@ -27,14 +35,21 @@ export function nextReview(
   confidence: number,
   now: Date = new Date(),
 ): NextReview {
-  let step: number;
-  if (score <= 2 || !current) step = 0;
-  else if (new Date(current.due_at) > now) return { ...current, last_score: score };
-  else if (score === 3 || confidence === 1) step = current.step;
-  else step = Math.min(current.step + 1, LAST_STEP);
+  if (!current) return scheduled(0, 1, score, now);
+  const notDue = new Date(current.due_at) > now;
+  if (score <= 2) {
+    if (notDue && new Date(current.due_at) <= startOfDay(now, 1)) return { ...current, last_score: score };
+    return scheduled(Math.max(0, current.step - MISS_DROP), 1, score, now);
+  }
+  if (notDue) return { ...current, last_score: score };
+  const overdueDays = (now.getTime() - new Date(current.due_at).getTime()) / 86_400_000;
+  const longGap = score >= 4 && confidence > 1 && overdueDays >= current.interval_days;
+  const step = Math.min(current.step + (longGap ? 2 : 1), LAST_STEP);
+  return scheduled(step, STEP_DAYS[step], score, now);
+}
 
-  const interval_days = STEP_DAYS[step];
-  return { step, interval_days, due_at: startOfDay(now, interval_days).toISOString(), last_score: score };
+function scheduled(step: number, interval_days: number, last_score: number, now: Date): NextReview {
+  return { step, interval_days, due_at: startOfDay(now, interval_days).toISOString(), last_score };
 }
 
 // Calendar date (year, month, day) of an instant in the app's time zone.
@@ -104,13 +119,24 @@ export function formatDue(dueAt: string, now: Date = new Date()): string {
  * session; the rest wait for the next days, still oldest first. Topics are
  * then spread apart (interleaving): each pick comes from the topic with the
  * most questions left, never the same topic twice in a row if another is left.
+ * At most two a day come from one topic, counting `reviewedByTopic` (already
+ * reviewed today), so one topic never fills a day; the rest wait.
  * Up to two questions answered well last time go first, as a warm-up.
  */
 export function planTodaysReview<T extends { topicId: string; lastScore?: number | null }>(
   dueOldestFirst: T[],
   room: number,
+  reviewedByTopic: ReadonlyMap<string, number> = new Map(),
 ): { today: T[]; overflow: number } {
-  const picked = dueOldestFirst.slice(0, Math.max(0, room));
+  const perTopic = new Map(reviewedByTopic);
+  const picked: T[] = [];
+  for (const item of dueOldestFirst) {
+    if (picked.length >= room) break;
+    const count = perTopic.get(item.topicId) ?? 0;
+    if (count >= MAX_PER_TOPIC) continue;
+    perTopic.set(item.topicId, count + 1);
+    picked.push(item);
+  }
   const byTopic = new Map<string, T[]>();
   for (const item of picked) byTopic.set(item.topicId, [...(byTopic.get(item.topicId) ?? []), item]);
 
@@ -136,6 +162,7 @@ export function planTodaysReview<T extends { topicId: string; lastScore?: number
 }
 
 const WARM_UP = 2;
+export const MAX_PER_TOPIC = 2;
 
 function hasOther<T>(byTopic: Map<string, T[]>, topicId: string): boolean {
   for (const [id, items] of byTopic) if (id !== topicId && items.length > 0) return true;

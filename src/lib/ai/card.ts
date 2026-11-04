@@ -53,6 +53,8 @@ Output (JSON matching the schema):
   - Each question asks for one clear thing and is answerable in 1-3 sentences from the lesson. If it needs two things, say so in the question ("name two", "color and taste").
   - key_points: 2 to 4 short points. First the core answer to the question, then supporting details or examples (these are extras the grader won't require). Each point is one specific idea, stated plainly. No vague points like "explains it well".
   - Don't ask yes/no questions or ask for definitions word for word.
+  - Ask about ideas, never trivia: no question whose answer is a person's name, a year or date, a number or statistic, or who did a study. If the lesson cites a researcher or study, ask what it showed or why it matters instead.
+  - key_points state ideas in plain words. Leave out people's names, years and exact figures.
 - tags: 3 to 5 broad, reusable tags, lowercase words joined by hyphens (e.g. "decision-making"). Reuse the learner's existing tags whenever one fits instead of making a near-duplicate.`;
 
 export type CardInput = {

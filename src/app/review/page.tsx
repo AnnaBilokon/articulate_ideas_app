@@ -7,11 +7,12 @@ import { NextReviewLine } from "@/components/next-review-line";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LIGHT_DAY_CAP, reviewOverview } from "@/lib/reviews";
+import { MAX_PER_TOPIC } from "@/lib/schedule";
 import { ReviewSession } from "./review-session";
 
 export default async function ReviewPage() {
   await connection(); // What's due changes every day, and with every answer.
-  const { today, overflow, cap, nextDueAt, lightDay } = await reviewOverview();
+  const { today, overflow, nextDueAt, lightDay } = await reviewOverview();
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
@@ -36,7 +37,7 @@ export default async function ReviewPage() {
               <div className="font-medium">Nothing to review right now</div>
               {overflow > 0 ? (
                 <div className="text-muted-foreground">
-                  You&apos;ve done today&apos;s {cap}. {overflow} more will come in the next days.
+                  You&apos;ve done today&apos;s set. {overflow} more will come in the next days, at most {MAX_PER_TOPIC} from a topic.
                 </div>
               ) : (
                 <NextReviewLine dueAt={nextDueAt} />
