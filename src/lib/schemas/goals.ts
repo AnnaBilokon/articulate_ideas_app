@@ -70,6 +70,31 @@ export const newGoalSchema = goalSchema.and(
 );
 export type NewGoalInput = z.infer<typeof newGoalSchema>;
 
+// "AI helps": Claude asks up to 4 questions when a goal is too vague to plan,
+// then suggests steps to add.
+export const MAX_PLAN_QUESTIONS = 4;
+
+export const goalPlanAnswersSchema = z
+  .array(
+    z.object({
+      question: z.string().trim().min(1).max(300),
+      answer: z.string().trim().max(1000, "Keep each answer under 1000 characters."),
+    }),
+  )
+  .max(MAX_PLAN_QUESTIONS);
+export type GoalPlanAnswer = z.infer<typeof goalPlanAnswersSchema>[number];
+
+/** Either questions to answer first, or a plan: a summary and steps. */
+export const goalPlanSchema = z
+  .object({
+    questions: z.array(z.string().trim().min(1).max(300)).max(MAX_PLAN_QUESTIONS),
+    summary: z.string().trim().max(800).nullable(),
+    steps: z.array(z.string().trim().min(1).max(200)).max(10),
+    assumptions: z.string().trim().max(500).nullable(),
+  })
+  .refine((p) => (p.questions.length > 0 ? p.steps.length === 0 : p.steps.length >= 2 && Boolean(p.summary)));
+export type GoalPlan = z.infer<typeof goalPlanSchema>;
+
 export const goalStepTitleSchema = z.string().trim().min(1, "Write the step first.").max(200, "Keep a step under 200 characters.");
 export const goalNoteSchema = z.string().trim().min(1, "Write something first.").max(4000, "Keep a note under 4000 characters.");
 
