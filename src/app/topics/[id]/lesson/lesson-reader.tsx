@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Eye, Loader2, PartyPopper, PenLine } from "lucide-react";
+import { AskPanel } from "@/components/ask-panel";
 import { GlossaryText, type GlossaryEntry } from "@/components/glossary-text";
 import { SelectionSaver, useSaveWord } from "@/components/save-word";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import type { AskThread } from "@/lib/schemas/asks";
 import { DOUBTS_CHUNK_TITLE } from "@/lib/schemas/lesson";
 import {
   MAX_CHUNK_RECALL_CHARS,
@@ -95,11 +97,14 @@ export function LessonReader({
   chunks,
   terms,
   style,
+  asks,
 }: {
   topicId: string;
   chunks: Chunk[];
   terms: GlossaryEntry[];
   style: LessonStyle;
+  // Questions asked about the parts, on earlier visits too.
+  asks: AskThread[];
 }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
@@ -111,6 +116,7 @@ export function LessonReader({
   const [passed, setPassed] = useState<Set<number>>(new Set());
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [threads, setThreads] = useState(asks);
   const { save, saving, toast } = useSaveWord(topicId);
   const finished = index >= chunks.length;
   const chunk = chunks[Math.min(index, chunks.length - 1)];
@@ -226,6 +232,20 @@ export function LessonReader({
             <SelectionSaver onSave={save} disabled={saving}>
               <ChunkBody key={index} content={chunk.content} terms={terms} onSave={save} />
             </SelectionSaver>
+            <div className="border-t pt-4">
+              <AskPanel
+                key={chunk.id}
+                topicId={topicId}
+                chunkId={chunk.id}
+                threads={threads.filter((t) => t.chunkId === chunk.id)}
+                onThread={(thread) =>
+                  setThreads((all) =>
+                    all.some((t) => t.id === thread.id) ? all.map((t) => (t.id === thread.id ? thread : t)) : [...all, thread],
+                  )
+                }
+                explain
+              />
+            </div>
           </CardContent>
           <div className="flex items-center justify-between gap-4 border-t bg-muted/50 px-5 py-4 sm:px-8">
             <Button variant="ghost" disabled={index === 0} onClick={() => show(index - 1)}>

@@ -15,3 +15,4 @@ export * from "./beliefs";
 export * from "./money";
 export * from "./spending";
 export * from "./wishlist";
+export * from "./asks";
