@@ -96,6 +96,22 @@ export function startOfDay(date: Date, days = 0): Date {
   return new Date(midnightUtc - zoneOffset(new Date(first)));
 }
 
+/** The instant a wall-clock time happens in the app's time zone: `minutes` after midnight on `date` (YYYY-MM-DD). */
+export function zonedInstant(date: string, minutes: number): Date {
+  const [year, month, day] = date.split("-").map(Number);
+  const wallUtc = Date.UTC(year, month - 1, day) + minutes * 60_000;
+  // As in startOfDay: correct by the offset, then again in case summer time changes in between.
+  const first = wallUtc - zoneOffset(new Date(wallUtc));
+  return new Date(wallUtc - zoneOffset(new Date(first)));
+}
+
+/** Minutes after midnight that an instant shows on the clock in the app's time zone. */
+export function zonedMinutes(date: Date): number {
+  const offsetMinutes = Math.round(zoneOffset(date) / 60_000);
+  const utcMinutes = date.getUTCHours() * 60 + date.getUTCMinutes();
+  return (((utcMinutes + offsetMinutes) % 1440) + 1440) % 1440;
+}
+
 const weekdayFormat = new Intl.DateTimeFormat("en-GB", {
   timeZone: APP_TIME_ZONE,
   weekday: "short",

@@ -498,6 +498,7 @@ The app becomes "My Self Journey", a personal app with workspaces. The learning 
 - [x] 3. Habits: daily, on chosen days, or X times a week; check in on Journey home, a calendar of the days done, no penalties for missed days
 - [x] Cleanup: drop `goals.target_date` (replaced by `target_year`; kept so the migration could run before the new code deployed)
 - [x] "AI helps" on a goal: Claude (Sonnet) drafts 3-8 concrete steps from the goal, its why, number, target year, steps and notes; if the goal is too vague it asks up to 4 questions first (answers can be skipped and saved as a note), then you pick the steps to add
+- [x] Calendar (Growth tab, standalone, no Google sync): week and day views like Google Calendar; drag on empty time to block it (click for an hour), drag a block to move it across times and days, drag its edge to resize; to-dos with no time above the hours; colours, notes, tick off; overlapping blocks side by side; a line at the current time; day view by default on a phone, tap instead of drag on touch. Later: repeating events, month view, goal steps, habits and learning time in the calendar
 - [x] 4. Limiting beliefs and strengths: a guided reframe (evidence against, a kinder belief, "working on it" or "let go"), with an optional "Help me reframe" from Claude; strengths with examples, linked to achievements
 
 ### Money workspace (October 2026)
