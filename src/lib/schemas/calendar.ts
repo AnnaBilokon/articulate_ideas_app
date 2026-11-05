@@ -47,14 +47,6 @@ export function formatMinutes(minutes: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** "09:30" to 570; null if it isn't a time. "24:00" is midnight at the end of the day. */
-export function parseMinutes(text: string): number | null {
-  const match = /^(\d{1,2})[:.](\d{2})$/.exec(text.trim());
-  if (!match) return null;
-  const value = Number(match[1]) * 60 + Number(match[2]);
-  return Number(match[2]) < 60 && value <= DAY_MINUTES ? value : null;
-}
-
 /**
  * Side-by-side columns for overlapping blocks on one day, like Google
  * Calendar: each block gets a column, and how many columns its group of
