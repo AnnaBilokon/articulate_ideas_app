@@ -162,6 +162,34 @@ export async function addGoalStep(goalId: string, title: string): Promise<Result
   return { error: null };
 }
 
+/** Steps picked from an "AI helps" plan, added after the others, with the answers given as a note if wanted. */
+export async function addGoalSteps(goalId: string, titles: string[], note: string | null): Promise<Result> {
+  await requireSession();
+  if (!isId(goalId)) return { error: "Goal not found." };
+  const parsed = z.array(goalStepTitleSchema).min(1, "Pick a step first.").safeParse(titles);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const parsedNote = note ? goalNoteSchema.safeParse(note) : null;
+  if (parsedNote && !parsedNote.success) return { error: parsedNote.error.issues[0].message };
+  const { data: last } = await db()
+    .from("goal_steps")
+    .select("position")
+    .eq("goal_id", goalId)
+    .order("position", { ascending: false });
+  const room = MAX_GOAL_STEPS - (last ?? []).length;
+  if (parsed.data.length > room) return { error: room > 0 ? `Up to ${MAX_GOAL_STEPS} steps: pick ${room} or fewer.` : `Up to ${MAX_GOAL_STEPS} steps.` };
+  const start = (last?.[0]?.position ?? -1) + 1;
+  const { error } = await db()
+    .from("goal_steps")
+    .insert(parsed.data.map((title, i) => ({ goal_id: goalId, title, position: start + i })));
+  if (error) return { error: "Could not add the steps. Try again." };
+  if (parsedNote?.success) {
+    const { error: noteError } = await db().from("goal_notes").insert({ goal_id: goalId, body: parsedNote.data });
+    if (noteError) console.error(`plan note for goal ${goalId} failed:`, noteError);
+  }
+  refresh(goalId);
+  return { error: null };
+}
+
 export async function setGoalStepDone(stepId: string, done: boolean): Promise<Result> {
   await requireSession();
   if (!isId(stepId)) return { error: "Step not found." };

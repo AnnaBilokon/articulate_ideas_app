@@ -6,10 +6,11 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getGoal } from "@/lib/goals";
 import { localDate } from "@/lib/schedule";
-import { describeTargetYear, formatAmount, goalStatusLabels } from "@/lib/schemas";
+import { MAX_GOAL_STEPS, describeTargetYear, formatAmount, goalStatusLabels } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { ProgressBar, progressText, statusTone } from "../goal-bits";
 import { AchievedDate, DeleteGoal, MetricControl, NotesLog, StatusActions, StepsList } from "./goal-parts";
+import { GoalPlanHelper } from "./goal-plan";
 
 // One goal: why it matters, how far along it is, its steps and notes, and
 // moving it on (achieved, paused, let go).
@@ -104,6 +105,9 @@ export default async function GoalPage({ params }: PageProps<"/growth/goals/[id]
               </span>
               <StepsList goalId={goal.id} steps={goal.steps} />
             </div>
+            {(goal.status === "active" || goal.status === "paused") && goal.stepsTotal < MAX_GOAL_STEPS && (
+              <GoalPlanHelper goalId={goal.id} room={MAX_GOAL_STEPS - goal.stepsTotal} />
+            )}
           </CardContent>
         </Card>
       )}
