@@ -1374,6 +1374,74 @@ export type Database = {
         }
         Relationships: []
       }
+      topic_asks: {
+        Row: {
+          chunk_id: string | null
+          created_at: string
+          id: string
+          new_topic: string | null
+          recall_question_id: string | null
+          review_draft: Json | null
+          saved_question_id: string | null
+          topic_id: string
+          turns: Json
+          updated_at: string
+        }
+        Insert: {
+          chunk_id?: string | null
+          created_at?: string
+          id?: string
+          new_topic?: string | null
+          recall_question_id?: string | null
+          review_draft?: Json | null
+          saved_question_id?: string | null
+          topic_id: string
+          turns: Json
+          updated_at?: string
+        }
+        Update: {
+          chunk_id?: string | null
+          created_at?: string
+          id?: string
+          new_topic?: string | null
+          recall_question_id?: string | null
+          review_draft?: Json | null
+          saved_question_id?: string | null
+          topic_id?: string
+          turns?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_asks_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_chunks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topic_asks_recall_question_id_fkey"
+            columns: ["recall_question_id"]
+            isOneToOne: false
+            referencedRelation: "recall_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topic_asks_saved_question_id_fkey"
+            columns: ["saved_question_id"]
+            isOneToOne: false
+            referencedRelation: "saved_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topic_asks_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topic_cards: {
         Row: {
           analogy: string

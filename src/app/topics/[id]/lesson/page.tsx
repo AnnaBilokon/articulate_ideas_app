@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { BookA } from "lucide-react";
 import { BackgroundBuilder } from "@/components/background-builder";
 import { PageHeader } from "@/components/page-header";
+import { topicAsks } from "@/lib/asks";
 import { isLessonStyle } from "@/lib/schemas/topic";
 import { db } from "@/lib/supabase";
 import { LessonReader } from "./lesson-reader";
@@ -10,14 +11,17 @@ export default async function LessonPage({ params }: PageProps<"/topics/[id]/les
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
-  const { data: topic } = await db()
-    .from("topics")
-    .select(
-      "title, lesson_style, researched_at, lesson_chunks(id, title, content, position), glossary_terms(term, full_form, definition, example)",
-    )
-    .eq("id", id)
-    .order("position", { referencedTable: "lesson_chunks" })
-    .maybeSingle();
+  const [{ data: topic }, asks] = await Promise.all([
+    db()
+      .from("topics")
+      .select(
+        "title, lesson_style, researched_at, lesson_chunks(id, title, content, position), glossary_terms(term, full_form, definition, example)",
+      )
+      .eq("id", id)
+      .order("position", { referencedTable: "lesson_chunks" })
+      .maybeSingle(),
+    topicAsks(id),
+  ]);
   if (!topic) notFound();
   if (topic.lesson_chunks.length === 0) redirect(`/topics/${id}`);
 
@@ -40,6 +44,7 @@ export default async function LessonPage({ params }: PageProps<"/topics/[id]/les
         chunks={topic.lesson_chunks.map(({ id: chunkId, title, content }) => ({ id: chunkId, title, content }))}
         terms={topic.glossary_terms}
         style={isLessonStyle(topic.lesson_style) ? topic.lesson_style : "standard"}
+        asks={asks}
       />
     </main>
   );

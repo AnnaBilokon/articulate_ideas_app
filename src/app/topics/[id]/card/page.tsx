@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { BookA, Brain, Lightbulb, Link2, Lock, PenLine, Telescope, TriangleAlert } from "lucide-react";
+import { BookA, Brain, Lightbulb, Link2, Lock, MessageCircleQuestion, PenLine, Telescope, TriangleAlert } from "lucide-react";
 import { BackgroundBuilder } from "@/components/background-builder";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { topicAsks } from "@/lib/asks";
 import { critiqueSchema, type CriticalKind, type RecallQuestionType } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { GlossaryEditor } from "./glossary-editor";
 import { ThinkDeeperQuestion } from "./think-deeper-question";
+import { YourQuestions } from "./your-questions";
 
 const kindStyles: Record<CriticalKind, { label: string; className: string }> = {
   assumptions: { label: "Assumptions", className: "bg-sunflower-soft text-sunflower-foreground" },
@@ -32,17 +34,20 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
-  const { data: topic } = await db()
-    .from("topics")
-    .select(
-      "title, researched_at, dumps(id), topic_cards(one_sentence, paragraph, analogy, counterpoint, connects_to, created_at), recall_questions(text, type, position), critical_questions(id, text, kind, considerations, position, critical_answers(answer, feedback, created_at), saved_questions(id)), glossary_terms(id, term, full_form, definition, example, source, created_at)",
-    )
-    .eq("id", id)
-    .order("position", { referencedTable: "recall_questions" })
-    .order("position", { referencedTable: "critical_questions" })
-    .order("created_at", { referencedTable: "critical_questions.critical_answers", ascending: false })
-    .order("created_at", { referencedTable: "glossary_terms" })
-    .maybeSingle();
+  const [{ data: topic }, asks] = await Promise.all([
+    db()
+      .from("topics")
+      .select(
+        "title, researched_at, dumps(id), lesson_chunks(id, title), topic_cards(one_sentence, paragraph, analogy, counterpoint, connects_to, created_at), recall_questions(text, type, position), critical_questions(id, text, kind, considerations, position, critical_answers(answer, feedback, created_at), saved_questions(id)), glossary_terms(id, term, full_form, definition, example, source, created_at)",
+      )
+      .eq("id", id)
+      .order("position", { referencedTable: "recall_questions" })
+      .order("position", { referencedTable: "critical_questions" })
+      .order("created_at", { referencedTable: "critical_questions.critical_answers", ascending: false })
+      .order("created_at", { referencedTable: "glossary_terms" })
+      .maybeSingle(),
+    topicAsks(id),
+  ]);
   if (!topic) notFound();
   const card = topic.topic_cards;
   if (!card) redirect(`/topics/${id}`);
@@ -129,6 +134,25 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
         </CardHeader>
         <CardContent>
           <GlossaryEditor topicId={id} terms={topic.glossary_terms} startedAt={topic.researched_at} />
+        </CardContent>
+      </Card>
+
+      <Card id="your-questions">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircleQuestion className="size-4 text-primary" /> Your questions
+          </CardTitle>
+          <CardDescription>
+            Anything you&apos;d like to know or didn&apos;t quite get, from the lesson or here. Add an answer to your
+            reviews to keep it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <YourQuestions
+            topicId={id}
+            asks={asks}
+            partTitles={Object.fromEntries(topic.lesson_chunks.map((c) => [c.id, c.title]))}
+          />
         </CardContent>
       </Card>
 
