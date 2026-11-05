@@ -95,7 +95,8 @@ export function CalendarView({
 
   useEffect(() => {
     const first = days.includes(today) && now !== null ? Math.max(0, now / 60 - 1.5) : FIRST_HOUR;
-    scrollRef.current?.scrollTo({ top: first * HOUR_PX });
+    // A little less, so the first hour's label shows below the pinned day names.
+    scrollRef.current?.scrollTo({ top: Math.max(0, first * HOUR_PX - 12) });
     // Only when the days shown change, not every minute.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, date, week]);
@@ -274,50 +275,55 @@ export function CalendarView({
       )}
 
       <div className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
-        {/* Day names and to-dos with no time */}
-        <div className="grid border-b" style={{ gridTemplateColumns: `3.25rem repeat(${days.length}, minmax(0, 1fr))` }}>
-          <div />
-          {days.map((day) => (
-            <div key={day} className="flex min-w-0 flex-col gap-1 border-l px-1 pt-2 pb-1.5">
-              <button
-                type="button"
-                onClick={() => (view === "week" ? go(day, "day") : undefined)}
-                className={cn(
-                  "mx-auto rounded-full px-2 py-0.5 text-xs font-medium",
-                  day === today ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-                  view === "week" && day !== today && "hover:bg-muted",
-                )}
-              >
-                {dayFormat.format(asDate(day))}
-              </button>
-              {toDos(day).map((e) => (
-                <div key={e.id} className="flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 text-xs" style={goalColorStyle(e.color)}>
-                  <input
-                    type="checkbox"
-                    checked={e.done}
-                    onChange={() => toggleDone(e)}
-                    aria-label={`Done: ${e.title}`}
-                    className="size-3 shrink-0 accent-primary"
-                  />
-                  <button type="button" onClick={() => setEditor({ event: e })} className={cn("min-w-0 flex-1 truncate text-left", e.done && "line-through opacity-60")}>
-                    {e.title}
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => setEditor({ draft: { allDay: true, date: day } })}
-                aria-label={`Add a to-do on ${longDayFormat.format(asDate(day))}`}
-                className="flex h-5 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-foreground"
-              >
-                <Plus className="size-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Hours */}
+        {/* One scroll area for the day names and the hours, so the scrollbar
+            takes the same width from both and their columns line up. */}
         <div ref={scrollRef} className="h-[65vh] min-h-96 overflow-y-auto">
+          {/* Day names and to-dos with no time, pinned above the hours */}
+          <div
+            className="sticky top-0 z-30 grid border-b bg-card"
+            style={{ gridTemplateColumns: `3.25rem repeat(${days.length}, minmax(0, 1fr))` }}
+          >
+            <div />
+            {days.map((day) => (
+              <div key={day} className="flex min-w-0 flex-col gap-1 border-l px-1 pt-2 pb-1.5">
+                <button
+                  type="button"
+                  onClick={() => (view === "week" ? go(day, "day") : undefined)}
+                  className={cn(
+                    "mx-auto rounded-full px-2 py-0.5 text-xs font-medium",
+                    day === today ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                    view === "week" && day !== today && "hover:bg-muted",
+                  )}
+                >
+                  {dayFormat.format(asDate(day))}
+                </button>
+                {toDos(day).map((e) => (
+                  <div key={e.id} className="flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 text-xs" style={goalColorStyle(e.color)}>
+                    <input
+                      type="checkbox"
+                      checked={e.done}
+                      onChange={() => toggleDone(e)}
+                      aria-label={`Done: ${e.title}`}
+                      className="size-3 shrink-0 accent-primary"
+                    />
+                    <button type="button" onClick={() => setEditor({ event: e })} className={cn("min-w-0 flex-1 truncate text-left", e.done && "line-through opacity-60")}>
+                      {e.title}
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setEditor({ draft: { allDay: true, date: day } })}
+                  aria-label={`Add a to-do on ${longDayFormat.format(asDate(day))}`}
+                  className="flex h-5 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+                >
+                  <Plus className="size-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Hours */}
           <div className="grid" style={{ gridTemplateColumns: `3.25rem minmax(0, 1fr)` }}>
             <div className="relative" style={{ height: 24 * HOUR_PX }}>
               {Array.from({ length: 23 }, (_, i) => (
