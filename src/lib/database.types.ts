@@ -163,6 +163,42 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          color: string
+          created_at: string
+          day: string | null
+          done_at: string | null
+          ends_at: string | null
+          id: string
+          notes: string | null
+          starts_at: string | null
+          title: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          day?: string | null
+          done_at?: string | null
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          starts_at?: string | null
+          title: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          day?: string | null
+          done_at?: string | null
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          starts_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       challenge_attempts: {
         Row: {
           answer: Json
@@ -1371,42 +1407,6 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
-        }
-        Relationships: []
-      }
-      calendar_events: {
-        Row: {
-          color: string
-          created_at: string
-          day: string | null
-          done_at: string | null
-          ends_at: string | null
-          id: string
-          notes: string | null
-          starts_at: string | null
-          title: string
-        }
-        Insert: {
-          color?: string
-          created_at?: string
-          day?: string | null
-          done_at?: string | null
-          ends_at?: string | null
-          id?: string
-          notes?: string | null
-          starts_at?: string | null
-          title: string
-        }
-        Update: {
-          color?: string
-          created_at?: string
-          day?: string | null
-          done_at?: string | null
-          ends_at?: string | null
-          id?: string
-          notes?: string | null
-          starts_at?: string | null
-          title?: string
         }
         Relationships: []
       }
