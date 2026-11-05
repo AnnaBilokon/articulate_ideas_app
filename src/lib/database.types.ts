@@ -172,6 +172,7 @@ export type Database = {
           ends_at: string | null
           id: string
           notes: string | null
+          reminded_at: string | null
           starts_at: string | null
           title: string
         }
@@ -183,6 +184,7 @@ export type Database = {
           ends_at?: string | null
           id?: string
           notes?: string | null
+          reminded_at?: string | null
           starts_at?: string | null
           title: string
         }
@@ -194,6 +196,7 @@ export type Database = {
           ends_at?: string | null
           id?: string
           notes?: string | null
+          reminded_at?: string | null
           starts_at?: string | null
           title?: string
         }
@@ -895,6 +898,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          device: string | null
+          endpoint: string
+          id: string
+          p256dh: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          device?: string | null
+          endpoint: string
+          id?: string
+          p256dh: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          device?: string | null
+          endpoint?: string
+          id?: string
+          p256dh?: string
+        }
+        Relationships: []
       }
       recall_questions: {
         Row: {

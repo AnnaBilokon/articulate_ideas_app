@@ -4,6 +4,7 @@ import { loadWeek } from "@/lib/calendar";
 import { localDate } from "@/lib/schedule";
 import { weekStart } from "@/lib/schemas";
 import { CalendarView } from "./calendar-view";
+import { Reminders } from "./reminders";
 
 // Things to do and time blocked for them, a week or a day at a time.
 export default async function CalendarPage({ searchParams }: PageProps<"/growth/calendar">) {
@@ -18,6 +19,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/growth/
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6">
       <PageHeader title="Calendar" description="Put down what you want to do, and block time for what matters." />
+      <Reminders />
       {/* A new week starts fresh; within a week, the calendar keeps its own state. */}
       <CalendarView key={week} week={week} date={date} today={today} view={view} events={events} />
     </main>
