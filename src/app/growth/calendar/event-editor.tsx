@@ -1,22 +1,39 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Check, Loader2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DAY_MINUTES,
-  formatMinutes,
-  goalColorNames,
-  goalColors,
-  parseMinutes,
-  type CalendarEvent,
-  type GoalColor,
-} from "@/lib/schemas";
+import { DAY_MINUTES, SNAP_MINUTES, formatMinutes, goalColorNames, goalColors, type CalendarEvent, type GoalColor } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { createEvent, deleteEvent, setEventDone, updateEvent } from "./actions";
+
+// Times to pick from, every 15 minutes, written the 24-hour way whatever the
+// computer's clock setting (a time input would show "01:00 PM" on some).
+const TIMES = Array.from({ length: DAY_MINUTES / SNAP_MINUTES + 1 }, (_, i) => i * SNAP_MINUTES);
+
+function TimeSelect({ value, onChange, times, label }: { value: number; onChange: (minutes: number) => void; times: number[]; label: string }) {
+  // A time off the 15-minute marks (saved before) is kept in the list.
+  const options = times.includes(value) ? times : [...times, value].sort((a, b) => a - b);
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      aria-label={label}
+      className="h-9 rounded-lg border border-input bg-background px-2 text-sm tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      {options.map((t) => (
+        <option key={t} value={t}>
+          {t === DAY_MINUTES ? "24:00" : formatMinutes(t)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+const dayLabel = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
 /** What the editor opens on: an event to change, or a new one with a time picked. */
 export type EditorTarget = { event: CalendarEvent } | { draft: CalendarEvent["when"] };
@@ -43,10 +60,11 @@ export function EventEditor({
   const [color, setColor] = useState<GoalColor>(existing?.color ?? defaultColor);
   const [date, setDate] = useState(when.date);
   const [allDay, setAllDay] = useState(when.allDay);
-  const [start, setStart] = useState(formatMinutes(when.allDay ? 9 * 60 : when.start));
-  const [end, setEnd] = useState(when.allDay ? "10:00" : when.end === DAY_MINUTES ? "24:00" : formatMinutes(when.end));
+  const [start, setStart] = useState(when.allDay ? 9 * 60 : when.start);
+  const [end, setEnd] = useState(when.allDay ? 10 * 60 : when.end);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const dateInput = useRef<HTMLInputElement>(null);
 
   const run = (action: () => Promise<{ error: string | null; event?: CalendarEvent }>, after: (event?: CalendarEvent) => void) =>
     startTransition(async () => {
@@ -56,16 +74,11 @@ export function EventEditor({
     });
 
   function save() {
-    const startMin = parseMinutes(start);
-    // "00:00" as an end means midnight at the end of the day.
-    const endParsed = parseMinutes(end);
-    const endMin = endParsed === 0 ? DAY_MINUTES : endParsed;
-    if (!allDay && (startMin === null || endMin === null)) return setError("Write the times like 09:30.");
     const input = {
       title,
       notes,
       color,
-      when: allDay ? { allDay: true as const, date } : { allDay: false as const, date, start: startMin!, end: endMin! },
+      when: allDay ? { allDay: true as const, date } : { allDay: false as const, date, start, end },
     };
     run(
       () => (existing ? updateEvent(existing.id, input) : createEvent(input)),
@@ -102,12 +115,40 @@ export function EventEditor({
           />
 
           <div className="flex flex-wrap items-center gap-2">
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Day" className="h-9 w-40" />
+            {/* The day written "Thu 5 Nov 2026"; a date input would show the computer's
+                format (11/05/2026 on some). It opens the browser's date picker. */}
+            <span className="relative">
+              <button
+                type="button"
+                onClick={() => (dateInput.current?.showPicker ? dateInput.current.showPicker() : dateInput.current?.focus())}
+                className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                {dayLabel.format(new Date(`${date}T00:00:00Z`))}
+              </button>
+              <input
+                ref={dateInput}
+                type="date"
+                value={date}
+                onChange={(e) => e.target.value && setDate(e.target.value)}
+                tabIndex={-1}
+                aria-label="Day"
+                className="pointer-events-none absolute inset-0 opacity-0"
+              />
+            </span>
             {!allDay && (
               <span className="flex items-center gap-1.5">
-                <Input type="time" step={900} value={start} onChange={(e) => setStart(e.target.value)} aria-label="Starts" className="h-9 w-28" />
+                <TimeSelect
+                  label="Starts"
+                  value={start}
+                  times={TIMES.filter((t) => t < DAY_MINUTES)}
+                  // Moving the start keeps the length, as far as midnight.
+                  onChange={(next) => {
+                    setEnd(Math.min(DAY_MINUTES, next + (end - start)));
+                    setStart(next);
+                  }}
+                />
                 <span className="text-muted-foreground">–</span>
-                <Input type="time" step={900} value={end === "24:00" ? "00:00" : end} onChange={(e) => setEnd(e.target.value)} aria-label="Ends" className="h-9 w-28" />
+                <TimeSelect label="Ends" value={end} times={TIMES.filter((t) => t > start)} onChange={setEnd} />
               </span>
             )}
           </div>
