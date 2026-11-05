@@ -6,6 +6,7 @@ import {
   BarChart3,
   BookA,
   CalendarCheck,
+  CalendarDays,
   CalendarRange,
   Check,
   ChevronDown,
@@ -43,7 +44,8 @@ import { cn } from "@/lib/utils";
 
 export const APP_NAME = "My Self Journey";
 
-type NavItem = { href: string; label: string; icon: LucideIcon };
+// A tab can be wide too (the calendar), though its workspace isn't.
+type NavItem = { href: string; label: string; icon: LucideIcon; wide?: boolean };
 
 // The app's workspaces, each with its own tabs. A page belongs to the
 // workspace whose prefixes match its path; Learning takes the rest.
@@ -80,6 +82,7 @@ const workspaces: {
     nav: [
       { href: "/growth/goals", label: "Goals", icon: Target },
       { href: "/growth/habits", label: "Habits", icon: ListChecks },
+      { href: "/growth/calendar", label: "Calendar", icon: CalendarDays, wide: true },
       { href: "/growth/achievements", label: "Achievements", icon: Trophy },
       { href: "/growth/strengths", label: "Strengths", icon: Gem },
       { href: "/growth/beliefs", label: "Beliefs", icon: Feather },
@@ -182,7 +185,7 @@ export function SiteHeader() {
   if (pathname === "/login") return null;
   const current = currentWorkspace(pathname);
   // Journey home lists the workspaces; inside one, its tabs.
-  const nav = current?.nav ?? workspaces.map(({ href, label, icon }) => ({ href, label, icon }));
+  const nav: NavItem[] = current?.nav ?? workspaces.map(({ href, label, icon }) => ({ href, label, icon }));
   const active = current ? activeTab(pathname, nav) : undefined;
 
   return (
@@ -190,7 +193,7 @@ export function SiteHeader() {
       <div
         className={cn(
           "mx-auto flex h-16 w-full items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6",
-          current?.wide ? "max-w-5xl" : "max-w-3xl",
+          current?.wide || nav.find((n) => n.href === active)?.wide ? "max-w-5xl" : "max-w-3xl",
         )}
       >
         <WorkspaceMenu current={current} />
