@@ -39,14 +39,15 @@ export function toEvent(r: EventRow): CalendarEvent {
   };
 }
 
-/** The columns to save for when something happens. */
+/** The columns to save for when something happens. A new time reminds again. */
 export function whenColumns(when: EventWhen) {
   return when.allDay
-    ? { day: when.date, starts_at: null, ends_at: null }
+    ? { day: when.date, starts_at: null, ends_at: null, reminded_at: null }
     : {
         day: null,
         starts_at: zonedInstant(when.date, when.start).toISOString(),
         ends_at: zonedInstant(when.date, when.end).toISOString(),
+        reminded_at: null,
       };
 }
 
