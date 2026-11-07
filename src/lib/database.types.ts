@@ -511,6 +511,41 @@ export type Database = {
           },
         ]
       }
+      goal_step_items: {
+        Row: {
+          created_at: string
+          done_at: string | null
+          id: string
+          position: number
+          step_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          position?: number
+          step_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          position?: number
+          step_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_step_items_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "goal_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goal_steps: {
         Row: {
           created_at: string

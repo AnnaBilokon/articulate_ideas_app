@@ -4,7 +4,9 @@ import { db } from "@/lib/supabase";
 
 // Goals and achievements for the Growth workspace.
 
-export type GoalStep = { id: string; title: string; doneAt: string | null };
+export type StepItem = { id: string; title: string; doneAt: string | null };
+/** A step, with its own checklist (often empty). */
+export type GoalStep = { id: string; title: string; doneAt: string | null; items: StepItem[] };
 export type GoalNote = { id: string; createdAt: string; body: string };
 
 export type GoalSummary = {
@@ -38,7 +40,7 @@ export type Achievement = {
 };
 
 const GOAL_COLUMNS =
-  "id, created_at, title, why, status, color, target_year, metric_target, metric_current, metric_unit, achieved_at, goal_steps(id, title, position, done_at)";
+  "id, created_at, title, why, status, color, target_year, metric_target, metric_current, metric_unit, achieved_at, goal_steps(id, title, position, done_at, goal_step_items(id, title, position, done_at))";
 
 type GoalRow = {
   id: string;
@@ -52,13 +54,25 @@ type GoalRow = {
   metric_current: number;
   metric_unit: string | null;
   achieved_at: string | null;
-  goal_steps: { id: string; title: string; position: number; done_at: string | null }[];
+  goal_steps: {
+    id: string;
+    title: string;
+    position: number;
+    done_at: string | null;
+    goal_step_items: { id: string; title: string; position: number; done_at: string | null }[];
+  }[];
 };
 
+const byPosition = (a: { position: number; id: string }, b: { position: number; id: string }) =>
+  a.position - b.position || a.id.localeCompare(b.id);
+
 function fromRow(r: GoalRow): { summary: GoalSummary; steps: GoalStep[] } {
-  const steps = [...r.goal_steps]
-    .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
-    .map((s) => ({ id: s.id, title: s.title, doneAt: s.done_at }));
+  const steps = [...r.goal_steps].sort(byPosition).map((s) => ({
+    id: s.id,
+    title: s.title,
+    doneAt: s.done_at,
+    items: [...s.goal_step_items].sort(byPosition).map((i) => ({ id: i.id, title: i.title, doneAt: i.done_at })),
+  }));
   const counts = { stepsDone: steps.filter((s) => s.doneAt).length, stepsTotal: steps.length };
   const metric = {
     metricTarget: r.metric_target === null ? null : Number(r.metric_target),
