@@ -6,15 +6,20 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { listGoals } from "@/lib/goals";
 import { localDate } from "@/lib/schedule";
+import { db } from "@/lib/supabase";
 import { type GoalStatus } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { GoalList } from "./goal-list";
+import { MotivationNotes } from "./motivation-notes";
 
 // Goals by status: what you're working on first, then paused, reached and let go.
 // Within each, your own order: drag the priority ones to the top.
 export default async function GoalsPage() {
   await connection();
-  const goals = await listGoals();
+  const [goals, { data: notes }] = await Promise.all([
+    listGoals(),
+    db().from("motivation_notes").select("id, body").order("created_at"),
+  ]);
   const today = localDate();
   const groups: { status: GoalStatus; title: string }[] = [
     { status: "active", title: "Working on" },
@@ -30,6 +35,8 @@ export default async function GoalsPage() {
           <Plus className="size-4" /> New goal
         </Link>
       </PageHeader>
+
+      <MotivationNotes notes={notes ?? []} />
 
       {goals.length === 0 ? (
         <Card className="bg-muted/40">
