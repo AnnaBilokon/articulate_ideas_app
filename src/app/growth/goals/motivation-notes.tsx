@@ -86,13 +86,14 @@ export function MotivationNotes({ notes }: { notes: { id: string; body: string }
         )}
 
         {notes.length > 0 && (
-          <ul className="flex flex-col gap-3">
+          // Each note on its own tile, so two notes never read as one.
+          <ul className="flex flex-col gap-2.5">
             {notes.map((n) =>
               editing === n.id ? (
                 <li key={n.id}>{editor}</li>
               ) : (
-                <li key={n.id} className="group flex items-start gap-2">
-                  <p className="flex-1 text-lg leading-7 font-medium text-balance whitespace-pre-wrap text-heading">{n.body}</p>
+                <li key={n.id} className="group flex items-start gap-2 rounded-xl bg-muted/60 px-4 py-3">
+                  <p className="flex-1 text-base leading-7 font-medium text-pretty sm:text-lg whitespace-pre-wrap text-heading">{n.body}</p>
                   <span className="flex shrink-0 gap-0.5 pt-1 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
                     <button
                       type="button"
