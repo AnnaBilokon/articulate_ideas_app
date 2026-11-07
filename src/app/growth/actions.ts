@@ -386,3 +386,37 @@ export async function deleteAchievement(id: string): Promise<Result> {
   refresh();
   return { error: null };
 }
+
+// --- Motivation: notes to yourself at the top of Goals ----------------------
+
+const motivationSchema = z.string().trim().min(1, "Write something first.").max(500, "Keep it under 500 characters.");
+
+export async function addMotivation(body: string): Promise<Result> {
+  await requireSession();
+  const parsed = motivationSchema.safeParse(body);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { error } = await db().from("motivation_notes").insert({ body: parsed.data });
+  if (error) return { error: "Could not save it. Try again." };
+  revalidatePath("/growth/goals");
+  return { error: null };
+}
+
+export async function updateMotivation(id: string, body: string): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Not found." };
+  const parsed = motivationSchema.safeParse(body);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { error } = await db().from("motivation_notes").update({ body: parsed.data }).eq("id", id);
+  if (error) return { error: "Could not save it. Try again." };
+  revalidatePath("/growth/goals");
+  return { error: null };
+}
+
+export async function deleteMotivation(id: string): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Not found." };
+  const { error } = await db().from("motivation_notes").delete().eq("id", id);
+  if (error) return { error: "Could not remove it. Try again." };
+  revalidatePath("/growth/goals");
+  return { error: null };
+}
