@@ -2,22 +2,27 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Check, Loader2, Minus, Pause, Play, Plus, RotateCcw, Trash2, Trophy, Wind, X } from "lucide-react";
+import { Check, ListChecks, ListPlus, Loader2, Minus, Pause, Pencil, Play, Plus, RotateCcw, Trash2, Trophy, Wind, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { GoalStep } from "@/lib/goals";
 import { formatAmount, formatDay, type GoalStatus } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import {
   addGoalNote,
   addGoalStep,
+  addStepItem,
   deleteGoal,
   deleteGoalNote,
   deleteGoalStep,
+  deleteStepItem,
   setGoalAchievedOn,
   setGoalMetric,
   setGoalStatus,
   setGoalStepDone,
+  setStepItemDone,
+  updateGoalNote,
 } from "../../actions";
 
 // The interactive parts of a goal's page. Each calls a server action, and the
@@ -127,13 +132,53 @@ export function MetricControl({ goalId, current, unit }: { goalId: string; curre
   );
 }
 
-export function StepsList({ goalId, steps }: { goalId: string; steps: { id: string; title: string; doneAt: string | null }[] }) {
-  const [newStep, setNewStep] = useState("");
+type Run = (key: string, action: () => Promise<{ error: string | null }>, after?: () => void) => void;
+
+/** One line to add something: a step, or an item on a step's list. */
+function AddLine({
+  placeholder,
+  label,
+  busy,
+  disabled,
+  onAdd,
+}: {
+  placeholder: string;
+  label: string;
+  busy: boolean;
+  disabled: boolean;
+  onAdd: (text: string, clear: () => void) => void;
+}) {
+  const [text, setText] = useState("");
+  const add = () => text.trim() && onAdd(text, () => setText(""));
+  return (
+    <div className="flex gap-2">
+      <Input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            add();
+          }
+        }}
+        maxLength={200}
+        placeholder={placeholder}
+        aria-label={label}
+        className="h-9 bg-background"
+      />
+      <Button type="button" variant="secondary" onClick={add} disabled={!text.trim() || disabled} className="h-9">
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Add
+      </Button>
+    </div>
+  );
+}
+
+export function StepsList({ goalId, steps }: { goalId: string; steps: GoalStep[] }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  const run = (key: string, action: () => Promise<{ error: string | null }>, after?: () => void) => {
+  const run: Run = (key, action, after) => {
     setBusy(key);
     start(async () => {
       const result = await action();
@@ -142,59 +187,120 @@ export function StepsList({ goalId, steps }: { goalId: string; steps: { id: stri
       setBusy(null);
     });
   };
-  const add = () => newStep.trim() && run("new", () => addGoalStep(goalId, newStep), () => setNewStep(""));
 
   return (
     <div className="flex flex-col gap-3">
       {steps.length > 0 && (
         <ul className="flex flex-col gap-1">
           {steps.map((s) => (
-            <li key={s.id} className="group flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/60">
-              <input
-                type="checkbox"
-                checked={Boolean(s.doneAt)}
-                disabled={pending && busy === s.id}
-                onChange={(e) => run(s.id, () => setGoalStepDone(s.id, e.target.checked))}
-                aria-label={s.title}
-                className="size-4 shrink-0 accent-primary"
-              />
-              <span className={cn("flex-1 text-sm", s.doneAt && "text-muted-foreground line-through decoration-muted-foreground/50")}>
-                {s.title}
-              </span>
-              <button
-                type="button"
-                onClick={() => run(`x${s.id}`, () => deleteGoalStep(s.id))}
-                disabled={pending}
-                aria-label={`Remove step: ${s.title}`}
-                className="rounded-full p-1 text-muted-foreground opacity-60 hover:text-foreground hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
-              >
-                <X className="size-3.5" />
-              </button>
-            </li>
+            <StepRow key={s.id} step={s} run={run} pending={pending} busy={busy} />
           ))}
         </ul>
       )}
-      <div className="flex gap-2">
-        <Input
-          value={newStep}
-          onChange={(e) => setNewStep(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              add();
-            }
-          }}
-          maxLength={200}
-          placeholder={steps.length === 0 ? "Add a first step" : "Add a step"}
-          aria-label="New step"
-          className="h-9 bg-background"
-        />
-        <Button type="button" variant="secondary" onClick={add} disabled={!newStep.trim() || pending} className="h-9">
-          {pending && busy === "new" ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Add
-        </Button>
-      </div>
+      <AddLine
+        placeholder={steps.length === 0 ? "Add a first step" : "Add a step"}
+        label="New step"
+        busy={pending && busy === "new"}
+        disabled={pending}
+        onAdd={(text, clear) => run("new", () => addGoalStep(goalId, text), clear)}
+      />
       <ErrorLine error={error} />
     </div>
+  );
+}
+
+const hoverButton =
+  "rounded-full p-1 text-muted-foreground opacity-60 hover:text-foreground hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100";
+const doneText = "text-muted-foreground line-through decoration-muted-foreground/50";
+
+// A step, and its own checklist to work through one by one. The list is open
+// while the step is still to do.
+function StepRow({ step: s, run, pending, busy }: { step: GoalStep; run: Run; pending: boolean; busy: string | null }) {
+  const [open, setOpen] = useState(s.items.length > 0 && !s.doneAt);
+  const done = s.items.filter((i) => i.doneAt).length;
+  const next = s.items.find((i) => !i.doneAt);
+
+  return (
+    <li className="flex flex-col">
+      <div className="group flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/60">
+        <input
+          type="checkbox"
+          checked={Boolean(s.doneAt)}
+          disabled={pending && busy === s.id}
+          onChange={(e) => run(s.id, () => setGoalStepDone(s.id, e.target.checked))}
+          aria-label={s.title}
+          className="size-4 shrink-0 accent-primary"
+        />
+        <span className={cn("flex-1 text-sm", s.doneAt && doneText)}>{s.title}</span>
+        {s.items.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            aria-label={`${open ? "Hide" : "Show"} the list for ${s.title}`}
+            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-muted-foreground tabular-nums hover:bg-muted hover:text-foreground"
+          >
+            <ListChecks className="size-3.5" /> {done}/{s.items.length}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            aria-label={`Make a list for ${s.title}`}
+            title="Make a list for this step"
+            className={hoverButton}
+          >
+            <ListPlus className="size-3.5" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => run(`x${s.id}`, () => deleteGoalStep(s.id))}
+          disabled={pending}
+          aria-label={`Remove step: ${s.title}`}
+          className={hoverButton}
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+
+      {open && (
+        <div className="mb-2 ml-[1.15rem] flex flex-col gap-1 border-l-2 border-border pl-4">
+          {s.items.map((item) => (
+            <div key={item.id} className="group flex items-center gap-3 rounded-lg px-2 py-1 hover:bg-muted/60">
+              <input
+                type="checkbox"
+                checked={Boolean(item.doneAt)}
+                disabled={pending && busy === item.id}
+                onChange={(e) => run(item.id, () => setStepItemDone(item.id, e.target.checked))}
+                aria-label={item.title}
+                className="size-4 shrink-0 accent-primary"
+              />
+              {/* The one to do next stands out. */}
+              <span className={cn("flex-1 text-sm", item.doneAt && doneText, item === next && "font-medium")}>{item.title}</span>
+              {item === next && <span className="text-xs text-primary">next</span>}
+              <button
+                type="button"
+                onClick={() => run(`x${item.id}`, () => deleteStepItem(item.id))}
+                disabled={pending}
+                aria-label={`Remove: ${item.title}`}
+                className={hoverButton}
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          ))}
+          <AddLine
+            placeholder={s.items.length === 0 ? `What's on the list for “${s.title}”?` : "Add to the list"}
+            label={`Add to the list for ${s.title}`}
+            busy={pending && busy === `add${s.id}`}
+            disabled={pending}
+            onAdd={(text, clear) => run(`add${s.id}`, () => addStepItem(s.id, text), clear)}
+          />
+        </div>
+      )}
+    </li>
   );
 }
 
@@ -204,6 +310,16 @@ export function NotesLog({ goalId, notes }: { goalId: string; notes: { id: strin
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // The note being changed, and its new text.
+  const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
+
+  const saveEdit = () =>
+    editing &&
+    start(async () => {
+      const result = await updateGoalNote(editing.id, editing.body);
+      setError(result.error);
+      if (!result.error) setEditing(null);
+    });
 
   const add = () =>
     start(async () => {
@@ -233,16 +349,51 @@ export function NotesLog({ goalId, notes }: { goalId: string; notes: { id: strin
             <li key={n.id} className="group flex flex-col gap-0.5">
               <span className="flex items-center gap-2 text-xs text-muted-foreground">
                 {noteDate.format(new Date(n.createdAt))}
-                <button
-                  type="button"
-                  onClick={() => start(async () => setError((await deleteGoalNote(n.id)).error))}
-                  aria-label="Remove note"
-                  className="rounded-full p-0.5 opacity-60 hover:text-foreground hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
-                >
-                  <X className="size-3" />
-                </button>
+                {editing?.id !== n.id && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setEditing({ id: n.id, body: n.body })}
+                      aria-label="Edit note"
+                      className="rounded-full p-0.5 opacity-60 hover:text-foreground hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                    >
+                      <Pencil className="size-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => start(async () => setError((await deleteGoalNote(n.id)).error))}
+                      aria-label="Remove note"
+                      className="rounded-full p-0.5 opacity-60 hover:text-foreground hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </>
+                )}
               </span>
-              <p className="text-sm leading-6 whitespace-pre-wrap">{n.body}</p>
+              {editing?.id === n.id ? (
+                <div className="flex flex-col gap-2 pt-1">
+                  <Textarea
+                    value={editing.body}
+                    onChange={(e) => setEditing({ id: n.id, body: e.target.value })}
+                    onKeyDown={(e) => e.key === "Escape" && setEditing(null)}
+                    rows={3}
+                    maxLength={4000}
+                    autoFocus
+                    aria-label="Edit note"
+                    className="bg-background"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveEdit} disabled={!editing.body.trim() || pending}>
+                      {pending && <Loader2 className="size-3.5 animate-spin" />} Save
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditing(null)} disabled={pending}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm leading-6 whitespace-pre-wrap">{n.body}</p>
+              )}
             </li>
           ))}
         </ol>

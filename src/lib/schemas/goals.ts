@@ -15,6 +15,8 @@ export const goalStatusLabels: Record<GoalStatus, string> = {
 };
 
 export const MAX_GOAL_STEPS = 30;
+// Items on one step's checklist.
+export const MAX_STEP_ITEMS = 30;
 
 /** Each goal has its own colour, so the cards are easy to tell apart. */
 export const goalColors = ["red", "orange", "yellow", "green", "teal", "blue", "purple", "pink"] as const;

@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/auth";
 import { localDate } from "@/lib/schedule";
 import {
   MAX_GOAL_STEPS,
+  MAX_STEP_ITEMS,
   achievementSchema,
   goalNoteSchema,
   goalSchema,
@@ -190,17 +191,84 @@ export async function addGoalSteps(goalId: string, titles: string[], note: strin
   return { error: null };
 }
 
+/** Ticking a step by hand ticks its whole list too; unticking leaves the list as it is. */
 export async function setGoalStepDone(stepId: string, done: boolean): Promise<Result> {
   await requireSession();
   if (!isId(stepId)) return { error: "Step not found." };
+  const now = new Date().toISOString();
   const { data, error } = await db()
     .from("goal_steps")
-    .update({ done_at: done ? new Date().toISOString() : null })
+    .update({ done_at: done ? now : null })
     .eq("id", stepId)
     .select("goal_id")
     .single();
   if (error) return { error: "Could not update the step. Try again." };
+  if (done) await db().from("goal_step_items").update({ done_at: now }).eq("step_id", stepId).is("done_at", null);
   refresh(data.goal_id);
+  return { error: null };
+}
+
+// --- A checklist inside a step ---------------------------------------------
+
+/** The step is done when every item on its list is, and not done otherwise. A step with no list is left alone. */
+async function syncStep(stepId: string): Promise<void> {
+  const { data: items } = await db().from("goal_step_items").select("done_at").eq("step_id", stepId);
+  if (!items || items.length === 0) return;
+  const allDone = items.every((i) => i.done_at);
+  if (allDone) await db().from("goal_steps").update({ done_at: new Date().toISOString() }).eq("id", stepId).is("done_at", null);
+  else await db().from("goal_steps").update({ done_at: null }).eq("id", stepId);
+}
+
+export async function addStepItem(stepId: string, title: string): Promise<Result> {
+  await requireSession();
+  if (!isId(stepId)) return { error: "Step not found." };
+  const parsed = goalStepTitleSchema.safeParse(title);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { data: step } = await db().from("goal_steps").select("goal_id").eq("id", stepId).maybeSingle();
+  if (!step) return { error: "Step not found." };
+  const { data: last } = await db()
+    .from("goal_step_items")
+    .select("position")
+    .eq("step_id", stepId)
+    .order("position", { ascending: false });
+  if ((last ?? []).length >= MAX_STEP_ITEMS) return { error: `Up to ${MAX_STEP_ITEMS} on one list.` };
+  const { error } = await db()
+    .from("goal_step_items")
+    .insert({ step_id: stepId, title: parsed.data, position: (last?.[0]?.position ?? -1) + 1 });
+  if (error) return { error: "Could not add it. Try again." };
+  // Something new to do: the step isn't done any more.
+  await syncStep(stepId);
+  refresh(step.goal_id);
+  return { error: null };
+}
+
+export async function setStepItemDone(itemId: string, done: boolean): Promise<Result> {
+  await requireSession();
+  if (!isId(itemId)) return { error: "Not found." };
+  const { data, error } = await db()
+    .from("goal_step_items")
+    .update({ done_at: done ? new Date().toISOString() : null })
+    .eq("id", itemId)
+    .select("step_id, goal_steps(goal_id)")
+    .single();
+  if (error) return { error: "Could not update it. Try again." };
+  await syncStep(data.step_id);
+  refresh(data.goal_steps?.goal_id);
+  return { error: null };
+}
+
+export async function deleteStepItem(itemId: string): Promise<Result> {
+  await requireSession();
+  if (!isId(itemId)) return { error: "Not found." };
+  const { data, error } = await db()
+    .from("goal_step_items")
+    .delete()
+    .eq("id", itemId)
+    .select("step_id, goal_steps(goal_id)")
+    .single();
+  if (error) return { error: "Could not remove it. Try again." };
+  await syncStep(data.step_id);
+  refresh(data.goal_steps?.goal_id);
   return { error: null };
 }
 
@@ -221,6 +289,17 @@ export async function addGoalNote(goalId: string, body: string): Promise<Result>
   const { error } = await db().from("goal_notes").insert({ goal_id: goalId, body: parsed.data });
   if (error) return { error: "Could not save the note. Try again." };
   refresh(goalId);
+  return { error: null };
+}
+
+export async function updateGoalNote(noteId: string, body: string): Promise<Result> {
+  await requireSession();
+  if (!isId(noteId)) return { error: "Note not found." };
+  const parsed = goalNoteSchema.safeParse(body);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { data, error } = await db().from("goal_notes").update({ body: parsed.data }).eq("id", noteId).select("goal_id").single();
+  if (error) return { error: "Could not save the note. Try again." };
+  refresh(data.goal_id);
   return { error: null };
 }
 
