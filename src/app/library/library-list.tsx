@@ -12,7 +12,7 @@ import { topicLevelLabels, type TopicLevel } from "@/lib/schemas/topic";
 import { cn } from "@/lib/utils";
 
 export type LibraryTopic = TopicStanding & {
-  next: "Lesson" | "Brain dump" | null;
+  next: "Lesson" | "Quick recall" | null;
   id: string;
   title: string;
   level: TopicLevel | null;

@@ -27,7 +27,7 @@ export default async function DumpPage({ params }: PageProps<"/topics/[id]/dump"
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
       <PageHeader title={topic.title} back={{ href: `/topics/${id}`, label: "Topic" }}>
         <p className="text-sm text-muted-foreground">
-          Brain dump · write what you remember, without looking back. Stuck? Ask for a nudge.
+          Quick recall · three things you remember, without looking back. Stuck? Ask for a nudge.
         </p>
       </PageHeader>
       <DumpSession

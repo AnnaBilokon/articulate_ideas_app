@@ -5,9 +5,9 @@ import { startOfDay } from "@/lib/schedule";
 // day's review. The quiz, teach-back and think deeper are optional extras.
 
 /** The step a topic needs next on day 1, or null once day 1 is done. */
-export function nextLearnStep(topic: { hasLesson: boolean; hasDump: boolean }): "Lesson" | "Brain dump" | null {
+export function nextLearnStep(topic: { hasLesson: boolean; hasDump: boolean }): "Lesson" | "Quick recall" | null {
   if (!topic.hasLesson) return "Lesson";
-  if (!topic.hasDump) return "Brain dump";
+  if (!topic.hasDump) return "Quick recall";
   return null;
 }
 
