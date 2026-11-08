@@ -26,7 +26,6 @@ import {
   Target,
   Trophy,
   Wallet,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { AppearanceMenu } from "@/components/appearance-menu";
@@ -69,7 +68,6 @@ const workspaces: {
     prefixes: [],
     nav: [
       { href: "/learn", label: "Today", icon: CalendarCheck },
-      { href: "/learn/facts", label: "Quick facts", icon: Zap },
       { href: "/library", label: "Library", icon: Library },
       { href: "/vocabulary", label: "Vocabulary", icon: BookA },
       { href: "/speaking", label: "Speaking", icon: Mic },
