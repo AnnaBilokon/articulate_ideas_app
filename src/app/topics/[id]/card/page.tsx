@@ -62,13 +62,13 @@ export default async function TopicCardPage({ params }: PageProps<"/topics/[id]/
             <span className="flex size-12 items-center justify-center rounded-full bg-sunflower text-sunflower-foreground">
               <Lock className="size-5" />
             </span>
-            <div className="text-lg font-semibold">Your Topic Card opens after your brain dump</div>
+            <div className="text-lg font-semibold">Your Topic Card opens after a quick recall</div>
             <p className="max-w-md text-muted-foreground">
-              Write down everything you remember first. Pulling it from memory before you see the summary is what
-              makes it stick.
+              Write 3 things you remember first. Pulling them from memory before you see the summary is what makes
+              them stick.
             </p>
             <Link href={`/topics/${id}/dump`} className={cn(buttonVariants({ size: "lg" }), "mt-1 h-10 px-4")}>
-              <PenLine className="size-4" /> Start brain dump
+              <PenLine className="size-4" /> Write 3 things
             </Link>
           </CardContent>
         </Card>

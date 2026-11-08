@@ -83,6 +83,7 @@ Start with the full loop for one topic: create, learn, recall, save, review. A p
 - [x] Learn from your own material: paste notes, an article or a transcript instead of web research; doubtful statements are flagged (pulled forward from V2)
 - [x] Edit your material later: update the lesson only (keeps card and history) or rebuild everything (added)
 - [x] Chunked lesson with "Ready for next?"
+- [x] Lighter day 1 (2026-11-08, the user found recalling each part and then the whole lesson boring and repetitive): recall after a part is optional ("Check myself", never a gate), and the brain dump became a "Quick recall" of 3 things remembered, graded lightly (at most 3 "also worth remembering"); the next-day review does the real recall
 - [x] Recall after each lesson part: write its main idea from memory, get quick feedback, then the next part opens (interpolated testing; added)
 - [ ] Pretest: 2-3 guesses before the lesson
 - [x] Brain dump with feedback (got right, missed, got wrong)

@@ -206,16 +206,15 @@ export function LessonReader({
             </span>
             <div className="text-lg font-semibold">Lesson done</div>
             <p className="max-w-md text-muted-foreground">
-              {recallsDone > 0
-                ? `${recallsDone === chunks.length ? "You recalled every part on its own." : `You recalled ${recallsDone} of ${chunks.length} parts.`} Now put them together: close the lesson and write what you remember about the whole topic. It unlocks your Topic Card.`
-                : "Now close the lesson and write down everything you remember. Recalling it while it's fresh is what makes it stick, and it unlocks your Topic Card."}
+              {recallsDone > 0 && `You checked yourself on ${recallsDone === chunks.length ? "every part" : `${recallsDone} of ${chunks.length} parts`}. `}
+              Now close the lesson and write 3 things you remember. It takes a minute, and it unlocks your Topic Card.
             </p>
             <div className="flex flex-wrap justify-center gap-2 pt-2">
               <Button variant="outline" onClick={() => show(0)}>
                 Read again
               </Button>
               <Link href={`/topics/${topicId}/dump`} className={buttonVariants()}>
-                <PenLine className="size-4" /> Start brain dump
+                <PenLine className="size-4" /> Write 3 things
               </Link>
             </div>
           </CardContent>
@@ -251,15 +250,18 @@ export function LessonReader({
             <Button variant="ghost" disabled={index === 0} onClick={() => show(index - 1)}>
               Back
             </Button>
-            {passed.has(index) || chunk.title === DOUBTS_CHUNK_TITLE ? (
+            {/* Checking yourself on a part is optional; the recall that counts
+                is the quick one at the end, and tomorrow's review. */}
+            <div className="flex items-center gap-1">
+              {!passed.has(index) && chunk.title !== DOUBTS_CHUNK_TITLE && (
+                <Button variant="ghost" onClick={() => show(index, "recall")} className="text-muted-foreground">
+                  Check myself
+                </Button>
+              )}
               <Button size="lg" className="h-10 px-4" onClick={moveOn}>
                 {nextLabel}
               </Button>
-            ) : (
-              <Button size="lg" className="h-10 px-4" onClick={() => show(index, "recall")}>
-                Ready for next <ArrowRight className="size-4" />
-              </Button>
-            )}
+            </div>
           </div>
         </Card>
       ) : phase === "recall" ? (

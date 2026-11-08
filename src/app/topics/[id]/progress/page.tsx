@@ -43,7 +43,7 @@ export default async function TopicProgressPage({ params }: PageProps<"/topics/[
         <p className="text-muted-foreground">
           {standing.learned
             ? `No answers yet. The questions come back ${standing.nextReview ?? "in your reviews"}, or take the quiz now.`
-            : "Finish day 1 first: the lesson and the brain dump. Then your answers show up here."}
+            : "Finish day 1 first: the lesson and the quick recall. Then your answers show up here."}
         </p>
       </main>
     );

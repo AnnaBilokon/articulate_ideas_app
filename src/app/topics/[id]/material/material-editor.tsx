@@ -137,7 +137,7 @@ export function MaterialEditor({
                 </span>
                 <span className="text-xs leading-5 text-muted-foreground">
                   Also remakes the Topic Card, recall questions and Think deeper. Clears this topic&apos;s quiz and
-                  brain dump history. About $0.20.
+                  recall history. About $0.20.
                 </span>
                 <Check className="absolute top-3 right-3 size-4 text-coral-foreground opacity-0 peer-checked:opacity-100" />
               </label>

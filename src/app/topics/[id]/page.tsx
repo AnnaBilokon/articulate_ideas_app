@@ -39,7 +39,7 @@ import { ResearchPanel } from "./research-panel";
 const steps = [
   { label: "Pretest", hint: "Guess first; it makes answers stick", icon: HelpCircle, soon: true },
   { label: "Lesson", hint: "Short parts, with a quick recall after each · about 10 min", icon: BookOpen },
-  { label: "Brain dump", hint: "Put the whole topic together · about 5 min", icon: PenLine },
+  { label: "Quick recall", hint: "3 things you remember · about 2 min", icon: PenLine },
   { label: "Topic card", hint: "The essentials, unlocked after the dump · 2 min", icon: Layers },
   { label: "Quiz", hint: "The questions come back in tomorrow's review anyway · about 10 min", icon: Brain, optional: true },
   { label: "Teach-back", hint: "Explain it in your own words · about 10 min", icon: MessageSquareText, optional: true },
@@ -79,7 +79,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   const dueNow = dueDates.filter((d) => new Date(d) <= new Date()).length;
   // Day 1 needs the lesson, then the dump; after that nothing is "up next".
   const next = nextLearnStep({ hasLesson, hasDump });
-  const currentStep = next === "Lesson" ? LESSON : next === "Brain dump" ? DUMP : -1;
+  const currentStep = next === "Lesson" ? LESSON : next === "Quick recall" ? DUMP : -1;
   const doneSteps = [false, hasLesson, hasDump, hasDump, quizTaken, Boolean(lastExplanation), false];
   const progress = progressLine(topic.recall_questions, topic.created_at);
 
@@ -184,10 +184,10 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                       <PenLine className="size-4" />
                     </span>
                     <span className="flex-1">
-                      <span className="block font-medium">Brain dump</span>
+                      <span className="block font-medium">Quick recall</span>
                       <span className="block text-sm text-muted-foreground">
                         {lastDump?.success
-                          ? `${lastDump.data.right.length} right · ${lastDump.data.missed.length} missed · ${lastDump.data.wrong.length} to correct · ${lastDump.data.nudges === 0 ? "no nudges" : `${lastDump.data.nudges} ${lastDump.data.nudges === 1 ? "nudge" : "nudges"}`}`
+                          ? `${lastDump.data.right.length} right · ${lastDump.data.missed.length} more to remember · ${lastDump.data.wrong.length} to correct · ${lastDump.data.nudges === 0 ? "no nudges" : `${lastDump.data.nudges} ${lastDump.data.nudges === 1 ? "nudge" : "nudges"}`}`
                           : "Done"}
                       </span>
                     </span>
@@ -202,9 +202,9 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                       <PenLine className="size-4" />
                     </span>
                     <span className="flex-1">
-                      <span className="block font-medium">Brain dump</span>
+                      <span className="block font-medium">Quick recall</span>
                       <span className="block text-sm text-muted-foreground">
-                        After the lesson: write everything you remember. Unlocks your Topic Card.
+                        After the lesson: 3 things you remember. Unlocks your Topic Card.
                       </span>
                     </span>
                     <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
@@ -217,7 +217,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
                     </span>
                     <span className="flex-1">
                       <span className="block font-medium">Topic card</span>
-                      <span className="block text-sm">Ready, and opens after your brain dump</span>
+                      <span className="block text-sm">Ready, and opens after your quick recall</span>
                     </span>
                   </div>
                 ) : hasCard ? (
@@ -336,7 +336,7 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
       <Card>
         <CardHeader>
           <CardTitle>Learning path</CardTitle>
-          <CardDescription>Day 1 is the lesson and the brain dump, about 15 minutes. The rest is optional.</CardDescription>
+          <CardDescription>Day 1 is the lesson and a quick recall, about 10 minutes. The rest is optional.</CardDescription>
         </CardHeader>
         <CardContent>
           <ol className="isolate flex flex-col">
