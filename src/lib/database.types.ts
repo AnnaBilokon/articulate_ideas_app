@@ -979,14 +979,45 @@ export type Database = {
         }
         Relationships: []
       }
+      quick_facts: {
+        Row: {
+          area: string
+          created_at: string
+          fact: string
+          id: string
+          question: string
+          review_draft: Json | null
+          why_interesting: string | null
+        }
+        Insert: {
+          area: string
+          created_at?: string
+          fact: string
+          id?: string
+          question: string
+          review_draft?: Json | null
+          why_interesting?: string | null
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          fact?: string
+          id?: string
+          question?: string
+          review_draft?: Json | null
+          why_interesting?: string | null
+        }
+        Relationships: []
+      }
       recall_questions: {
         Row: {
           created_at: string
           id: string
           key_points: string[]
           position: number
+          quick_fact_id: string | null
           text: string
-          topic_id: string
+          topic_id: string | null
           type: string
         }
         Insert: {
@@ -994,8 +1025,9 @@ export type Database = {
           id?: string
           key_points: string[]
           position: number
+          quick_fact_id?: string | null
           text: string
-          topic_id: string
+          topic_id?: string | null
           type: string
         }
         Update: {
@@ -1003,11 +1035,19 @@ export type Database = {
           id?: string
           key_points?: string[]
           position?: number
+          quick_fact_id?: string | null
           text?: string
-          topic_id?: string
+          topic_id?: string | null
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "recall_questions_quick_fact_id_fkey"
+            columns: ["quick_fact_id"]
+            isOneToOne: false
+            referencedRelation: "quick_facts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recall_questions_topic_id_fkey"
             columns: ["topic_id"]
