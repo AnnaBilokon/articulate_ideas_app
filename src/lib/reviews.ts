@@ -3,7 +3,13 @@ import { cookies } from "next/headers";
 import { planTodaysReview, startOfDay } from "@/lib/schedule";
 import { db } from "@/lib/supabase";
 
-export type ReviewQuestion = { id: string; text: string; topicId: string; topicTitle: string; lastScore: number | null };
+// topicId groups questions for mixing and the per-topic limit: a topic's id,
+// or "quick-facts:<area>" for questions from quick facts. href opens where it came from.
+export type ReviewQuestion = { id: string; text: string; topicId: string; topicTitle: string; href: string; lastScore: number | null };
+
+/** The group a question counts in: its topic, or its quick facts' area. */
+const groupOf = (q: { topic_id: string | null; quick_facts: { area: string } | null }) =>
+  q.topic_id ?? (q.quick_facts ? `quick-facts:${q.quick_facts.area}` : null);
 
 // "Too much?": a light day reviews at most this many questions. The choice is
 // kept in a cookie that names the day, so it ends by itself at midnight.
@@ -43,12 +49,12 @@ export async function reviewOverview(now: Date = new Date()): Promise<ReviewOver
     supabase.from("settings").select("daily_review_cap").eq("id", 1).maybeSingle(),
     supabase
       .from("review_state")
-      .select("due_at, last_score, recall_questions(id, text, topic_id, topics(title))")
+      .select("due_at, last_score, recall_questions(id, text, topic_id, topics(title), quick_fact_id, quick_facts(area))")
       .lte("due_at", now.toISOString())
       .order("due_at"),
     supabase
       .from("attempts")
-      .select("question_id, recall_questions(topic_id)")
+      .select("question_id, recall_questions(topic_id, quick_facts(area))")
       .eq("mode", "review")
       .gte("created_at", startOfDay(now).toISOString()),
     supabase.from("review_state").select("due_at").gt("due_at", now.toISOString()).order("due_at").limit(1),
@@ -57,16 +63,21 @@ export async function reviewOverview(now: Date = new Date()): Promise<ReviewOver
   const lightDay = await isLightDay(now);
   const cap = Math.min(settings?.daily_review_cap ?? DEFAULT_REVIEW_CAP, lightDay ? LIGHT_DAY_CAP : Infinity);
   // Distinct questions, so re-asks at the end of a session don't use up the cap.
-  const reviewedIds = new Map((reviewed ?? []).map((a) => [a.question_id, a.recall_questions?.topic_id]));
+  const reviewedIds = new Map((reviewed ?? []).map((a) => [a.question_id, a.recall_questions ? groupOf(a.recall_questions) : null]));
   const reviewedToday = reviewedIds.size;
   const reviewedByTopic = new Map<string, number>();
   for (const topicId of reviewedIds.values())
     if (topicId) reviewedByTopic.set(topicId, (reviewedByTopic.get(topicId) ?? 0) + 1);
-  const dueQuestions = (due ?? []).flatMap(({ last_score, recall_questions: q }) =>
-    q?.topics
-      ? [{ id: q.id, text: q.text, topicId: q.topic_id, topicTitle: q.topics.title, lastScore: last_score }]
-      : [],
-  );
+  const dueQuestions = (due ?? []).flatMap(({ last_score, recall_questions: q }): ReviewQuestion[] => {
+    if (q?.topic_id && q.topics) {
+      return [{ id: q.id, text: q.text, topicId: q.topic_id, topicTitle: q.topics.title, href: `/topics/${q.topic_id}/card`, lastScore: last_score }];
+    }
+    if (q?.quick_fact_id && q.quick_facts) {
+      const area = q.quick_facts.area;
+      return [{ id: q.id, text: q.text, topicId: `quick-facts:${area}`, topicTitle: `Quick facts · ${area}`, href: `/library/facts#${q.quick_fact_id}`, lastScore: last_score }];
+    }
+    return [];
+  });
   const { today, overflow } = planTodaysReview(dueQuestions, cap - reviewedToday, reviewedByTopic);
 
   return {

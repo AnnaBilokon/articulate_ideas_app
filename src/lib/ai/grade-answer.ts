@@ -31,7 +31,7 @@ How to judge:
 - First work out what the question asks for: one reason, a cause and effect, two things, a comparison, a meaning and a sentence. The key points describe a complete answer. Some are the core the question asks for; others are supporting details and examples. Only the core is required.
 - Never lower the score for leaving out details, examples or background the question doesn't ask for. A short, correct answer to the question gets 4 or 5.
 - For a "why" or "how" question, the reason or mechanism is the answer; the effects and examples it leads to are details, unless the question asks to name them.
-- Never require a person's name, a year or date, or an exact number, even if a key point has one. The idea in the learner's own words is enough.
+- Don't require a person's name, a year or date, or an exact number unless the question asks for it. Otherwise the idea in the learner's own words is enough.
 - When the question asks for several separate things ("name two", "compare", "color and taste", "use it in a sentence"), each one is required.
 - Something wrong in the answer lowers the score, even if the rest is right.
 - A point counts if its meaning is there, in any words. Vague phrases that could fit anything don't count. Don't reward length or fancy wording. Don't penalize spelling or grammar.

@@ -17,3 +17,4 @@ export * from "./spending";
 export * from "./wishlist";
 export * from "./asks";
 export * from "./calendar";
+export * from "./facts";

@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 // again at the end. Used by the quiz, reviews and word practice, which differ
 // only in where the questions come from and what the end screen shows.
 
-export type SessionQuestion = { id: string; text: string; topicId?: string; topicTitle?: string };
+// href: where the question came from (a topic card, a quick fact).
+export type SessionQuestion = { id: string; text: string; topicId?: string; topicTitle?: string; href?: string };
 export type FirstTry = { question: SessionQuestion; attemptId: string; score: number; confidentMiss: boolean };
 type Turn = { question: SessionQuestion; reask: boolean };
 type Phase = "confidence" | "answer" | "grading" | "feedback";

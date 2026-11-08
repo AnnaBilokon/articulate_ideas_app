@@ -72,8 +72,8 @@ export function ReviewSession({ questions }: { questions: SessionQuestion[] }) {
                   <ul className="flex flex-col gap-2">
                     {weak.map(({ question }) => (
                       <li key={question.id} className="flex flex-col items-start gap-1 rounded-lg bg-background/70 px-3 py-2.5">
-                        {question.topicId && question.topicTitle && (
-                          <Link href={`/topics/${question.topicId}/card`} className="max-w-full">
+                        {question.href && question.topicTitle && (
+                          <Link href={question.href} className="max-w-full">
                             <Badge variant="secondary" className="max-w-full truncate hover:bg-accent">
                               {question.topicTitle}
                             </Badge>

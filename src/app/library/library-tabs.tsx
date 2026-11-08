@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-// The Library's two lists: topics studied, and questions saved to learn later.
-export function LibraryTabs({ current, savedCount }: { current: "topics" | "questions"; savedCount: number }) {
+// The Library's lists: topics studied, quick facts read, and questions saved to learn later.
+export function LibraryTabs({ current, savedCount }: { current: "topics" | "facts" | "questions"; savedCount: number }) {
   const tabs = [
     { key: "topics", href: "/library", label: "Topics" },
+    { key: "facts", href: "/library/facts", label: "Quick facts" },
     { key: "questions", href: "/library/questions", label: savedCount > 0 ? `Saved questions (${savedCount})` : "Saved questions" },
   ] as const;
   return (

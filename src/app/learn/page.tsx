@@ -13,6 +13,7 @@ import {
   Sparkles,
   Sprout,
   WholeWord,
+  Zap,
 } from "lucide-react";
 import { LearningTree } from "@/components/learning-tree";
 import { LightDayButton } from "@/components/light-day-button";
@@ -203,6 +204,21 @@ export default async function LearnToday() {
           )}
         </div>
       )}
+
+      {/* For days with no time or energy for more: one fact still counts. */}
+      <Link
+        href="/learn/facts"
+        className="group -mt-4 flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors hover:bg-muted"
+      >
+        <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary">
+          <Zap className="size-4" />
+        </span>
+        <span className="flex-1">
+          <span className="block font-medium">Short on time? Quick facts</span>
+          <span className="block text-sm text-muted-foreground">One interesting thing in a minute, from a topic you like</span>
+        </span>
+        <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      </Link>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-2">
