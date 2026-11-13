@@ -1046,6 +1046,24 @@ export type Database = {
         }
         Relationships: []
       }
+      motivation_notes: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       pretest_answers: {
         Row: {
           answer: string
@@ -1080,24 +1098,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      motivation_notes: {
-        Row: {
-          body: string
-          created_at: string
-          id: string
-        }
-        Insert: {
-          body: string
-          created_at?: string
-          id?: string
-        }
-        Update: {
-          body?: string
-          created_at?: string
-          id?: string
-        }
-        Relationships: []
       }
       push_subscriptions: {
         Row: {

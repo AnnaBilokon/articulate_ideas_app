@@ -182,9 +182,11 @@ function ExerciseRow({
               size="xs"
               disabled={pending}
               className="text-muted-foreground hover:text-coral-foreground"
+              aria-label={`Remove ${e.name}`}
               onClick={() => start(async () => onError((await removeWorkoutExercise(e.id)).error))}
             >
-              <X className="size-3" /> Remove
+              {/* Just the cross on phones, so the row stays on one line. */}
+              <X className="size-3" /> <span className="max-sm:hidden">Remove</span>
             </Button>
           )}
         </div>

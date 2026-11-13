@@ -15,7 +15,6 @@ import {
   exerciseKinds,
   muscleGroups,
   pictureUrls,
-  prescription,
   type Equipment,
   type Exercise,
   type ExerciseInput,
@@ -28,7 +27,9 @@ import { Chip, ExerciseHow, KindBadge } from "../fitness-bits";
 const MEASURE_LABELS: Record<Measure, string> = { reps: "Reps", hold: "Seconds", duration: "Minutes (steady)" };
 
 const defaultAmount = (e: Exercise) =>
-  e.measure === "duration" ? "as long as you have" : prescription({ sets: 1, reps: e.reps, seconds: e.seconds, eachSide: e.eachSide });
+  e.measure === "duration"
+    ? "as long as you have"
+    : `${e.measure === "reps" ? `${e.reps} reps` : `${e.seconds} s`}${e.eachSide ? " each side" : ""}`;
 
 export function ExerciseLibrary({ exercises }: { exercises: Exercise[] }) {
   const [kind, setKind] = useState<ExerciseKind | "all">("all");

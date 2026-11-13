@@ -47,7 +47,8 @@ const WARMUP_MINUTES = 3;
 const MAX_STRETCHES = 8;
 
 // A small seeded random, so a shuffle is repeatable and the server and the
-// browser agree.
+// browser agree. Never call it inside a sort's comparison: engines compare a
+// different number of times, and the two would drift apart.
 function random(seed: number) {
   let a = seed >>> 0;
   return () => {
@@ -134,6 +135,12 @@ const roundedMinutes = (ctx: Context, seconds: number) => Math.min(ctx.minutes, 
 /** Ideas that fill much less than the time you have rank lower. */
 const fillPenalty = (used: number, budget: number) => Math.max(0, 0.8 - used / budget) * 3;
 
+/** Sorts best first by a score, with a random number per item drawn once, up front. */
+function rankBy<T extends { id: string }>(items: T[], score: (item: T) => number, rand: () => number): T[] {
+  const noise = new Map(items.map((item) => [item.id, rand()]));
+  return [...items].sort((a, b) => score(b) + noise.get(b.id)! - (score(a) + noise.get(a.id)!));
+}
+
 /** Lower for exercises done lately, so the same ones don't keep coming back. */
 function freshness(ctx: Context, e: Exercise): number {
   const days = ctx.used.get(e.id);
@@ -158,6 +165,9 @@ function strengthWorkout(ctx: Context, focus: (typeof FOCUSES)[number]): Candida
     let best: { e: Exercise; score: number } | null = null;
     for (const e of pool) {
       if (chosen.some((c) => c.exerciseId === e.id)) continue;
+      // Past the first two, only what still fits the time: a shorter one
+      // can fill the gap a longer one would overrun.
+      if (chosen.length >= 2 && used + plannedSeconds(toPlanned(e, sets), "strength") > budget * 1.05) continue;
       const focusMuscles = e.muscles.filter((m) => focus.muscles.includes(m));
       // Muscles this workout hasn't reached yet count most.
       const reach = focusMuscles.reduce((sum, m) => sum + 1 / (1 + (covered.get(m) ?? 0)), 0);
@@ -172,10 +182,8 @@ function strengthWorkout(ctx: Context, focus: (typeof FOCUSES)[number]): Candida
     }
     if (!best) break;
     const planned = toPlanned(best.e, sets);
-    const cost = plannedSeconds(planned, "strength");
-    if (chosen.length >= 2 && used + cost > budget * 1.05) break;
     chosen.push(planned);
-    used += cost;
+    used += plannedSeconds(planned, "strength");
     for (const m of best.e.muscles) covered.set(m, (covered.get(m) ?? 0) + 1);
   }
   if (chosen.length < 2) return null;
@@ -215,7 +223,7 @@ function strengthWorkout(ctx: Context, focus: (typeof FOCUSES)[number]): Candida
 function steadyCardio(ctx: Context): Candidate | null {
   const options = ctx.pool.filter((e) => e.kind === "cardio" && e.measure === "duration");
   if (options.length === 0 || ctx.minutes < 10) return null;
-  const e = [...options].sort((a, b) => freshness(ctx, b) + ctx.rand() - (freshness(ctx, a) + ctx.rand()))[0];
+  const e = rankBy(options, (o) => freshness(ctx, o), ctx.rand)[0];
   return {
     plan: {
       title: e.name,
@@ -235,11 +243,7 @@ function intervals(ctx: Context): Candidate | null {
   const warmup = ctx.minutes >= 20 ? WARMUP_MINUTES : 0;
   const budget = (ctx.minutes - warmup) * 60;
   const legsTired = ctx.rest.legs <= 1;
-  const ranked = [...options].sort(
-    (a, b) =>
-      freshness(ctx, b) - (legsTired ? b.muscles.includes("legs") ? 1 : 0 : 0) + ctx.rand() -
-      (freshness(ctx, a) - (legsTired ? a.muscles.includes("legs") ? 1 : 0 : 0) + ctx.rand()),
-  );
+  const ranked = rankBy(options, (o) => freshness(ctx, o) - (legsTired && o.muscles.includes("legs") ? 1 : 0), ctx.rand);
   // Rounds of 4-6 moves; more moves rather than many rounds of the same ones.
   let moves = Math.min(4, ranked.length);
   const roundOf = (n: number) => ranked.slice(0, n).reduce((sum, e) => sum + (e.seconds ?? 30) + INTERVAL_REST, 0);
@@ -264,10 +268,7 @@ function stretching(ctx: Context, focusTired: boolean): Candidate | null {
   if (focusTired && focus.length === 0) return null;
   const options = ctx.pool.filter((e) => e.kind === "mobility");
   if (options.length < 3) return null;
-  const noise = new Map(options.map((e) => [e.id, ctx.rand()]));
-  const score = (e: Exercise) =>
-    (e.muscles.some((m) => focus.includes(m)) ? 2 : 0) + freshness(ctx, e) * 0.5 + noise.get(e.id)!;
-  const ranked = [...options].sort((a, b) => score(b) - score(a));
+  const ranked = rankBy(options, (e) => (e.muscles.some((m) => focus.includes(m)) ? 2 : 0) + freshness(ctx, e) * 0.5, ctx.rand);
 
   const budget = ctx.minutes * 60;
   const chosen: PlannedExercise[] = [];
@@ -385,7 +386,6 @@ export function swapFor(
   equipment: Equipment[],
   seed: number,
 ): Exercise | null {
-  const rand = random(seed);
   const options = library.filter(
     (e) =>
       e.id !== current.id &&
@@ -397,7 +397,7 @@ export function swapFor(
   );
   if (options.length === 0) return null;
   const shared = (e: Exercise) => e.muscles.filter((m) => current.muscles.includes(m)).length;
-  return [...options].sort((a, b) => shared(b) + rand() - (shared(a) + rand()))[0];
+  return rankBy(options, shared, random(seed))[0];
 }
 
 /** Days from Monday to Sunday of the week `today` is in. */
