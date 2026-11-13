@@ -10,6 +10,7 @@ import {
   CalendarRange,
   Check,
   ChevronDown,
+  Dumbbell,
   Feather,
   Gem,
   Gift,
@@ -19,6 +20,7 @@ import {
   Library,
   ListChecks,
   Mic,
+  PersonStanding,
   PiggyBank,
   Receipt,
   Plus,
@@ -86,6 +88,17 @@ const workspaces: {
       { href: "/growth/achievements", label: "Achievements", icon: Trophy },
       { href: "/growth/strengths", label: "Strengths", icon: Gem },
       { href: "/growth/beliefs", label: "Beliefs", icon: Feather },
+    ],
+  },
+  {
+    id: "fitness",
+    label: "Fitness",
+    href: "/fitness",
+    icon: PersonStanding,
+    prefixes: ["/fitness"],
+    nav: [
+      { href: "/fitness", label: "Today", icon: CalendarCheck },
+      { href: "/fitness/exercises", label: "Exercises", icon: Dumbbell },
     ],
   },
   {

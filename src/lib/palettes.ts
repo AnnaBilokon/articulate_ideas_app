@@ -24,7 +24,7 @@ export function isPaletteId(value: unknown): value is PaletteId {
 
 // Workspaces for colours: Journey home counts as its own, and so do the
 // Wishlist inside Money and Goals and Achievements inside Growth.
-export const PALETTE_WORKSPACES = ["home", "learning", "growth", "goals", "money", "wishlist"] as const;
+export const PALETTE_WORKSPACES = ["home", "learning", "growth", "goals", "fitness", "money", "wishlist"] as const;
 export type PaletteWorkspace = (typeof PALETTE_WORKSPACES)[number];
 
 export const WORKSPACE_NAMES: Record<PaletteWorkspace, string> = {
@@ -32,6 +32,7 @@ export const WORKSPACE_NAMES: Record<PaletteWorkspace, string> = {
   learning: "Learning",
   growth: "Growth",
   goals: "Goals and Achievements",
+  fitness: "Fitness",
   money: "Money",
   wishlist: "Wishlist",
 };
@@ -42,6 +43,7 @@ export const WORKSPACE_PALETTES: Record<PaletteWorkspace, readonly PaletteId[]> 
   learning: ["orchard", "lagoon", "rose-mist"],
   growth: ["orchard", "lagoon", "rose-mist"],
   goals: ["grape-soda"],
+  fitness: ["lagoon", "orchard", "rose-mist"],
   money: ["pacific"],
   wishlist: ["periwinkle"],
 };
@@ -53,6 +55,7 @@ const WORKSPACE_PATHS: readonly [string, PaletteWorkspace][] = [
   ["/growth/goals", "goals"],
   ["/growth/achievements", "goals"],
   ["/growth", "growth"],
+  ["/fitness", "fitness"],
   ["/money/wishlist", "wishlist"],
   ["/money", "money"],
 ];
