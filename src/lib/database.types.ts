@@ -453,6 +453,7 @@ export type Database = {
           measure: string
           muscles: string[]
           name: string
+          picture: string | null
           reps: number | null
           seconds: number | null
         }
@@ -467,6 +468,7 @@ export type Database = {
           measure: string
           muscles?: string[]
           name: string
+          picture?: string | null
           reps?: number | null
           seconds?: number | null
         }
@@ -481,6 +483,7 @@ export type Database = {
           measure?: string
           muscles?: string[]
           name?: string
+          picture?: string | null
           reps?: number | null
           seconds?: number | null
         }

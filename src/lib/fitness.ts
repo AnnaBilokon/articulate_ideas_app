@@ -30,6 +30,7 @@ export type WorkoutExercise = {
   measure: Measure | null;
   muscles: Muscle[];
   how: string | null;
+  picture: string | null;
 };
 
 export type Workout = {
@@ -46,7 +47,7 @@ export type Workout = {
   exercises: WorkoutExercise[];
 };
 
-const EXERCISE_COLUMNS = "id, name, kind, equipment, muscles, measure, reps, seconds, each_side, how, hidden_at";
+const EXERCISE_COLUMNS = "id, name, kind, equipment, muscles, measure, reps, seconds, each_side, how, picture, hidden_at";
 
 type ExerciseRow = {
   id: string;
@@ -59,6 +60,7 @@ type ExerciseRow = {
   seconds: number | null;
   each_side: boolean;
   how: string | null;
+  picture: string | null;
   hidden_at: string | null;
 };
 
@@ -73,6 +75,7 @@ export const toExercise = (r: ExerciseRow): Exercise => ({
   seconds: r.seconds,
   eachSide: r.each_side,
   how: r.how,
+  picture: r.picture,
   hidden: r.hidden_at !== null,
 });
 
@@ -88,7 +91,7 @@ export async function getExercise(id: string): Promise<Exercise | null> {
 }
 
 const WORKOUT_COLUMNS =
-  "id, day, title, kind, minutes, equipment, source, done_at, feeling, note, fitness_workout_exercises(id, exercise_id, name, position, sets, reps, seconds, each_side, weight_kg, done_at, fitness_exercises(equipment, measure, muscles, how))";
+  "id, day, title, kind, minutes, equipment, source, done_at, feeling, note, fitness_workout_exercises(id, exercise_id, name, position, sets, reps, seconds, each_side, weight_kg, done_at, fitness_exercises(equipment, measure, muscles, how, picture))";
 
 type WorkoutRow = {
   id: string;
@@ -112,7 +115,7 @@ type WorkoutRow = {
     each_side: boolean;
     weight_kg: number | null;
     done_at: string | null;
-    fitness_exercises: { equipment: string[]; measure: string; muscles: string[]; how: string | null } | null;
+    fitness_exercises: { equipment: string[]; measure: string; muscles: string[]; how: string | null; picture: string | null } | null;
   }[];
 };
 
@@ -144,6 +147,7 @@ function toWorkout(r: WorkoutRow): Workout {
         measure: (e.fitness_exercises?.measure ?? null) as Measure | null,
         muscles: (e.fitness_exercises?.muscles ?? []) as Muscle[],
         how: e.fitness_exercises?.how ?? null,
+        picture: e.fitness_exercises?.picture ?? null,
       })),
   };
 }

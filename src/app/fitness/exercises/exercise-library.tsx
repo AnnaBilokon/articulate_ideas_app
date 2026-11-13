@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { Eye, EyeOff, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Dumbbell, Eye, EyeOff, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import {
   equipmentKinds,
   exerciseKinds,
   muscleGroups,
+  pictureUrls,
   prescription,
   type Equipment,
   type Exercise,
@@ -22,7 +23,7 @@ import {
   type Measure,
 } from "@/lib/schemas";
 import { createExercise, deleteExercise, setExerciseHidden, updateExercise } from "../actions";
-import { Chip, KindBadge } from "../fitness-bits";
+import { Chip, ExerciseHow, KindBadge } from "../fitness-bits";
 
 const MEASURE_LABELS: Record<Measure, string> = { reps: "Reps", hold: "Seconds", duration: "Minutes (steady)" };
 
@@ -111,8 +112,16 @@ function ExerciseRow({ exercise: e, onEdit }: { exercise: Exercise; onEdit: () =
     <button
       type="button"
       onClick={onEdit}
-      className="group flex w-full items-center gap-3 rounded-xl bg-card px-4 py-3 text-left ring-1 ring-foreground/10 transition-shadow hover:shadow-md hover:ring-primary/30"
+      className="group flex w-full items-center gap-3 rounded-xl bg-card px-3 py-3 text-left ring-1 ring-foreground/10 transition-shadow hover:shadow-md hover:ring-primary/30 sm:px-4"
     >
+      {e.picture ? (
+        // eslint-disable-next-line @next/next/no-img-element -- small, already resized
+        <img src={pictureUrls(e.picture)[1]} alt="" loading="lazy" className="size-14 shrink-0 rounded-lg bg-muted object-cover" />
+      ) : (
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <Dumbbell className="size-5" />
+        </span>
+      )}
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{e.name}</span>
@@ -183,6 +192,8 @@ function ExerciseEditor({ existing, onClose }: { existing: Exercise | null; onCl
               <X className="size-4" />
             </Dialog.Close>
           </div>
+
+          {existing && <ExerciseHow name={existing.name} how={null} picture={existing.picture} />}
 
           <form
             className="flex flex-col gap-4"

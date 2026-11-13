@@ -72,6 +72,8 @@ export type Exercise = {
   seconds: number | null;
   eachSide: boolean;
   how: string | null;
+  /** Start and end photos, in public/exercise-pictures; null for none. */
+  picture: string | null;
   hidden: boolean;
 };
 
@@ -172,6 +174,13 @@ export function prescription(e: Pick<PlannedExercise, "sets" | "reps" | "seconds
   if (e.seconds !== null) return `${e.sets && e.sets > 1 ? `${e.sets} × ` : ""}${e.seconds} s${side}`;
   return "";
 }
+
+/** The start and end photos of an exercise that has them. */
+export const pictureUrls = (picture: string) => [0, 1].map((n) => `/exercise-pictures/${picture}-${n}.webp`);
+
+/** A video search for any exercise, for those without photos (and anyone who wants to see it move). */
+export const videoSearchUrl = (name: string) =>
+  `https://www.youtube.com/results?search_query=${encodeURIComponent(`${name} exercise how to`)}`;
 
 /** Whether a weight makes sense to note: it uses more than your body. */
 export const takesWeight = (equipment: Equipment[], measure: Measure) =>

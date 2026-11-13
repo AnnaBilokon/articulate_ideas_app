@@ -20,7 +20,7 @@ import {
   setExerciseWeight,
   swapExercise,
 } from "../../actions";
-import { Chip, minutesLabel } from "../../fitness-bits";
+import { Chip, ExerciseHow, minutesLabel } from "../../fitness-bits";
 
 export function WorkoutSession({ workout }: { workout: Workout }) {
   const [exercises, setOptimistic] = useOptimistic(
@@ -140,7 +140,7 @@ function ExerciseRow({
           <span className="text-sm text-muted-foreground tabular-nums">{prescription(e)}</span>
         </div>
         {isNext && <span className="text-xs font-medium text-primary">Next</span>}
-        {showHow && e.how && <p className="text-sm leading-6 text-muted-foreground">{e.how}</p>}
+        {showHow && <ExerciseHow name={e.name} how={e.how} picture={e.picture} />}
         <div className="flex flex-wrap items-center gap-1">
           {weighted && (
             <span className="mr-1 flex items-center gap-1.5">
@@ -157,11 +157,9 @@ function ExerciseRow({
               <span className="text-xs text-muted-foreground">kg</span>
             </span>
           )}
-          {e.how && (
-            <Button variant="ghost" size="xs" onClick={() => setShowHow(!showHow)} className="text-muted-foreground">
-              <Info className="size-3" /> {showHow ? "Hide" : "How"}
-            </Button>
-          )}
+          <Button variant="ghost" size="xs" onClick={() => setShowHow(!showHow)} className="text-muted-foreground">
+            <Info className="size-3" /> {showHow ? "Hide" : "How"}
+          </Button>
           {!locked && e.exerciseId && (
             <Button
               variant="ghost"

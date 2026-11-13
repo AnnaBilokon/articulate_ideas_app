@@ -1,5 +1,5 @@
-import { Check } from "lucide-react";
-import { KIND_LABELS, KIND_TONES, WEEKDAYS, type WorkoutKind } from "@/lib/schemas";
+import { Check, PlayCircle } from "lucide-react";
+import { KIND_LABELS, KIND_TONES, WEEKDAYS, pictureUrls, videoSearchUrl, type WorkoutKind } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
 // Small pieces shared by the Fitness pages.
@@ -81,6 +81,37 @@ export function WeekStrip({
         );
       })}
     </ol>
+  );
+}
+
+/** The start and end photos, taking turns. */
+export function ExercisePicture({ picture, name, className }: { picture: string; name: string; className?: string }) {
+  const [start, end] = pictureUrls(picture);
+  return (
+    <span className={cn("relative block aspect-[4/3] overflow-hidden rounded-lg bg-muted", className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- small, already resized */}
+      <img src={start} alt={`${name}, start and end position`} loading="lazy" className="absolute inset-0 size-full object-contain" />
+      {/* eslint-disable-next-line @next/next/no-img-element -- small, already resized */}
+      <img src={end} alt="" loading="lazy" className="exercise-end-frame absolute inset-0 size-full object-contain" />
+    </span>
+  );
+}
+
+/** How to do it: the photos if there are any, the cue, and a video search. */
+export function ExerciseHow({ name, how, picture }: { name: string; how: string | null; picture: string | null }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {picture && <ExercisePicture picture={picture} name={name} className="max-w-xs" />}
+      {how && <p className="text-sm leading-6 text-muted-foreground">{how}</p>}
+      <a
+        href={videoSearchUrl(name)}
+        target="_blank"
+        rel="noreferrer"
+        className="flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+      >
+        <PlayCircle className="size-4" /> Watch a video
+      </a>
+    </div>
   );
 }
 

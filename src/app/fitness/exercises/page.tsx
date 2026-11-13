@@ -15,6 +15,13 @@ export default async function ExercisesPage() {
         description="Workout ideas come from this list. Hide what you don't like, add what you do."
       />
       <ExerciseLibrary exercises={exercises} />
+      <p className="text-xs text-muted-foreground">
+        Photos from the{" "}
+        <a href="https://github.com/yuhonas/free-exercise-db" target="_blank" rel="noreferrer" className="underline-offset-4 hover:underline">
+          Free Exercise DB
+        </a>{" "}
+        (public domain).
+      </p>
     </main>
   );
 }

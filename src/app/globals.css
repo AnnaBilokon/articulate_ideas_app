@@ -404,6 +404,33 @@
   --series-other: #5f5e59;
 }
 
+/* An exercise's start and end photos take turns, like a slow GIF. The end
+   photo sits on top and fades in and out; reduced motion keeps the start. */
+@keyframes exercise-frames {
+  0%,
+  42% {
+    opacity: 0;
+  }
+  50%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.exercise-end-frame {
+  animation: exercise-frames 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exercise-end-frame {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* Today's leaf pops in; the tree sways a little. Off for reduced motion. */
 @keyframes leaf-grow {
   0% {
