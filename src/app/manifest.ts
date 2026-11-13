@@ -7,12 +7,13 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "My Self Journey",
     short_name: "Journey",
-    description: "Learning, goals, habits and growth, in one place.",
+    description: "Learning, goals, habits, fitness and money, in one place.",
     start_url: "/growth/calendar",
     scope: "/",
     shortcuts: [
       { name: "Calendar", url: "/growth/calendar", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
       { name: "Today's learning", url: "/learn", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Fitness", url: "/fitness", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
       { name: "Journey home", url: "/", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
     ],
     display: "standalone",

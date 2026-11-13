@@ -1,20 +1,36 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ArrowRight, CheckCircle2, Feather, Flame, Gift, GraduationCap, Plus, Repeat, Sprout, Trophy, Wallet, WholeWord } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Feather,
+  Flame,
+  Gift,
+  GraduationCap,
+  PersonStanding,
+  Plus,
+  Repeat,
+  Sprout,
+  Trophy,
+  Wallet,
+  WholeWord,
+} from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { listBeliefs, reminderFor } from "@/lib/beliefs";
+import { listWorkouts } from "@/lib/fitness";
 import { listAchievements, listGoals } from "@/lib/goals";
 import { listHabits, todayDetail } from "@/lib/habits";
 import { loadMoney } from "@/lib/money";
 import { loadWishlist } from "@/lib/wishlist";
 import { reviewOverview } from "@/lib/reviews";
 import { APP_TIME_ZONE, localDate } from "@/lib/schedule";
-import { formatKr, periodLabel, periodTotals, runningBalances } from "@/lib/schemas";
+import { formatKr, periodLabel, periodTotals, runningBalances, weekStart } from "@/lib/schemas";
 import { learningStreak } from "@/lib/streak";
 import { practiceOverview } from "@/lib/vocabulary";
 import { cn } from "@/lib/utils";
+import { minutesLabel } from "./fitness/fitness-bits";
 import { ProgressBar, progressText } from "./growth/goals/goal-bits";
 import { HabitToday } from "./growth/habits/habit-check";
 
@@ -31,7 +47,7 @@ export default async function JourneyHome() {
   await connection(); // Read fresh data on every visit, not once at build.
   const now = new Date();
   const today = localDate(now);
-  const [review, words, streak, goals, achievements, habits, beliefs, money, wishlist] = await Promise.all([
+  const [review, words, streak, goals, achievements, habits, beliefs, money, wishlist, workouts] = await Promise.all([
     reviewOverview(),
     practiceOverview(),
     learningStreak(),
@@ -41,8 +57,11 @@ export default async function JourneyHome() {
     listBeliefs(),
     loadMoney(),
     loadWishlist(),
+    listWorkouts(weekStart(today), today),
   ]);
   const wanted = wishlist.items.filter((i) => !i.boughtAt);
+  const workedOut = workouts.filter((w) => w.doneAt);
+  const workedOutToday = workedOut.filter((w) => w.day === today);
   const reminder = reminderFor(beliefs, today);
   const todaysHabits = habits.filter((h) => !h.archived && h.plannedToday);
   // Money: the latest month that's been filled in.
@@ -127,6 +146,34 @@ export default async function JourneyHome() {
           </ul>
         </section>
       )}
+
+      <section className="flex items-center gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/10" aria-label="Fitness">
+        <Link href="/fitness" className="flex min-w-0 flex-1 items-center gap-3">
+          <span
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-lg",
+              workedOutToday.length > 0 ? "bg-success-soft text-success-foreground" : "bg-accent text-accent-foreground",
+            )}
+          >
+            {workedOutToday.length > 0 ? <CheckCircle2 className="size-4.5" /> : <PersonStanding className="size-4.5" />}
+          </span>
+          <span className="flex min-w-0 flex-col">
+            <span className="font-medium text-heading">Fitness</span>
+            <span className="truncate text-xs text-muted-foreground">
+              {workedOutToday.length > 0
+                ? `Done today: ${workedOutToday.map((w) => w.title).join(", ")}`
+                : workedOut.length > 0
+                  ? `This week: ${workedOut.length} ${workedOut.length === 1 ? "workout" : "workouts"}, ${minutesLabel(workedOut.reduce((sum, w) => sum + w.minutes, 0))}`
+                  : "Nothing yet this week. Ten minutes counts."}
+            </span>
+          </span>
+        </Link>
+        {workedOutToday.length === 0 && (
+          <Link href="/fitness" className={cn(buttonVariants({ size: "sm" }), "shrink-0")}>
+            Plan today
+          </Link>
+        )}
+      </section>
 
       <section className="flex items-center gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/10" aria-label="Want to buy">
         <Link href="/money/wishlist" className="flex min-w-0 flex-1 items-center gap-3">

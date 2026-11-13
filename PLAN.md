@@ -522,6 +522,16 @@ Income, spending and savings per pay period, replacing the budget spreadsheet. M
 - [x] Wishlist: things to buy later in lists of your own, each with a photo or screenshot (private storage), price, link and note; tick off when bought; a "Want to buy" shortcut on Journey home
 - [x] Palettes per workspace: each workspace has its own list to choose from and remembers its choice (Money: Pacific; home, Learning, Growth: Orchard, Lagoon, Rose mist)
 
+### Fitness workspace (November 2026)
+
+Track workouts and food, and get a workout that fits the day. Built in stages, each usable on its own. Later: other people using Money only, with their own accounts and data (invite links, email and password), so the app tells people apart first.
+
+- [x] 1. Exercise library (about 70 to start: strength with bodyweight, dumbbells, bands, kettlebell or gym; cardio, steady or intervals; stretching), which you can change, hide from ideas or add to. Today: pick the time (10-60 min), the kind and what you have, and get three ideas from rules (free, instant): they fit the time, let muscles worked in the last two days rest, balance the week, and skip exercises done lately; "Other ideas" shuffles. "Ask AI" (Sonnet, about 2 cents) suggests from your library after your last two weeks, with an optional wish. A started workout: tick exercises off one by one, note weights, swap or remove one, finish with minutes and how it felt. Log a sport, class or anything else as done. Week strip, and a Fitness line on Journey home. Start and end photos for 53 starter exercises from the public-domain Free Exercise DB, taking turns like a slow GIF (in public/exercise-pictures, about 1.5 MB); a "Watch a video" search for every exercise
+- [ ] 2. History and a weekly view; progression per exercise ("last time: 3 × 10 at 8 kg" while logging), charts over time
+- [ ] 3. Meals: log by photo or text (Claude tags protein, veggies, home-cooked or takeaway; patterns, not calories), then meal suggestions
+- [ ] 4. Weekly plan on Sunday and a check of plan against what happened (and a grocery list from the meal plan); an AI weekly coach: what went well, where it slipped, one suggestion
+- [ ] 5. Chat input ("30 min run, then oatmeal with berries" becomes entries), minimum versions of routines (a 10-minute fallback still counts), polish
+
 ## Best practices and pitfalls
 
 The biggest risk is building features instead of using the app. Ship the MVP, use it daily, and let real friction decide what comes next.
