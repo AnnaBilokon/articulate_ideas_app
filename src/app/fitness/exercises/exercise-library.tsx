@@ -168,7 +168,7 @@ function ExerciseEditor({ existing, onClose }: { existing: Exercise | null; onCl
             </Dialog.Close>
           </div>
 
-          {existing && <ExerciseHow name={existing.name} how={null} picture={existing.picture} />}
+          {existing && <ExerciseHow name={existing.name} how={null} picture={existing.picture} steps={existing.steps} />}
 
           <form
             className="flex flex-col gap-4"

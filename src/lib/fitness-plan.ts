@@ -519,6 +519,114 @@ export function suggestFromRoutines(
     .map((c) => c.plan);
 }
 
+// What a workout is missing: a muscle group it skips, a warm-up before it,
+// stretching after it. Shown as suggestions you can add with a tap.
+
+/** An exercise in a workout or one of yours, as the gap check needs it. */
+export type GapItem = { exerciseId: string | null; kind: ExerciseKind | null; muscles: Muscle[] };
+
+export type Gap =
+  | { type: "muscle"; muscle: Muscle; title: string; detail: string; options: Exercise[] }
+  | { type: "warmup" | "cooldown"; title: string; detail: string; options: Exercise[] };
+
+const MUSCLE_GAPS: Partial<Record<Muscle, { title: string; detail: string }>> = {
+  back: { title: "No back exercise", detail: "Pulling balances all the pushing, and helps your posture." },
+  chest: { title: "No chest exercise", detail: "A push for the front of your upper body." },
+  shoulders: { title: "No shoulder exercise", detail: "Shoulders do a lot of the work in everyday lifting." },
+  legs: { title: "No leg exercise", detail: "Your legs are your biggest muscles: they make the most of the time." },
+  glutes: { title: "No glute exercise", detail: "Strong glutes protect your back and knees." },
+  core: { title: "No core exercise", detail: "A plank or dead bug keeps your middle strong." },
+};
+
+/** Moves that get you warm (rather than hold a long stretch), best first. */
+const WARM_MOVES = [
+  "Jumping jacks", "High knees", "Butt kicks", "Arm circles", "Cat-cow", "World's greatest stretch", "Inchworm",
+  "Standing hip circles", "Neck and shoulder rolls", "Dynamic chest stretch", "Dynamic back stretch", "Elbows back",
+];
+
+const visible = (library: Exercise[]) => library.filter((e) => !e.hidden);
+
+/** Up to three exercises for a muscle group, with what's at hand: photos and focused ones first. */
+function optionsFor(library: Exercise[], muscle: Muscle, equipment: Equipment[], taken: Set<string>, rand: () => number): Exercise[] {
+  const fits = visible(library).filter(
+    (e) => e.kind === "strength" && e.muscles.includes(muscle) && !taken.has(e.id) && isAvailable(e, equipment),
+  );
+  // Ones that mainly work it, when there are a couple; others only to make up the number.
+  const main = fits.filter((e) => e.muscles[0] === muscle);
+  return rankBy(main.length >= 2 ? main : fits, (e) => (e.picture ? 1 : 0) + (e.muscles[0] === muscle ? 1.5 : 0) - 0.3 * e.muscles.length, rand).slice(0, 3);
+}
+
+/** About five minutes to get warm: one move to raise the pulse, then a few for today's muscles. */
+export function warmUpFor(library: Exercise[], muscles: Muscle[], taken: Set<string>, seed = 0): Exercise[] {
+  const rand = random(seed + 101);
+  const pool = visible(library).filter((e) => !taken.has(e.id) && e.measure === "hold" && e.equipment.includes("body"));
+  const pulse = pool.filter((e) => e.kind === "cardio" && WARM_MOVES.includes(e.name));
+  const moves = pool.filter((e) => e.kind === "mobility" && WARM_MOVES.includes(e.name));
+  const first = rankBy(pulse, (e) => -WARM_MOVES.indexOf(e.name) / 10, rand)[0];
+  const rest = rankBy(moves, (e) => 2 * e.muscles.filter((m) => muscles.includes(m)).length, rand).slice(0, 3);
+  return [...(first ? [{ ...first, seconds: 60 }] : []), ...rest];
+}
+
+/** A few minutes of stretching for the muscles you worked. */
+export function coolDownFor(library: Exercise[], muscles: Muscle[], taken: Set<string>, seed = 0): Exercise[] {
+  const rand = random(seed + 202);
+  const stretches = visible(library).filter(
+    (e) => e.kind === "mobility" && e.measure === "hold" && !taken.has(e.id) && !WARM_MOVES.includes(e.name) && e.equipment.includes("body"),
+  );
+  // Each worked muscle gets a stretch before any gets a second.
+  const chosen: Exercise[] = [];
+  for (const m of muscles.length > 0 ? muscles : (["back", "legs", "glutes"] as Muscle[])) {
+    if (chosen.length >= 4) break;
+    const best = rankBy(
+      stretches.filter((e) => !chosen.includes(e) && e.muscles.includes(m)),
+      (e) => (e.picture ? 1 : 0) + (e.muscles[0] === m ? 1 : 0),
+      rand,
+    )[0];
+    if (best) chosen.push(best);
+  }
+  return chosen;
+}
+
+/**
+ * What a workout is missing, most useful first: a warm-up, a muscle group
+ * that keeps it balanced, and stretching at the end. Only for strength
+ * workouts with a couple of exercises in; a stretching session needs none.
+ */
+export function workoutGaps(items: GapItem[], library: Exercise[], equipment: Equipment[], seed = 0): Gap[] {
+  const strength = items.filter((i) => i.kind === "strength");
+  if (strength.length < 2) return [];
+  const rand = random(seed + 7);
+  const taken = new Set(items.flatMap((i) => (i.exerciseId ? [i.exerciseId] : [])));
+  const covered = new Set(strength.flatMap((i) => i.muscles));
+  const worked = [...covered];
+  // What kind of workout it is goes by each exercise's main muscle: a
+  // Romanian deadlift works the back too, but doesn't make it an upper-body day.
+  const main = new Set(strength.flatMap((i) => i.muscles.slice(0, 1)));
+  const upper = UPPER.some((m) => main.has(m));
+  const lower = LOWER.some((m) => main.has(m));
+  const needed: Muscle[] = upper && lower ? ["legs", "chest", "back", "core"] : upper ? ["chest", "back", "shoulders"] : ["legs", "glutes"];
+  const at = equipment.length > 0 ? equipment : (["body", "dumbbells"] as Equipment[]);
+
+  const gaps: Gap[] = [];
+  const warm = items[0]?.kind === "mobility" || items[0]?.kind === "cardio";
+  if (!warm) {
+    const options = warmUpFor(library, worked, taken, seed);
+    if (options.length > 0)
+      gaps.push({ type: "warmup", title: "No warm-up", detail: "About 5 minutes to get warm first: fewer aches, better sets.", options });
+  }
+  for (const m of needed) {
+    if (covered.has(m)) continue;
+    const options = optionsFor(library, m, at, taken, rand);
+    if (options.length > 0) gaps.push({ type: "muscle", muscle: m, ...MUSCLE_GAPS[m]!, options });
+  }
+  if (items.at(-1)?.kind !== "mobility") {
+    const options = coolDownFor(library, worked, taken, seed);
+    if (options.length > 0)
+      gaps.push({ type: "cooldown", title: "No stretching at the end", detail: "A few minutes for the muscles you worked.", options });
+  }
+  return gaps;
+}
+
 /** Another exercise for the same job, for "Swap": same kind, a shared muscle, at hand. */
 export function swapFor(
   library: Exercise[],

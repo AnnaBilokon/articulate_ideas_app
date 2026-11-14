@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { getRoutine, getWorkout, lastTimes, listExercises, type Workout } from "@/lib/fitness";
-import { mainKind, swapFor } from "@/lib/fitness-plan";
+import { coolDownFor, mainKind, swapFor, warmUpFor } from "@/lib/fitness-plan";
 import { localDate } from "@/lib/schedule";
 import {
   addDays,
@@ -231,6 +231,52 @@ export async function addWorkoutExercises(workoutId: string, exerciseIds: string
   const from = Math.max(-1, ...workout.exercises.map((_, i) => i)) + 1;
   if (!(await insertExercises(workoutId, picked.map(fromLibrary), from))) return { error: "Could not add them. Try again." };
   refresh(workoutId);
+  return { error: null };
+}
+
+// A warm-up before, or stretching after: the moves the suggestion showed.
+
+type Target = { workoutId: string } | { routineId: string };
+
+export async function addWarmUpOrCoolDown(target: Target, which: "warmup" | "cooldown"): Promise<Result> {
+  await requireSession();
+  const id = "workoutId" in target ? target.workoutId : target.routineId;
+  if (!isId(id)) return { error: "Workout not found." };
+  const library = await listExercises();
+
+  const items =
+    "workoutId" in target
+      ? ((await getWorkout(id))?.exercises.map((e) => ({ rowId: e.id, exerciseId: e.exerciseId, kind: e.kind, muscles: e.muscles })) ?? null)
+      : ((await getRoutine(id))?.exercises.map((e) => ({ rowId: e.id, exerciseId: e.exerciseId, kind: e.kind, muscles: e.muscles })) ?? null);
+  if (!items) return { error: "Workout not found." };
+  const worked = [...new Set(items.filter((i) => i.kind === "strength").flatMap((i) => i.muscles))];
+  const taken = new Set(items.flatMap((i) => (i.exerciseId ? [i.exerciseId] : [])));
+  const moves = which === "warmup" ? warmUpFor(library, worked, taken) : coolDownFor(library, worked, taken);
+  if (moves.length === 0) return { error: "Nothing to add with your exercises." };
+
+  // A warm-up goes first: everything else moves down to make room.
+  const table = "workoutId" in target ? "fitness_workout_exercises" : "fitness_routine_exercises";
+  if (which === "warmup") {
+    const moved = await Promise.all(items.map((i, n) => db().from(table).update({ position: moves.length + n }).eq("id", i.rowId)));
+    if (moved.some((r) => r.error)) return { error: "Could not add it. Try again." };
+  }
+  const from = which === "warmup" ? 0 : items.length;
+
+  if ("workoutId" in target) {
+    const ok = await insertExercises(
+      id,
+      moves.map((e) => ({ exerciseId: e.id, name: e.name, measure: "hold", sets: 1, reps: null, seconds: e.seconds, eachSide: e.eachSide })),
+      from,
+    );
+    if (!ok) return { error: "Could not add it. Try again." };
+    refresh(id);
+  } else {
+    const { error } = await db()
+      .from("fitness_routine_exercises")
+      .insert(moves.map((e, i) => ({ routine_id: id, exercise_id: e.id, position: from + i, sets: 1, reps: null, seconds: e.seconds })));
+    if (error) return { error: "Could not add it. Try again." };
+    refreshRoutine(id);
+  }
   return { error: null };
 }
 

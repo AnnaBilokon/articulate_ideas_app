@@ -74,6 +74,8 @@ export type Exercise = {
   how: string | null;
   /** Start and end photos, in public/exercise-pictures; null for none. */
   picture: string | null;
+  /** Step-by-step instructions, for exercises from the Free Exercise DB. */
+  steps: string[];
   hidden: boolean;
 };
 

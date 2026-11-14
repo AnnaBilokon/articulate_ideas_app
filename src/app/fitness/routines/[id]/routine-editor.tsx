@@ -17,6 +17,7 @@ import {
   updateRoutineExercise,
 } from "../../actions";
 import { ExercisePicker, ExerciseThumb } from "../../exercise-picker";
+import { WorkoutGaps } from "../../gaps";
 
 // Your own workout: the exercises you like, in your order, each with its
 // sets, reps (or seconds, or minutes) and a weight to start from. Starting
@@ -91,6 +92,15 @@ export function RoutineEditor({ routine, library }: { routine: Routine; library:
             </li>
           ))}
         </ol>
+      )}
+
+      {routine.exercises.length > 0 && (
+        <WorkoutGaps
+          items={routine.exercises}
+          library={library}
+          equipment={[...new Set(routine.exercises.flatMap((e) => e.equipment))]}
+          target={{ routineId: routine.id }}
+        />
       )}
 
       {routine.exercises.length > 0 && (

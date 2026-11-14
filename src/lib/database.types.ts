@@ -456,6 +456,7 @@ export type Database = {
           picture: string | null
           reps: number | null
           seconds: number | null
+          steps: string[] | null
         }
         Insert: {
           created_at?: string
@@ -471,6 +472,7 @@ export type Database = {
           picture?: string | null
           reps?: number | null
           seconds?: number | null
+          steps?: string[] | null
         }
         Update: {
           created_at?: string
@@ -486,6 +488,7 @@ export type Database = {
           picture?: string | null
           reps?: number | null
           seconds?: number | null
+          steps?: string[] | null
         }
         Relationships: []
       }

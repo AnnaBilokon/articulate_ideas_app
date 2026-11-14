@@ -96,12 +96,34 @@ export function ExercisePicture({ picture, name, className }: { picture: string;
   );
 }
 
-/** How to do it: the photos if there are any, the cue, and a video search. */
-export function ExerciseHow({ name, how, picture }: { name: string; how: string | null; picture: string | null }) {
+/** How to do it: the photos if there are any, the cue, the steps, and a video search. */
+export function ExerciseHow({
+  name,
+  how,
+  picture,
+  steps = [],
+}: {
+  name: string;
+  how: string | null;
+  picture: string | null;
+  steps?: string[];
+}) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       {picture && <ExercisePicture picture={picture} name={name} className="w-full max-w-md" />}
       {how && <p className="text-sm leading-6 text-muted-foreground">{how}</p>}
+      {steps.length > 0 && (
+        <ol className="flex flex-col gap-1.5 text-sm leading-6">
+          {steps.map((step, i) => (
+            <li key={i} className="flex gap-2.5">
+              <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
+                {i + 1}
+              </span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
+      )}
       <a
         href={videoSearchUrl(name)}
         target="_blank"

@@ -51,6 +51,7 @@ import {
 } from "../../actions";
 import { ExercisePicker, ExerciseThumb } from "../../exercise-picker";
 import { Chip, ExerciseHow, minutesLabel } from "../../fitness-bits";
+import { WorkoutGaps } from "../../gaps";
 
 // A workout, set by set: type the weight and reps you really did (7 of a
 // planned 12 is kept as 7) and tick the set. Last time's sets sit beside
@@ -108,6 +109,8 @@ export function WorkoutSession({
   // Left open for hours: the clock no longer means anything.
   const showClock = elapsed !== null && elapsed < 6 * 3600_000;
   const restLeft = rest && now !== null ? rest.endsAt - now : null;
+  const gapItems = workout.exercises.map((e) => ({ exerciseId: e.exerciseId, kind: e.kind, muscles: e.muscles }));
+  const equipment = workout.equipment.length > 0 ? workout.equipment : [...new Set(workout.exercises.flatMap((e) => e.equipment))];
 
   useEffect(() => {
     if (restLeft === null || restLeft > 0) return;
@@ -131,11 +134,8 @@ export function WorkoutSession({
 
       {done && <DoneSummary workout={workout} />}
 
-      {!done && workout.exercises.length > 0 && workout.minutes >= 20 && workout.kind !== "mobility" && setsDone === 0 && (
-        <p className="flex items-start gap-2 rounded-2xl bg-accent px-4 py-3 text-sm text-accent-foreground">
-          <Info className="mt-0.5 size-4 shrink-0" />
-          Warm up first: 3 minutes of easy movement, like marching on the spot and arm circles.
-        </p>
+      {!done && setsDone === 0 && (
+        <WorkoutGaps items={gapItems} library={library} equipment={equipment} target={{ workoutId: workout.id }} only={["warmup"]} />
       )}
 
       {workout.exercises.length === 0 && !done && (
@@ -161,6 +161,16 @@ export function WorkoutSession({
           </li>
         ))}
       </ol>
+
+      {!done && (
+        <WorkoutGaps
+          items={gapItems}
+          library={library}
+          equipment={equipment}
+          target={{ workoutId: workout.id }}
+          only={["muscle", "cooldown"]}
+        />
+      )}
 
       {!done && workout.exercises.length > 0 && (
         <Button variant="outline" size="lg" className="h-12 rounded-2xl border-dashed text-base" onClick={() => setPicking(true)}>
@@ -340,7 +350,7 @@ function ExerciseCard({
         </DropdownMenu>
       </div>
 
-      {showHow && <ExerciseHow name={e.name} how={e.how} picture={e.picture} />}
+      {showHow && <ExerciseHow name={e.name} how={e.how} picture={e.picture} steps={e.steps} />}
 
       <div className="flex flex-col gap-1.5">
         <div className={cn("grid items-center gap-2 px-1 text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase", columns)}>
