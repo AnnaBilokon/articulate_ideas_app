@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { CheckCircle2, ChevronDown, ChevronRight, Play, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Sparkles } from "lucide-react";
 import { listExercises, listRoutines, listWorkouts, recentFrom, toRecent, type Workout } from "@/lib/fitness";
 import { weekDays } from "@/lib/fitness-plan";
 import { localDate } from "@/lib/schedule";
-import { FEELING_LABELS, MUSCLE_LABELS, weekStart, type Muscle, type Routine } from "@/lib/schemas";
+import { MUSCLE_LABELS, weekStart, type Muscle, type Routine } from "@/lib/schemas";
 import { ExerciseThumb } from "./exercise-picker";
-import { KindBadge, WeekStrip, minutesLabel } from "./fitness-bits";
+import { WeekStrip, minutesLabel } from "./fitness-bits";
 import { LogActivity } from "./log-activity";
 import { NewRoutineButton, StartEmptyButton, StartRoutineButton } from "./start-buttons";
 import { TodayPlanner } from "./today-planner";
+import { WorkoutRow } from "./workout-row";
 
 const weekday = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
@@ -22,6 +23,7 @@ export default async function FitnessTodayPage() {
 
   const started = workouts.filter((w) => w.day === today && !w.doneAt && w.exercises.length > 0);
   const doneToday = workouts.filter((w) => w.day === today && w.doneAt);
+  const recent = workouts.filter((w) => w.day < today && w.doneAt).slice(0, 3);
   const thisWeek = workouts.filter((w) => w.doneAt && w.day >= weekStart(today));
   const weekMinutes = thisWeek.reduce((sum, w) => sum + w.minutes, 0);
 
@@ -62,30 +64,26 @@ export default async function FitnessTodayPage() {
             Done today
           </h2>
           {doneToday.map((w) => (
-            <DoneLink key={w.id} workout={w} />
+            <WorkoutRow key={w.id} workout={w} />
           ))}
         </section>
       )}
 
-      <details className="group rounded-3xl bg-card shadow-sm ring-1 ring-foreground/10" open>
-        <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
-            <Sparkles className="size-5" />
-          </span>
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="font-semibold text-heading">Plan today</span>
-            <span className="text-sm text-muted-foreground">
-              {routines.length > 0
-                ? "Pick your time: built from your workouts and your week"
-                : "Pick the time and what you have, and get a workout"}
-            </span>
-          </span>
-          <ChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="border-t px-4 pt-4 pb-5 sm:px-5">
-          <TodayPlanner library={library} routines={routines} recent={toRecent(workouts)} today={today} />
-        </div>
-      </details>
+      {recent.length > 0 && (
+        <section className="flex flex-col gap-2" aria-labelledby="recent">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 id="recent" className="text-lg font-semibold tracking-tight text-heading">
+              Recent
+            </h2>
+            <Link href="/fitness/history" className="text-sm text-muted-foreground hover:text-foreground">
+              All history
+            </Link>
+          </div>
+          {recent.map((w) => (
+            <WorkoutRow key={w.id} workout={w} />
+          ))}
+        </section>
+      )}
 
       <section className="flex flex-col gap-3" aria-labelledby="my-workouts">
         <div className="flex items-baseline justify-between gap-2">
@@ -110,6 +108,26 @@ export default async function FitnessTodayPage() {
           </li>
         </ul>
       </section>
+
+      <details className="group rounded-3xl bg-card shadow-sm ring-1 ring-foreground/10" open>
+        <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
+            <Sparkles className="size-5" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="font-semibold text-heading">Plan today</span>
+            <span className="text-sm text-muted-foreground">
+              {routines.length > 0
+                ? "Pick your time: built from your workouts and your week"
+                : "Pick the time and what you have, and get a workout"}
+            </span>
+          </span>
+          <ChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t px-4 pt-4 pb-5 sm:px-5">
+          <TodayPlanner library={library} routines={routines} recent={toRecent(workouts)} today={today} />
+        </div>
+      </details>
 
       <LogActivity today={today} />
     </main>
@@ -150,28 +168,5 @@ function RoutineCard({ routine: r }: { routine: Routine }) {
         <StartRoutineButton routineId={r.id} disabled={r.exercises.length === 0} />
       </div>
     </div>
-  );
-}
-
-function DoneLink({ workout: w }: { workout: Workout }) {
-  return (
-    <Link
-      href={`/fitness/workouts/${w.id}`}
-      className="group flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm ring-1 ring-foreground/10 transition-shadow hover:shadow-md"
-    >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight text-highlight-foreground">
-        <CheckCircle2 className="size-5" />
-      </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="flex flex-wrap items-center gap-2">
-          <span className="font-medium text-heading">{w.title}</span>
-          <KindBadge kind={w.kind} />
-        </span>
-        <span className="text-sm text-muted-foreground">
-          {[minutesLabel(w.minutes), w.feeling && `felt ${FEELING_LABELS[w.feeling].toLowerCase()}`].filter(Boolean).join(" · ")}
-        </span>
-      </span>
-      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-    </Link>
   );
 }

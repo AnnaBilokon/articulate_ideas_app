@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { getRoutine, getWorkout, lastTimes, listExercises, type Workout } from "@/lib/fitness";
-import { coolDownFor, mainKind, swapFor, warmUpFor } from "@/lib/fitness-plan";
+import { coolDownFor, mainKind, suggestTitle, swapFor, warmUpFor } from "@/lib/fitness-plan";
 import { localDate } from "@/lib/schedule";
 import {
   addDays,
@@ -210,13 +210,16 @@ export async function startRoutine(routineId: string): Promise<Result & { id?: s
   return { error: null, id };
 }
 
+const DEFAULT_WORKOUT_NAME = "Workout";
+const DEFAULT_ROUTINE_NAME = "New workout";
+
 /**
  * A workout you put together as you go. It's only saved once it has its
  * first exercises, so an empty one never shows up in your week.
  */
 export async function startOwnWorkout(title: string, exerciseIds: string[]): Promise<Result & { id?: string }> {
   await requireSession();
-  const name = z.string().trim().min(1).max(80).catch("Workout").parse(title);
+  const name = z.string().trim().min(1).max(80).catch(DEFAULT_WORKOUT_NAME).parse(title);
   const parsed = ids.safeParse(exerciseIds);
   if (!parsed.success) return { error: "Pick at least one exercise." };
   const library = await listExercises();
@@ -224,7 +227,7 @@ export async function startOwnWorkout(title: string, exerciseIds: string[]): Pro
   if (picked.length === 0) return { error: "Pick at least one exercise." };
 
   const id = await createWorkout({
-    title: name,
+    title: name === DEFAULT_WORKOUT_NAME ? (suggestTitle(picked) ?? name) : name,
     kind: mainKind(picked.map((e) => e.kind)),
     minutes: 30,
     equipment: [...new Set(picked.flatMap((e) => e.equipment))],
@@ -410,6 +413,25 @@ export async function swapExercise(id: string, seed: number): Promise<Result> {
   return { error: null };
 }
 
+/** Moves an exercise one place up or down in a workout. */
+export async function moveWorkoutExercise(id: string, direction: -1 | 1): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Exercise not found." };
+  const workout = await workoutOf(id);
+  if (!workout) return { error: "Exercise not found." };
+  const order = workout.exercises.map((e) => e.id);
+  const from = order.indexOf(id);
+  const to = from + direction;
+  if (to < 0 || to >= order.length) return { error: null };
+  [order[from], order[to]] = [order[to], order[from]];
+  const results = await Promise.all(
+    order.map((rowId, position) => db().from("fitness_workout_exercises").update({ position }).eq("id", rowId)),
+  );
+  if (results.some((r) => r.error)) return { error: "Could not move it. Try again." };
+  refresh(workout.id);
+  return { error: null };
+}
+
 export async function removeWorkoutExercise(id: string): Promise<Result> {
   await requireSession();
   if (!isId(id)) return { error: "Exercise not found." };
@@ -505,7 +527,7 @@ export async function logActivity(input: LogActivityInput): Promise<Result> {
 /** A new, empty workout of your own, ready to add exercises to. */
 export async function createRoutine(): Promise<Result & { id?: string }> {
   await requireSession();
-  const { data, error } = await db().from("fitness_routines").insert({ name: "New workout" }).select("id").single();
+  const { data, error } = await db().from("fitness_routines").insert({ name: DEFAULT_ROUTINE_NAME }).select("id").single();
   if (error || !data) return { error: "Could not create it. Try again." };
   refreshRoutine();
   return { error: null, id: data.id };
@@ -577,6 +599,10 @@ export async function addRoutineExercises(routineId: string, exerciseIds: string
   const [routine, library] = await Promise.all([getRoutine(routineId), listExercises()]);
   if (!routine) return { error: "Workout not found." };
   const picked = parsed.data.flatMap((id) => library.filter((e) => e.id === id));
+  if (routine.name === DEFAULT_ROUTINE_NAME && routine.exercises.length === 0) {
+    const title = suggestTitle(picked);
+    if (title) await db().from("fitness_routines").update({ name: title }).eq("id", routineId);
+  }
   const { error } = await db()
     .from("fitness_routine_exercises")
     .insert(

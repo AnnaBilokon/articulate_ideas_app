@@ -15,6 +15,7 @@ import {
   Gem,
   Gift,
   GraduationCap,
+  History,
   House,
   LayoutDashboard,
   Library,
@@ -98,6 +99,7 @@ const workspaces: {
     prefixes: ["/fitness"],
     nav: [
       { href: "/fitness", label: "Today", icon: CalendarCheck },
+      { href: "/fitness/history", label: "History", icon: History },
       { href: "/fitness/exercises", label: "Exercises", icon: Dumbbell },
     ],
   },

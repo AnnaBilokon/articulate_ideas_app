@@ -1,4 +1,4 @@
-import { Check, PlayCircle } from "lucide-react";
+import { Check, Flame, Leaf, PlayCircle, Sparkles } from "lucide-react";
 import { KIND_LABELS, KIND_TONES, WEEKDAYS, pictureUrls, videoSearchUrl, type WorkoutKind } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
@@ -133,6 +133,40 @@ export function ExerciseHow({
         <PlayCircle className="size-4" /> Watch a video
       </a>
     </div>
+  );
+}
+
+/** The warm-up or the stretching, set apart from the main exercises. */
+export function PhasePanel({ phase, children }: { phase: "warmup" | "cooldown"; children: React.ReactNode }) {
+  const Icon = phase === "warmup" ? Flame : Leaf;
+  return (
+    <section
+      aria-label={phase === "warmup" ? "Warm-up" : "Stretching"}
+      className="flex flex-col gap-3 rounded-[1.75rem] bg-accent/70 p-3 ring-1 ring-highlight/60 sm:p-4"
+    >
+      <h2 className="flex items-center gap-2 px-1 text-sm font-semibold tracking-wide text-accent-foreground uppercase">
+        <Icon className="size-4" /> {phase === "warmup" ? "Warm-up" : "Stretching"}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+/** The heading over the main exercises, when there's a warm-up or stretching around them. */
+export function MainHeading() {
+  return <h2 className="px-1 text-sm font-semibold tracking-wide text-muted-foreground uppercase">Workout</h2>;
+}
+
+/** "Call it Leg day?": a name from the exercises, a tap to use it. */
+export function TitleSuggestion({ title, onUse }: { title: string; onUse: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onUse}
+      className="flex w-fit items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground transition-colors hover:bg-highlight hover:text-highlight-foreground"
+    >
+      <Sparkles className="size-3.5" /> Call it &ldquo;{title}&rdquo;
+    </button>
   );
 }
 
