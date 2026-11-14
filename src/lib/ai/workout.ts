@@ -9,6 +9,7 @@ import {
   FEELING_LABELS,
   KIND_LABELS,
   prescription,
+  setLabel,
   type AiWorkoutRequest,
   type Exercise,
   type PlannedExercise,
@@ -59,8 +60,12 @@ function workoutLine(w: Workout): string {
     `${w.day}: ${KIND_LABELS[w.kind]}, ${w.title}, ${w.minutes} min`,
     w.feeling ? `felt ${FEELING_LABELS[w.feeling].toLowerCase()}` : null,
   ].filter(Boolean);
+  // What was really done, set by set ("8 kg × 10, 8 kg × 7"), else the plan.
   const exercises = w.exercises
-    .map((e) => `${e.name} ${prescription(e)}${e.weightKg !== null ? ` @ ${e.weightKg} kg` : ""}`)
+    .map((e) => {
+      const done = e.logged.filter((s) => s.done);
+      return `${e.name} ${done.length > 0 ? done.map((s) => setLabel(s, e.measure)).join(", ") : prescription(e)}`;
+    })
     .join("; ");
   return `- ${parts.join(", ")}${exercises ? `: ${exercises}` : ""}`;
 }

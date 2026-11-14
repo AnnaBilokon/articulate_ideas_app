@@ -489,6 +489,125 @@ export type Database = {
         }
         Relationships: []
       }
+      fitness_routine_exercises: {
+        Row: {
+          exercise_id: string
+          id: string
+          position: number
+          reps: number | null
+          routine_id: string
+          seconds: number | null
+          sets: number
+          weight_kg: number | null
+        }
+        Insert: {
+          exercise_id: string
+          id?: string
+          position?: number
+          reps?: number | null
+          routine_id: string
+          seconds?: number | null
+          sets?: number
+          weight_kg?: number | null
+        }
+        Update: {
+          exercise_id?: string
+          id?: string
+          position?: number
+          reps?: number | null
+          routine_id?: string
+          seconds?: number | null
+          sets?: number
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitness_routine_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitness_routine_exercises_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fitness_routines: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          note: string | null
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          note?: string | null
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          note?: string | null
+          position?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fitness_sets: {
+        Row: {
+          done_at: string | null
+          id: string
+          position: number
+          reps: number | null
+          seconds: number | null
+          target_reps: number | null
+          target_seconds: number | null
+          weight_kg: number | null
+          workout_exercise_id: string
+        }
+        Insert: {
+          done_at?: string | null
+          id?: string
+          position?: number
+          reps?: number | null
+          seconds?: number | null
+          target_reps?: number | null
+          target_seconds?: number | null
+          weight_kg?: number | null
+          workout_exercise_id: string
+        }
+        Update: {
+          done_at?: string | null
+          id?: string
+          position?: number
+          reps?: number | null
+          seconds?: number | null
+          target_reps?: number | null
+          target_seconds?: number | null
+          weight_kg?: number | null
+          workout_exercise_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitness_sets_workout_exercise_id_fkey"
+            columns: ["workout_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_workout_exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fitness_workout_exercises: {
         Row: {
           done_at: string | null
@@ -557,6 +676,7 @@ export type Database = {
           kind: string
           minutes: number
           note: string | null
+          routine_id: string | null
           source: string
           title: string
         }
@@ -570,6 +690,7 @@ export type Database = {
           kind: string
           minutes: number
           note?: string | null
+          routine_id?: string | null
           source?: string
           title: string
         }
@@ -583,10 +704,19 @@ export type Database = {
           kind?: string
           minutes?: number
           note?: string | null
+          routine_id?: string | null
           source?: string
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fitness_workouts_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_routines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       glossary_terms: {
         Row: {

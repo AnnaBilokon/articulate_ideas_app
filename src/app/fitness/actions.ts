@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth";
-import { getExercise, getWorkout, listExercises } from "@/lib/fitness";
+import { getRoutine, getWorkout, lastTimes, listExercises, type Workout } from "@/lib/fitness";
 import { swapFor } from "@/lib/fitness-plan";
 import { localDate } from "@/lib/schedule";
 import {
@@ -11,26 +11,130 @@ import {
   exerciseSchema,
   finishWorkoutSchema,
   logActivitySchema,
+  plannedSets,
+  routineExerciseSchema,
+  routineSchema,
+  setSchema,
   startWorkoutSchema,
+  type Equipment,
+  type Exercise,
   type ExerciseInput,
+  type ExerciseKind,
   type FinishWorkoutInput,
   type LogActivityInput,
+  type Measure,
+  type RoutineExerciseInput,
+  type RoutineInput,
+  type SetInput,
   type StartWorkoutInput,
+  type WorkoutSource,
 } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
-// Fitness: start a suggested workout, tick it off, finish it; log a sport or
-// class; keep the exercise library.
+// Fitness: start your own workout, an empty one or a suggested one; log each
+// set; finish it. Keep your own workouts and the exercise library.
 
 type Result = { error: string | null };
 
 const isId = (id: string) => z.uuid().safeParse(id).success;
+const ids = z.array(z.uuid()).min(1, "Pick at least one exercise.").max(30, "At most 30 at a time.");
 
 function refresh(workoutId?: string) {
   revalidatePath("/");
   revalidatePath("/fitness");
   if (workoutId) revalidatePath(`/fitness/workouts/${workoutId}`);
 }
+
+function refreshRoutine(routineId?: string) {
+  revalidatePath("/fitness");
+  if (routineId) revalidatePath(`/fitness/routines/${routineId}`);
+}
+
+/** The kind most of the exercises are; strength when it's a tie. */
+function mainKind(kinds: (ExerciseKind | null)[]): ExerciseKind {
+  const counts = new Map<ExerciseKind, number>();
+  for (const k of kinds) if (k) counts.set(k, (counts.get(k) ?? 0) + 1);
+  const top = Math.max(0, ...counts.values());
+  return (counts.get("strength") ?? 0) === top ? "strength" : ([...counts].find(([, n]) => n === top)?.[0] ?? "strength");
+}
+
+/** An exercise as it goes into a workout: the plan, and a weight to start from. */
+type NewExercise = {
+  exerciseId: string | null;
+  name: string;
+  measure: Measure | null;
+  sets: number | null;
+  reps: number | null;
+  seconds: number | null;
+  eachSide: boolean;
+  weightKg?: number | null;
+};
+
+/**
+ * Adds exercises to a workout with a set row for each planned set. Weights
+ * start from last time's, set by set, so beating it is one tap away.
+ */
+async function insertExercises(workoutId: string, items: NewExercise[], from: number): Promise<boolean> {
+  if (items.length === 0) return true;
+  const { data: rows, error } = await db()
+    .from("fitness_workout_exercises")
+    .insert(
+      items.map((e, i) => ({
+        workout_id: workoutId,
+        exercise_id: e.exerciseId,
+        name: e.name,
+        position: from + i,
+        sets: e.measure === "duration" ? null : e.sets,
+        reps: e.measure === "reps" ? e.reps : null,
+        seconds: e.measure === "reps" ? null : e.seconds,
+        each_side: e.eachSide,
+      })),
+    )
+    .select("id, position");
+  if (error || !rows) return false;
+
+  const last = await lastTimes(items.flatMap((e) => (e.exerciseId ? [e.exerciseId] : [])), workoutId);
+  const sets = rows.flatMap((row) => {
+    const e = items[row.position - from];
+    const before = e.exerciseId ? last.get(e.exerciseId)?.sets : undefined;
+    return plannedSets(e).map((planned, i) => ({
+      workout_exercise_id: row.id,
+      position: i,
+      target_reps: planned.targetReps,
+      target_seconds: planned.targetSeconds,
+      weight_kg: before?.[Math.min(i, before.length - 1)]?.weightKg ?? e.weightKg ?? null,
+    }));
+  });
+  const { error: setsError } = await db().from("fitness_sets").insert(sets);
+  return !setsError;
+}
+
+async function createWorkout(w: {
+  title: string;
+  kind: ExerciseKind;
+  minutes: number;
+  equipment: Equipment[];
+  source: WorkoutSource;
+  routineId?: string;
+}): Promise<string | null> {
+  const { data } = await db()
+    .from("fitness_workouts")
+    .insert({
+      day: localDate(),
+      title: w.title,
+      kind: w.kind,
+      minutes: w.minutes,
+      equipment: w.equipment,
+      source: w.source,
+      routine_id: w.routineId ?? null,
+    })
+    .select("id")
+    .single();
+  return data?.id ?? null;
+}
+
+const measureOf = (e: { sets: number | null; reps: number | null; seconds: number | null }): Measure =>
+  e.reps !== null ? "reps" : e.sets === null ? "duration" : "hold";
 
 /** Saves a suggested workout as today's, not done yet, and opens it. */
 export async function startWorkout(input: StartWorkoutInput): Promise<Result & { id?: string }> {
@@ -39,80 +143,176 @@ export async function startWorkout(input: StartWorkoutInput): Promise<Result & {
   if (!parsed.success) return { error: "That workout didn't come through right. Try another." };
   const { plan, equipment, source } = parsed.data;
 
-  const { data: workout, error } = await db()
-    .from("fitness_workouts")
-    .insert({ day: localDate(), title: plan.title, kind: plan.kind, minutes: plan.minutes, equipment, source })
-    .select("id")
-    .single();
-  if (error || !workout) return { error: "Could not start the workout. Try again." };
-
-  const { error: exercisesError } = await db()
-    .from("fitness_workout_exercises")
-    .insert(
-      plan.exercises.map((e, position) => ({
-        workout_id: workout.id,
-        exercise_id: e.exerciseId,
-        name: e.name,
-        position,
-        sets: e.sets,
-        reps: e.reps,
-        seconds: e.seconds,
-        each_side: e.eachSide,
-      })),
-    );
-  if (exercisesError) {
-    await db().from("fitness_workouts").delete().eq("id", workout.id);
+  const id = await createWorkout({ title: plan.title, kind: plan.kind, minutes: plan.minutes, equipment, source });
+  if (!id) return { error: "Could not start the workout. Try again." };
+  if (!(await insertExercises(id, plan.exercises.map((e) => ({ ...e, measure: measureOf(e) })), 0))) {
+    await db().from("fitness_workouts").delete().eq("id", id);
     return { error: "Could not start the workout. Try again." };
   }
   refresh();
-  return { error: null, id: workout.id };
+  return { error: null, id };
 }
 
-async function workoutOf(exerciseRowId: string): Promise<string | null> {
-  const { data } = await db().from("fitness_workout_exercises").select("workout_id").eq("id", exerciseRowId).maybeSingle();
-  return data?.workout_id ?? null;
-}
-
-export async function setExerciseDone(id: string, done: boolean): Promise<Result> {
+/** Starts one of your own workouts, with last time's weights filled in. */
+export async function startRoutine(routineId: string): Promise<Result & { id?: string }> {
   await requireSession();
-  if (!isId(id)) return { error: "Exercise not found." };
-  const { data, error } = await db()
-    .from("fitness_workout_exercises")
-    .update({ done_at: done ? new Date().toISOString() : null })
-    .eq("id", id)
-    .select("workout_id")
-    .maybeSingle();
-  if (error || !data) return { error: "Could not save that. Try again." };
-  refresh(data.workout_id);
+  if (!isId(routineId)) return { error: "Workout not found." };
+  const routine = await getRoutine(routineId);
+  if (!routine) return { error: "Workout not found." };
+  if (routine.exercises.length === 0) return { error: "Add an exercise first." };
+
+  const minutes = Math.max(
+    5,
+    Math.round(
+      routine.exercises.reduce(
+        (sum, e) => sum + (e.measure === "duration" ? (e.seconds ?? 1200) / 60 : e.sets * (e.eachSide ? 2.3 : 1.7)),
+        0,
+      ),
+    ),
+  );
+  const id = await createWorkout({
+    title: routine.name,
+    kind: mainKind(routine.exercises.map((e) => e.kind)),
+    minutes: Math.min(600, minutes),
+    equipment: [...new Set(routine.exercises.flatMap((e) => e.equipment))],
+    source: "routine",
+    routineId,
+  });
+  if (!id) return { error: "Could not start the workout. Try again." };
+  const ok = await insertExercises(
+    id,
+    routine.exercises.map((e) => ({
+      exerciseId: e.exerciseId,
+      name: e.name,
+      measure: e.measure,
+      sets: e.sets,
+      reps: e.reps,
+      seconds: e.seconds,
+      eachSide: e.eachSide,
+      weightKg: e.weightKg,
+    })),
+    0,
+  );
+  if (!ok) {
+    await db().from("fitness_workouts").delete().eq("id", id);
+    return { error: "Could not start the workout. Try again." };
+  }
+  refresh();
+  return { error: null, id };
+}
+
+/** An empty workout, to add exercises to as you go. */
+export async function startEmptyWorkout(): Promise<Result & { id?: string }> {
+  await requireSession();
+  const id = await createWorkout({ title: "Workout", kind: "strength", minutes: 30, equipment: [], source: "own" });
+  if (!id) return { error: "Could not start the workout. Try again." };
+  refresh();
+  return { error: null, id };
+}
+
+const fromLibrary = (e: Exercise): NewExercise => ({
+  exerciseId: e.id,
+  name: e.name,
+  measure: e.measure,
+  sets: e.measure === "duration" ? null : 3,
+  reps: e.reps,
+  seconds: e.measure === "duration" ? 1200 : e.seconds,
+  eachSide: e.eachSide,
+});
+
+export async function addWorkoutExercises(workoutId: string, exerciseIds: string[]): Promise<Result> {
+  await requireSession();
+  const parsed = ids.safeParse(exerciseIds);
+  if (!isId(workoutId) || !parsed.success) return { error: "Pick at least one exercise." };
+  const [workout, library] = await Promise.all([getWorkout(workoutId), listExercises()]);
+  if (!workout) return { error: "Workout not found." };
+  const picked = parsed.data.flatMap((id) => library.filter((e) => e.id === id));
+  const from = Math.max(-1, ...workout.exercises.map((_, i) => i)) + 1;
+  if (!(await insertExercises(workoutId, picked.map(fromLibrary), from))) return { error: "Could not add them. Try again." };
+  refresh(workoutId);
   return { error: null };
 }
 
-const weightSchema = z.number().min(0, "A weight can't be negative.").max(999, "That's a lot: under 1000 kg.").nullable();
+// Sets
 
-/** The weight used, in kg; null clears it. */
-export async function setExerciseWeight(id: string, weightKg: number | null): Promise<Result> {
+async function workoutOfSet(setId: string): Promise<string | null> {
+  const { data } = await db()
+    .from("fitness_sets")
+    .select("fitness_workout_exercises(workout_id)")
+    .eq("id", setId)
+    .maybeSingle();
+  return data?.fitness_workout_exercises?.workout_id ?? null;
+}
+
+/** Saves what you did in a set: reps (or seconds), weight, and done or not. */
+export async function saveSet(id: string, input: SetInput): Promise<Result> {
   await requireSession();
-  if (!isId(id)) return { error: "Exercise not found." };
-  const parsed = weightSchema.safeParse(weightKg);
+  if (!isId(id)) return { error: "Set not found." };
+  const parsed = setSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const weight = parsed.data === null ? null : Math.round(parsed.data * 10) / 10;
-  const { data, error } = await db()
-    .from("fitness_workout_exercises")
-    .update({ weight_kg: weight })
-    .eq("id", id)
-    .select("workout_id")
-    .maybeSingle();
-  if (error || !data) return { error: "Could not save the weight. Try again." };
-  refresh(data.workout_id);
+  const s = parsed.data;
+  const { error } = await db()
+    .from("fitness_sets")
+    .update({
+      reps: s.reps,
+      seconds: s.seconds,
+      weight_kg: s.weightKg === null ? null : Math.round(s.weightKg * 10) / 10,
+      done_at: s.done ? new Date().toISOString() : null,
+    })
+    .eq("id", id);
+  if (error) return { error: "Could not save the set. Try again." };
+  refresh((await workoutOfSet(id)) ?? undefined);
   return { error: null };
+}
+
+/** One more set, like the last one. */
+export async function addSet(workoutExerciseId: string): Promise<Result> {
+  await requireSession();
+  if (!isId(workoutExerciseId)) return { error: "Exercise not found." };
+  const { data: row } = await db()
+    .from("fitness_workout_exercises")
+    .select(`workout_id, fitness_sets(position, target_reps, target_seconds, reps, seconds, weight_kg)`)
+    .eq("id", workoutExerciseId)
+    .maybeSingle();
+  if (!row) return { error: "Exercise not found." };
+  if (row.fitness_sets.length >= 20) return { error: "That's plenty of sets." };
+  const last = [...row.fitness_sets].sort((a, b) => b.position - a.position)[0];
+  const { error } = await db()
+    .from("fitness_sets")
+    .insert({
+      workout_exercise_id: workoutExerciseId,
+      position: (last?.position ?? -1) + 1,
+      target_reps: last?.target_reps ?? last?.reps ?? 10,
+      target_seconds: last?.target_seconds ?? null,
+      weight_kg: last?.weight_kg ?? null,
+    });
+  if (error) return { error: "Could not add a set. Try again." };
+  refresh(row.workout_id);
+  return { error: null };
+}
+
+export async function removeSet(id: string): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Set not found." };
+  const workoutId = await workoutOfSet(id);
+  const { error } = await db().from("fitness_sets").delete().eq("id", id);
+  if (error) return { error: "Could not remove the set. Try again." };
+  refresh(workoutId ?? undefined);
+  return { error: null };
+}
+
+// Exercises in a workout
+
+async function workoutOf(exerciseRowId: string): Promise<Workout | null> {
+  const { data } = await db().from("fitness_workout_exercises").select("workout_id").eq("id", exerciseRowId).maybeSingle();
+  return data ? getWorkout(data.workout_id) : null;
 }
 
 /** Swaps one exercise for another that does the same job with what's at hand. */
 export async function swapExercise(id: string, seed: number): Promise<Result> {
   await requireSession();
   if (!isId(id)) return { error: "Exercise not found." };
-  const workoutId = await workoutOf(id);
-  const workout = workoutId ? await getWorkout(workoutId) : null;
+  const workout = await workoutOf(id);
   const row = workout?.exercises.find((e) => e.id === id);
   if (!workout || !row?.exerciseId) return { error: "This one can't be swapped." };
 
@@ -120,23 +320,17 @@ export async function swapExercise(id: string, seed: number): Promise<Result> {
   const current = library.find((e) => e.id === row.exerciseId);
   if (!current) return { error: "This one can't be swapped." };
   const inWorkout = new Set(workout.exercises.flatMap((e) => (e.exerciseId ? [e.exerciseId] : [])));
-  const next = swapFor(library, current, inWorkout, workout.equipment, Math.floor(seed));
+  const equipment = workout.equipment.length > 0 ? workout.equipment : current.equipment;
+  const next = swapFor(library, current, inWorkout, equipment, Math.floor(seed));
   if (!next) return { error: "Nothing else does the same job with what you have." };
 
-  // Same amount of work: sets stay, reps or seconds come from the new one.
-  const { error } = await db()
-    .from("fitness_workout_exercises")
-    .update({
-      exercise_id: next.id,
-      name: next.name,
-      reps: next.measure === "reps" ? next.reps : null,
-      seconds: next.measure === "hold" ? next.seconds : row.seconds,
-      each_side: next.eachSide,
-      weight_kg: null,
-      done_at: null,
-    })
-    .eq("id", id);
+  // Same number of sets; the reps or seconds and last weights come from the new one.
+  const { error } = await db().from("fitness_workout_exercises").delete().eq("id", id);
   if (error) return { error: "Could not swap it. Try again." };
+  const position = workout.exercises.findIndex((e) => e.id === id);
+  const sets = Math.max(1, row.logged.length);
+  const ok = await insertExercises(workout.id, [{ ...fromLibrary(next), sets, seconds: next.measure === "duration" ? row.seconds : next.seconds }], position);
+  if (!ok) return { error: "Could not swap it. Try again." };
   refresh(workout.id);
   return { error: null };
 }
@@ -144,10 +338,22 @@ export async function swapExercise(id: string, seed: number): Promise<Result> {
 export async function removeWorkoutExercise(id: string): Promise<Result> {
   await requireSession();
   if (!isId(id)) return { error: "Exercise not found." };
-  const workoutId = await workoutOf(id);
+  const workout = await workoutOf(id);
   const { error } = await db().from("fitness_workout_exercises").delete().eq("id", id);
   if (error) return { error: "Could not remove it. Try again." };
-  refresh(workoutId ?? undefined);
+  refresh(workout?.id);
+  return { error: null };
+}
+
+// The workout itself
+
+export async function renameWorkout(id: string, title: string): Promise<Result> {
+  await requireSession();
+  const parsed = z.string().trim().min(1, "Give it a name.").max(80, "Keep the name under 80 characters.").safeParse(title);
+  if (!isId(id) || !parsed.success) return { error: parsed.success ? "Workout not found." : parsed.error.issues[0].message };
+  const { error } = await db().from("fitness_workouts").update({ title: parsed.data }).eq("id", id);
+  if (error) return { error: "Could not rename it. Try again." };
+  refresh(id);
   return { error: null };
 }
 
@@ -156,6 +362,8 @@ export async function finishWorkout(id: string, input: FinishWorkoutInput): Prom
   if (!isId(id)) return { error: "Workout not found." };
   const parsed = finishWorkoutSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const workout = await getWorkout(id);
+  if (!workout) return { error: "Workout not found." };
   const { error } = await db()
     .from("fitness_workouts")
     .update({
@@ -163,6 +371,8 @@ export async function finishWorkout(id: string, input: FinishWorkoutInput): Prom
       minutes: parsed.data.minutes,
       feeling: parsed.data.feeling,
       note: parsed.data.note || null,
+      // Put together as you went: its kind is what most of it was.
+      ...(workout.source === "own" && workout.exercises.length > 0 ? { kind: mainKind(workout.exercises.map((e) => e.kind)) } : {}),
     })
     .eq("id", id);
   if (error) return { error: "Could not save the workout. Try again." };
@@ -213,6 +423,157 @@ export async function logActivity(input: LogActivityInput): Promise<Result> {
   return { error: null };
 }
 
+// Your own workouts
+
+/** A new, empty workout of your own, ready to add exercises to. */
+export async function createRoutine(): Promise<Result & { id?: string }> {
+  await requireSession();
+  const { data, error } = await db().from("fitness_routines").insert({ name: "New workout" }).select("id").single();
+  if (error || !data) return { error: "Could not create it. Try again." };
+  refreshRoutine();
+  return { error: null, id: data.id };
+}
+
+/** Keeps a workout you did (a suggestion, say) as one of your own. */
+export async function saveWorkoutAsRoutine(workoutId: string): Promise<Result & { id?: string }> {
+  await requireSession();
+  if (!isId(workoutId)) return { error: "Workout not found." };
+  const workout = await getWorkout(workoutId);
+  const exercises = workout?.exercises.filter((e) => e.exerciseId) ?? [];
+  if (!workout || exercises.length === 0) return { error: "There are no exercises to keep." };
+
+  const { data: routine, error } = await db().from("fitness_routines").insert({ name: workout.title }).select("id").single();
+  if (error || !routine) return { error: "Could not save it. Try again." };
+  const { error: exercisesError } = await db()
+    .from("fitness_routine_exercises")
+    .insert(
+      exercises.map((e, position) => {
+        const sets = e.logged.length > 0 ? e.logged : null;
+        const first = sets?.find((s) => s.done) ?? sets?.[0];
+        return {
+          routine_id: routine.id,
+          exercise_id: e.exerciseId!,
+          position,
+          sets: Math.min(10, Math.max(1, sets?.length ?? e.sets ?? 3)),
+          reps: first?.targetReps ?? e.reps,
+          seconds: first?.targetSeconds ?? e.seconds,
+          weight_kg: sets?.findLast((s) => s.weightKg !== null)?.weightKg ?? null,
+        };
+      }),
+    );
+  if (exercisesError) {
+    await db().from("fitness_routines").delete().eq("id", routine.id);
+    return { error: "Could not save it. Try again." };
+  }
+  await db().from("fitness_workouts").update({ routine_id: routine.id }).eq("id", workoutId);
+  refreshRoutine();
+  return { error: null, id: routine.id };
+}
+
+export async function updateRoutine(id: string, input: RoutineInput): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Workout not found." };
+  const parsed = routineSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { error } = await db()
+    .from("fitness_routines")
+    .update({ name: parsed.data.name, note: parsed.data.note || null, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { error: "Could not save it. Try again." };
+  refreshRoutine(id);
+  return { error: null };
+}
+
+export async function deleteRoutine(id: string): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Workout not found." };
+  const { error } = await db().from("fitness_routines").delete().eq("id", id);
+  if (error) return { error: "Could not delete it. Try again." };
+  refreshRoutine();
+  return { error: null };
+}
+
+export async function addRoutineExercises(routineId: string, exerciseIds: string[]): Promise<Result> {
+  await requireSession();
+  const parsed = ids.safeParse(exerciseIds);
+  if (!isId(routineId) || !parsed.success) return { error: "Pick at least one exercise." };
+  const [routine, library] = await Promise.all([getRoutine(routineId), listExercises()]);
+  if (!routine) return { error: "Workout not found." };
+  const picked = parsed.data.flatMap((id) => library.filter((e) => e.id === id));
+  const { error } = await db()
+    .from("fitness_routine_exercises")
+    .insert(
+      picked.map((e, i) => ({
+        routine_id: routineId,
+        exercise_id: e.id,
+        position: routine.exercises.length + i,
+        sets: e.measure === "duration" ? 1 : 3,
+        reps: e.measure === "reps" ? e.reps : null,
+        seconds: e.measure === "hold" ? e.seconds : e.measure === "duration" ? 1200 : null,
+      })),
+    );
+  if (error) return { error: "Could not add them. Try again." };
+  refreshRoutine(routineId);
+  return { error: null };
+}
+
+async function routineOf(rowId: string): Promise<string | null> {
+  const { data } = await db().from("fitness_routine_exercises").select("routine_id").eq("id", rowId).maybeSingle();
+  return data?.routine_id ?? null;
+}
+
+/** The plan for one exercise: sets, reps or seconds, and a starting weight. */
+export async function updateRoutineExercise(id: string, input: RoutineExerciseInput): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Exercise not found." };
+  const parsed = routineExerciseSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { data, error } = await db()
+    .from("fitness_routine_exercises")
+    .update({
+      sets: parsed.data.sets,
+      reps: parsed.data.reps,
+      seconds: parsed.data.seconds,
+      weight_kg: parsed.data.weightKg === null ? null : Math.round(parsed.data.weightKg * 10) / 10,
+    })
+    .eq("id", id)
+    .select("routine_id")
+    .maybeSingle();
+  if (error || !data) return { error: "Could not save that. Try again." };
+  refreshRoutine(data.routine_id);
+  return { error: null };
+}
+
+export async function removeRoutineExercise(id: string): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Exercise not found." };
+  const routineId = await routineOf(id);
+  const { error } = await db().from("fitness_routine_exercises").delete().eq("id", id);
+  if (error) return { error: "Could not remove it. Try again." };
+  refreshRoutine(routineId ?? undefined);
+  return { error: null };
+}
+
+/** Moves an exercise one place up or down in your workout. */
+export async function moveRoutineExercise(id: string, direction: -1 | 1): Promise<Result> {
+  await requireSession();
+  if (!isId(id)) return { error: "Exercise not found." };
+  const routineId = await routineOf(id);
+  const routine = routineId ? await getRoutine(routineId) : null;
+  if (!routine) return { error: "Exercise not found." };
+  const order = routine.exercises.map((e) => e.id);
+  const from = order.indexOf(id);
+  const to = from + direction;
+  if (to < 0 || to >= order.length) return { error: null };
+  [order[from], order[to]] = [order[to], order[from]];
+  const results = await Promise.all(
+    order.map((rowId, position) => db().from("fitness_routine_exercises").update({ position }).eq("id", rowId)),
+  );
+  if (results.some((r) => r.error)) return { error: "Could not move it. Try again." };
+  refreshRoutine(routine.id);
+  return { error: null };
+}
+
 // The exercise library
 
 const exerciseColumns = (e: ExerciseInput) => ({
@@ -259,7 +620,7 @@ export async function updateExercise(id: string, input: ExerciseInput): Promise<
 /** Hidden exercises aren't suggested or swapped in; past workouts keep them. */
 export async function setExerciseHidden(id: string, hidden: boolean): Promise<Result> {
   await requireSession();
-  if (!isId(id) || !(await getExercise(id))) return { error: "Exercise not found." };
+  if (!isId(id)) return { error: "Exercise not found." };
   const { error } = await db()
     .from("fitness_exercises")
     .update({ hidden_at: hidden ? new Date().toISOString() : null })

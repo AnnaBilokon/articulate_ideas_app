@@ -12,6 +12,7 @@ export const PALETTES = [
   { id: "pacific", name: "Pacific", swatches: ["#61a0af", "#96c9dc", "#f06c9b", "#f9b9b7", "#f5d491"] },
   { id: "periwinkle", name: "Periwinkle", swatches: ["#e3d7ff", "#afa2ff", "#7a89c2", "#72788d", "#636b61"] },
   { id: "grape-soda", name: "Grape soda", swatches: ["#88498f", "#779fa1", "#e0cba8", "#ff6542", "#564154"] },
+  { id: "amethyst", name: "Amethyst", swatches: ["#99d5c9", "#6c969d", "#645e9d", "#392b58", "#2d0320"] },
 ] as const;
 
 export type PaletteId = (typeof PALETTES)[number]["id"];
@@ -43,7 +44,7 @@ export const WORKSPACE_PALETTES: Record<PaletteWorkspace, readonly PaletteId[]> 
   learning: ["orchard", "lagoon", "rose-mist"],
   growth: ["orchard", "lagoon", "rose-mist"],
   goals: ["grape-soda"],
-  fitness: ["lagoon", "orchard", "rose-mist"],
+  fitness: ["amethyst"],
   money: ["pacific"],
   wishlist: ["periwinkle"],
 };

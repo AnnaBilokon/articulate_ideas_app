@@ -9,23 +9,40 @@ import {
   type Feeling,
   type Measure,
   type Muscle,
+  type Routine,
+  type RoutineExercise,
   type WorkoutKind,
+  type WorkoutSource,
 } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
-// The Fitness workspace: the exercise library and your workouts.
+// The Fitness workspace: the exercise library, your own workouts (routines)
+// and the workouts you've done, set by set.
+
+export type WorkoutSet = {
+  id: string;
+  targetReps: number | null;
+  targetSeconds: number | null;
+  reps: number | null;
+  seconds: number | null;
+  weightKg: number | null;
+  done: boolean;
+};
 
 export type WorkoutExercise = {
   id: string;
   exerciseId: string | null;
   name: string;
+  /** The plan: sets of reps, holds of seconds, or minutes of cardio. */
   sets: number | null;
   reps: number | null;
   seconds: number | null;
   eachSide: boolean;
-  weightKg: number | null;
+  logged: WorkoutSet[];
+  /** Every set ticked off. */
   done: boolean;
-  /** From the library; null once the exercise is deleted from it. */
+  /** From the library; empty or null once the exercise is deleted from it. */
+  kind: ExerciseKind | null;
   equipment: Equipment[];
   measure: Measure | null;
   muscles: Muscle[];
@@ -35,12 +52,14 @@ export type WorkoutExercise = {
 
 export type Workout = {
   id: string;
+  createdAt: string;
   day: string;
   title: string;
   kind: WorkoutKind;
   minutes: number;
   equipment: Equipment[];
-  source: "rules" | "ai" | "logged";
+  source: WorkoutSource;
+  routineId: string | null;
   doneAt: string | null;
   feeling: Feeling | null;
   note: string | null;
@@ -90,17 +109,44 @@ export async function getExercise(id: string): Promise<Exercise | null> {
   return data ? toExercise(data) : null;
 }
 
-const WORKOUT_COLUMNS =
-  "id, day, title, kind, minutes, equipment, source, done_at, feeling, note, fitness_workout_exercises(id, exercise_id, name, position, sets, reps, seconds, each_side, weight_kg, done_at, fitness_exercises(equipment, measure, muscles, how, picture))";
+const SET_COLUMNS = "id, position, target_reps, target_seconds, reps, seconds, weight_kg, done_at";
+
+type SetRow = {
+  id: string;
+  position: number;
+  target_reps: number | null;
+  target_seconds: number | null;
+  reps: number | null;
+  seconds: number | null;
+  weight_kg: number | null;
+  done_at: string | null;
+};
+
+const byPosition = (a: { position: number; id: string }, b: { position: number; id: string }) =>
+  a.position - b.position || a.id.localeCompare(b.id);
+
+const toSet = (s: SetRow): WorkoutSet => ({
+  id: s.id,
+  targetReps: s.target_reps,
+  targetSeconds: s.target_seconds,
+  reps: s.reps,
+  seconds: s.seconds,
+  weightKg: s.weight_kg === null ? null : Number(s.weight_kg),
+  done: s.done_at !== null,
+});
+
+const WORKOUT_COLUMNS = `id, created_at, day, title, kind, minutes, equipment, source, routine_id, done_at, feeling, note, fitness_workout_exercises(id, exercise_id, name, position, sets, reps, seconds, each_side, fitness_sets(${SET_COLUMNS}), fitness_exercises(kind, equipment, measure, muscles, how, picture))`;
 
 type WorkoutRow = {
   id: string;
+  created_at: string;
   day: string;
   title: string;
   kind: string;
   minutes: number;
   equipment: string[];
   source: string;
+  routine_id: string | null;
   done_at: string | null;
   feeling: string | null;
   note: string | null;
@@ -113,27 +159,35 @@ type WorkoutRow = {
     reps: number | null;
     seconds: number | null;
     each_side: boolean;
-    weight_kg: number | null;
-    done_at: string | null;
-    fitness_exercises: { equipment: string[]; measure: string; muscles: string[]; how: string | null; picture: string | null } | null;
+    fitness_sets: SetRow[];
+    fitness_exercises: {
+      kind: string;
+      equipment: string[];
+      measure: string;
+      muscles: string[];
+      how: string | null;
+      picture: string | null;
+    } | null;
   }[];
 };
 
 function toWorkout(r: WorkoutRow): Workout {
   return {
     id: r.id,
+    createdAt: r.created_at,
     day: r.day,
     title: r.title,
     kind: r.kind as WorkoutKind,
     minutes: r.minutes,
     equipment: r.equipment as Equipment[],
-    source: r.source as Workout["source"],
+    source: r.source as WorkoutSource,
+    routineId: r.routine_id,
     doneAt: r.done_at,
     feeling: r.feeling as Feeling | null,
     note: r.note,
-    exercises: [...r.fitness_workout_exercises]
-      .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
-      .map((e) => ({
+    exercises: [...r.fitness_workout_exercises].sort(byPosition).map((e) => {
+      const logged = [...e.fitness_sets].sort(byPosition).map(toSet);
+      return {
         id: e.id,
         exerciseId: e.exercise_id,
         name: e.name,
@@ -141,14 +195,16 @@ function toWorkout(r: WorkoutRow): Workout {
         reps: e.reps,
         seconds: e.seconds,
         eachSide: e.each_side,
-        weightKg: e.weight_kg === null ? null : Number(e.weight_kg),
-        done: e.done_at !== null,
+        logged,
+        done: logged.length > 0 && logged.every((s) => s.done),
+        kind: (e.fitness_exercises?.kind ?? null) as ExerciseKind | null,
         equipment: (e.fitness_exercises?.equipment ?? []) as Equipment[],
         measure: (e.fitness_exercises?.measure ?? null) as Measure | null,
         muscles: (e.fitness_exercises?.muscles ?? []) as Muscle[],
         how: e.fitness_exercises?.how ?? null,
         picture: e.fitness_exercises?.picture ?? null,
-      })),
+      };
+    }),
   };
 }
 
@@ -169,6 +225,42 @@ export async function getWorkout(id: string): Promise<Workout | null> {
   return data ? toWorkout(data) : null;
 }
 
+/** What you did last time with an exercise: the day and each set done. */
+export type LastTime = { day: string; sets: { reps: number | null; seconds: number | null; weightKg: number | null }[] };
+
+/**
+ * For each exercise, its sets from the last finished workout that had it
+ * (not counting `exceptWorkoutId`), so you can see and beat last time.
+ */
+export async function lastTimes(exerciseIds: string[], exceptWorkoutId?: string): Promise<Map<string, LastTime>> {
+  const result = new Map<string, LastTime>();
+  if (exerciseIds.length === 0) return result;
+  const { data } = await db()
+    .from("fitness_workout_exercises")
+    .select(`exercise_id, workout_id, fitness_workouts!inner(day, done_at, created_at), fitness_sets(${SET_COLUMNS})`)
+    .in("exercise_id", [...new Set(exerciseIds)])
+    .not("fitness_workouts.done_at", "is", null)
+    .order("created_at", { referencedTable: "fitness_workouts", ascending: false })
+    .limit(500);
+
+  const rows = (data ?? [])
+    .filter((r) => r.workout_id !== exceptWorkoutId && r.exercise_id)
+    .sort(
+      (a, b) =>
+        b.fitness_workouts.day.localeCompare(a.fitness_workouts.day) ||
+        b.fitness_workouts.created_at.localeCompare(a.fitness_workouts.created_at),
+    );
+  for (const r of rows) {
+    const done = [...r.fitness_sets].sort(byPosition).filter((s) => s.done_at !== null);
+    if (done.length === 0 || result.has(r.exercise_id!)) continue;
+    result.set(r.exercise_id!, {
+      day: r.fitness_workouts.day,
+      sets: done.map((s) => ({ reps: s.reps, seconds: s.seconds, weightKg: s.weight_kg === null ? null : Number(s.weight_kg) })),
+    });
+  }
+  return result;
+}
+
 /** The last two weeks, as the suggestion rules need them. */
 export const RECENT_DAYS = 14;
 
@@ -182,3 +274,89 @@ export function toRecent(workouts: Workout[]): RecentWorkout[] {
 }
 
 export const recentFrom = (today: string) => addDays(today, -RECENT_DAYS);
+
+// Your own workouts
+
+const ROUTINE_COLUMNS =
+  "id, name, note, position, created_at, fitness_routine_exercises(id, exercise_id, position, sets, reps, seconds, weight_kg, fitness_exercises(name, kind, measure, equipment, muscles, picture, each_side))";
+
+type RoutineRow = {
+  id: string;
+  name: string;
+  note: string | null;
+  fitness_routine_exercises: {
+    id: string;
+    exercise_id: string;
+    position: number;
+    sets: number;
+    reps: number | null;
+    seconds: number | null;
+    weight_kg: number | null;
+    fitness_exercises: {
+      name: string;
+      kind: string;
+      measure: string;
+      equipment: string[];
+      muscles: string[];
+      picture: string | null;
+      each_side: boolean;
+    };
+  }[];
+};
+
+function toRoutine(r: RoutineRow, lastDone: string | null): Routine {
+  return {
+    id: r.id,
+    name: r.name,
+    note: r.note,
+    lastDone,
+    exercises: [...r.fitness_routine_exercises].sort(byPosition).map(
+      (e): RoutineExercise => ({
+        id: e.id,
+        exerciseId: e.exercise_id,
+        name: e.fitness_exercises.name,
+        kind: e.fitness_exercises.kind as ExerciseKind,
+        measure: e.fitness_exercises.measure as Measure,
+        equipment: e.fitness_exercises.equipment as Equipment[],
+        muscles: e.fitness_exercises.muscles as Muscle[],
+        picture: e.fitness_exercises.picture,
+        eachSide: e.fitness_exercises.each_side,
+        sets: e.sets,
+        reps: e.reps,
+        seconds: e.seconds,
+        weightKg: e.weight_kg === null ? null : Number(e.weight_kg),
+      }),
+    ),
+  };
+}
+
+async function lastDoneByRoutine(ids: string[]): Promise<Map<string, string>> {
+  const last = new Map<string, string>();
+  if (ids.length === 0) return last;
+  const { data } = await db()
+    .from("fitness_workouts")
+    .select("routine_id, day")
+    .in("routine_id", ids)
+    .not("done_at", "is", null)
+    .order("day", { ascending: false });
+  for (const w of data ?? []) if (w.routine_id && !last.has(w.routine_id)) last.set(w.routine_id, w.day);
+  return last;
+}
+
+/** Your own workouts, in your order, then newest first. */
+export async function listRoutines(): Promise<Routine[]> {
+  const { data } = await db()
+    .from("fitness_routines")
+    .select(ROUTINE_COLUMNS)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: false });
+  const last = await lastDoneByRoutine((data ?? []).map((r) => r.id));
+  return (data ?? []).map((r) => toRoutine(r, last.get(r.id) ?? null));
+}
+
+export async function getRoutine(id: string): Promise<Routine | null> {
+  const { data } = await db().from("fitness_routines").select(ROUTINE_COLUMNS).eq("id", id).maybeSingle();
+  if (!data) return null;
+  const last = await lastDoneByRoutine([id]);
+  return toRoutine(data, last.get(id) ?? null);
+}
