@@ -6,7 +6,7 @@ import { ArrowRight, Loader2, Play, Shuffle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { suggestWorkouts, type RecentWorkout } from "@/lib/fitness-plan";
+import { suggestFromRoutines, suggestWorkouts, type RecentWorkout } from "@/lib/fitness-plan";
 import { noSubscribe, readStored, writeStored } from "@/lib/local-draft";
 import {
   EQUIPMENT_LABELS,
@@ -14,19 +14,23 @@ import {
   equipmentKinds,
   exerciseKinds,
   KIND_LABELS,
+  formatKg,
   prescription,
   type Equipment,
   type Exercise,
   type ExerciseKind,
+  type Routine,
   type WorkoutPlan,
 } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { startWorkout } from "./actions";
 import { Chip, KindBadge, minutesLabel } from "./fitness-bits";
 
-// "How much time do you have?": pick the time, the kind and what's at hand,
-// and get three ideas from rules (instant, free). None fit? Shuffle, or ask
-// Claude for something different.
+// "How much time do you have?": pick the time, the kind and what's at hand.
+// Ideas come from your own workouts first (each fitted to the time, or a mix
+// of their exercises for the muscle groups that have had least this week),
+// then from the library; all from rules, instant and free. None fit?
+// Shuffle, or ask Claude for something different.
 
 type Choices = { minutes: number; kind: ExerciseKind | "any"; equipment: Equipment[] };
 
@@ -48,7 +52,17 @@ function parseChoices(stored: string): Choices {
   }
 }
 
-export function TodayPlanner({ library, recent, today }: { library: Exercise[]; recent: RecentWorkout[]; today: string }) {
+export function TodayPlanner({
+  library,
+  routines,
+  recent,
+  today,
+}: {
+  library: Exercise[];
+  routines: Routine[];
+  recent: RecentWorkout[];
+  today: string;
+}) {
   const router = useRouter();
   const stored = useSyncExternalStore(noSubscribe, () => readStored(CHOICES_KEY), () => "");
   const [edited, setEdited] = useState<Choices | null>(null);
@@ -57,7 +71,8 @@ export function TodayPlanner({ library, recent, today }: { library: Exercise[]; 
   const [ai, setAi] = useState<WorkoutPlan[] | null>(null);
   const [wish, setWish] = useState("");
   const [asking, setAsking] = useState(false);
-  const [starting, setStarting] = useState<number | null>(null);
+  const [starting, setStarting] = useState<string | null>(null);
+  const [moreIdeas, setMoreIdeas] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -71,8 +86,9 @@ export function TodayPlanner({ library, recent, today }: { library: Exercise[]; 
 
   const kinds = choices.kind === "any" ? [] : [choices.kind];
   // Quick to work out, and the same choices and seed always give the same ideas.
-  const ideas = suggestWorkouts(library, recent, { minutes: choices.minutes, kinds, equipment: choices.equipment }, today, seed);
-  const shown = ai ?? ideas;
+  const plan = { minutes: choices.minutes, kinds, equipment: choices.equipment };
+  const mine = routines.length > 0 ? suggestFromRoutines(routines, library, recent, plan, today, seed) : [];
+  const ideas = suggestWorkouts(library, recent, plan, today, seed);
 
   async function askAi() {
     setAsking(true);
@@ -93,8 +109,8 @@ export function TodayPlanner({ library, recent, today }: { library: Exercise[]; 
     }
   }
 
-  function start(plan: WorkoutPlan, index: number) {
-    setStarting(index);
+  function start(plan: WorkoutPlan, key: string) {
+    setStarting(key);
     setError(null);
     startTransition(async () => {
       const result = await startWorkout({ plan, equipment: choices.equipment, source: ai ? "ai" : "rules" });
@@ -158,35 +174,46 @@ export function TodayPlanner({ library, recent, today }: { library: Exercise[]; 
       <section className="flex flex-col gap-3" aria-labelledby="ideas">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="ideas" className="text-lg font-semibold tracking-tight text-heading">
-            {ai ? "Claude's ideas" : "Ideas for today"}
+            {ai ? "Claude's ideas" : mine.length > 0 ? "From your workouts" : "Ideas for today"}
           </h2>
           {ai ? (
             <Button variant="ghost" size="sm" onClick={() => setAi(null)} disabled={busy}>
               Back to the first ideas
             </Button>
           ) : (
-            shown.length > 0 && (
+            (mine.length > 0 || ideas.length > 0) && (
               <Button variant="ghost" size="sm" onClick={() => setSeed(seed + 1)} disabled={busy}>
                 <Shuffle className="size-3.5" /> Other ideas
               </Button>
             )
           )}
         </div>
+        {!ai && mine.length > 0 && (
+          <p className="-mt-2 text-sm text-muted-foreground">
+            Fitted to {minutesLabel(choices.minutes)}, for the muscle groups that have had least this week.
+          </p>
+        )}
 
-        {shown.length === 0 ? (
+        {ai ? (
+          <IdeaList plans={ai} prefix="ai" starting={starting} busy={busy} onStart={start} />
+        ) : mine.length > 0 ? (
+          <>
+            <IdeaList plans={mine} prefix="mine" starting={starting} busy={busy} onStart={start} yours />
+            {ideas.length > 0 && (
+              <Button variant="ghost" className="w-fit text-muted-foreground" onClick={() => setMoreIdeas(!moreIdeas)}>
+                {moreIdeas ? "Hide the other ideas" : "More ideas from the exercise library"}
+              </Button>
+            )}
+            {moreIdeas && <IdeaList plans={ideas} prefix="library" starting={starting} busy={busy} onStart={start} />}
+          </>
+        ) : ideas.length === 0 ? (
           <p className="rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">
             {choices.equipment.length === 0
               ? "Pick what you have: Bodyweight if nothing."
               : "Nothing in your library fits that. Pick more equipment, another kind, or add exercises."}
           </p>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {shown.map((plan, i) => (
-              <li key={`${plan.title}-${i}`}>
-                <IdeaCard plan={plan} onStart={() => start(plan, i)} starting={starting === i} disabled={busy} />
-              </li>
-            ))}
-          </ul>
+          <IdeaList plans={ideas} prefix="library" starting={starting} busy={busy} onStart={start} />
         )}
 
         <Card className="rounded-2xl bg-accent/60 shadow-none ring-0">
@@ -229,6 +256,35 @@ export function TodayPlanner({ library, recent, today }: { library: Exercise[]; 
   );
 }
 
+function IdeaList({
+  plans,
+  prefix,
+  starting,
+  busy,
+  onStart,
+  yours,
+}: {
+  plans: WorkoutPlan[];
+  prefix: string;
+  starting: string | null;
+  busy: boolean;
+  onStart: (plan: WorkoutPlan, key: string) => void;
+  yours?: boolean;
+}) {
+  return (
+    <ul className="flex flex-col gap-3">
+      {plans.map((plan, i) => {
+        const key = `${prefix}-${i}`;
+        return (
+          <li key={`${key}-${plan.title}`}>
+            <IdeaCard plan={plan} onStart={() => onStart(plan, key)} starting={starting === key} disabled={busy} yours={yours} />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 const SHOWN_EXERCISES = 6;
 
 function IdeaCard({
@@ -236,11 +292,13 @@ function IdeaCard({
   onStart,
   starting,
   disabled,
+  yours,
 }: {
   plan: WorkoutPlan;
   onStart: () => void;
   starting: boolean;
   disabled: boolean;
+  yours?: boolean;
 }) {
   const [all, setAll] = useState(false);
   const exercises = all ? plan.exercises : plan.exercises.slice(0, SHOWN_EXERCISES);
@@ -251,6 +309,11 @@ function IdeaCard({
           <div className="flex min-w-0 flex-col gap-1">
             <span className="flex flex-wrap items-center gap-2">
               <KindBadge kind={plan.kind} />
+              {yours && (
+                <span className="rounded-full bg-highlight px-2.5 py-0.5 text-xs font-medium text-highlight-foreground">
+                  {plan.routineId ? "Your workout" : "Your exercises"}
+                </span>
+              )}
               <span className="text-xs text-muted-foreground">about {minutesLabel(plan.minutes)}</span>
             </span>
             <h3 className="text-lg font-semibold text-heading">{plan.title}</h3>
@@ -264,7 +327,10 @@ function IdeaCard({
           {exercises.map((e, i) => (
             <li key={`${e.name}-${i}`} className="flex items-baseline justify-between gap-3 py-1.5">
               <span>{e.name}</span>
-              <span className="shrink-0 text-muted-foreground tabular-nums">{prescription(e)}</span>
+              <span className="shrink-0 text-muted-foreground tabular-nums">
+                {prescription(e)}
+                {e.weightKg ? ` · ${formatKg(e.weightKg)} kg` : ""}
+              </span>
             </li>
           ))}
         </ol>

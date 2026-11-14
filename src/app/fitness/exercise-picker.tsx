@@ -177,7 +177,7 @@ export function ExercisePicker({
                       on && "bg-highlight/35 hover:bg-highlight/45",
                     )}
                   >
-                    <ExerciseThumb exercise={e} className="size-12" />
+                    <ExerciseThumb exercise={e} className="size-16" />
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="font-medium">{e.name}</span>
                       <span className="truncate text-xs text-muted-foreground">

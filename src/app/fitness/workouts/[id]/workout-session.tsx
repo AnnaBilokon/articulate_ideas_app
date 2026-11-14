@@ -51,6 +51,7 @@ import {
 } from "../../actions";
 import { ExercisePicker, ExerciseThumb } from "../../exercise-picker";
 import { Chip, ExerciseHow, minutesLabel } from "../../fitness-bits";
+import { WorkoutGaps } from "../../gaps";
 
 // A workout, set by set: type the weight and reps you really did (7 of a
 // planned 12 is kept as 7) and tick the set. Last time's sets sit beside
@@ -108,6 +109,8 @@ export function WorkoutSession({
   // Left open for hours: the clock no longer means anything.
   const showClock = elapsed !== null && elapsed < 6 * 3600_000;
   const restLeft = rest && now !== null ? rest.endsAt - now : null;
+  const gapItems = workout.exercises.map((e) => ({ exerciseId: e.exerciseId, kind: e.kind, muscles: e.muscles }));
+  const equipment = workout.equipment.length > 0 ? workout.equipment : [...new Set(workout.exercises.flatMap((e) => e.equipment))];
 
   useEffect(() => {
     if (restLeft === null || restLeft > 0) return;
@@ -131,11 +134,8 @@ export function WorkoutSession({
 
       {done && <DoneSummary workout={workout} />}
 
-      {!done && workout.exercises.length > 0 && workout.minutes >= 20 && workout.kind !== "mobility" && setsDone === 0 && (
-        <p className="flex items-start gap-2 rounded-2xl bg-accent px-4 py-3 text-sm text-accent-foreground">
-          <Info className="mt-0.5 size-4 shrink-0" />
-          Warm up first: 3 minutes of easy movement, like marching on the spot and arm circles.
-        </p>
+      {!done && setsDone === 0 && (
+        <WorkoutGaps items={gapItems} library={library} equipment={equipment} target={{ workoutId: workout.id }} only={["warmup"]} />
       )}
 
       {workout.exercises.length === 0 && !done && (
@@ -161,6 +161,16 @@ export function WorkoutSession({
           </li>
         ))}
       </ol>
+
+      {!done && (
+        <WorkoutGaps
+          items={gapItems}
+          library={library}
+          equipment={equipment}
+          target={{ workoutId: workout.id }}
+          only={["muscle", "cooldown"]}
+        />
+      )}
 
       {!done && workout.exercises.length > 0 && (
         <Button variant="outline" size="lg" className="h-12 rounded-2xl border-dashed text-base" onClick={() => setPicking(true)}>
@@ -205,6 +215,7 @@ export function WorkoutSession({
         <FinishDialog
           workout={workout}
           suggestedMinutes={showClock ? Math.max(1, Math.round(elapsed / 60_000)) : workout.minutes}
+          setsDone={setsDone}
           setsLeft={allSets.length - setsDone}
           onClose={() => setFinishing(false)}
         />
@@ -296,7 +307,7 @@ function ExerciseCard({
     >
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => setShowHow(!showHow)} aria-label={`How to do ${e.name}`} className="shrink-0">
-          <ExerciseThumb exercise={e} className="size-14" />
+          <ExerciseThumb exercise={e} className="size-20 sm:size-24" />
         </button>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h2 className="leading-snug font-semibold text-heading">{e.name}</h2>
@@ -340,7 +351,7 @@ function ExerciseCard({
         </DropdownMenu>
       </div>
 
-      {showHow && <ExerciseHow name={e.name} how={e.how} picture={e.picture} />}
+      {showHow && <ExerciseHow name={e.name} how={e.how} picture={e.picture} steps={e.steps} />}
 
       <div className="flex flex-col gap-1.5">
         <div className={cn("grid items-center gap-2 px-1 text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase", columns)}>
@@ -502,14 +513,17 @@ function SetRow({
 function FinishDialog({
   workout,
   suggestedMinutes,
+  setsDone,
   setsLeft,
   onClose,
 }: {
   workout: Workout;
   suggestedMinutes: number;
+  setsDone: number;
   setsLeft: number;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [minutes, setMinutes] = useState(String(suggestedMinutes));
   const [feeling, setFeeling] = useState<Feeling | null>(null);
   const [note, setNote] = useState("");
@@ -523,19 +537,47 @@ function FinishDialog({
         <Dialog.Popup className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col gap-4 overflow-y-auto rounded-t-3xl bg-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-card-foreground shadow-2xl ring-1 ring-foreground/10 sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl">
           <div className="flex items-center justify-between gap-2">
             <Dialog.Title className="text-lg font-semibold text-heading">
-              {setsLeft === 0 ? "All done. Nice work!" : "Finish the workout?"}
+              {setsDone === 0 ? "Nothing ticked yet" : setsLeft === 0 ? "All done. Nice work!" : "Finish the workout?"}
             </Dialog.Title>
             <Dialog.Close render={<Button variant="ghost" size="icon" aria-label="Close" disabled={pending} />}>
               <X className="size-4" />
             </Dialog.Close>
           </div>
-          {setsLeft > 0 && (
+          {setsDone === 0 && (
+            <div className="flex flex-col gap-3">
+              <p className="-mt-2 text-sm text-muted-foreground">
+                A workout is saved once you tick a set. Carry on, or leave without saving it.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="lg" className="h-11 rounded-xl" onClick={onClose}>
+                  Carry on
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  className="h-11 rounded-xl text-muted-foreground hover:text-coral-foreground"
+                  disabled={pending}
+                  onClick={() =>
+                    start(async () => {
+                      const result = await deleteWorkout(workout.id);
+                      if (result.error) setError(result.error);
+                      else router.push("/fitness");
+                    })
+                  }
+                >
+                  {pending ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Leave without saving
+                </Button>
+              </div>
+              {error && <p className="text-sm text-coral-foreground">{error}</p>}
+            </div>
+          )}
+          {setsDone > 0 && setsLeft > 0 && (
             <p className="-mt-2 text-sm text-muted-foreground">
               {setsLeft} {setsLeft === 1 ? "set isn't" : "sets aren't"} ticked. That&apos;s fine: what you did counts.
             </p>
           )}
           <form
-            className="flex flex-col gap-4"
+            className={cn("flex flex-col gap-4", setsDone === 0 && "hidden")}
             onSubmit={(x) => {
               x.preventDefault();
               start(async () => {

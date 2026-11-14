@@ -74,6 +74,8 @@ export type Exercise = {
   how: string | null;
   /** Start and end photos, in public/exercise-pictures; null for none. */
   picture: string | null;
+  /** Step-by-step instructions, for exercises from the Free Exercise DB. */
+  steps: string[];
   hidden: boolean;
 };
 
@@ -85,6 +87,8 @@ export type PlannedExercise = {
   reps: number | null;
   seconds: number | null;
   eachSide: boolean;
+  /** A weight to start from, from your own workout; last time's wins. */
+  weightKg?: number | null;
 };
 
 export type WorkoutPlan = {
@@ -94,6 +98,8 @@ export type WorkoutPlan = {
   /** Why this one today, in a line ("Legs rested since Monday"). */
   why: string | null;
   exercises: PlannedExercise[];
+  /** One of your own workouts, fitted to the time. */
+  routineId?: string | null;
 };
 
 const name = z.string().trim().min(1, "Give it a name.").max(80, "Keep the name under 80 characters.");
@@ -122,6 +128,7 @@ const plannedExerciseSchema = z.object({
   reps: z.number().int().min(1).max(100).nullable(),
   seconds: z.number().int().min(5).max(7200).nullable(),
   eachSide: z.boolean(),
+  weightKg: z.number().min(0).max(999).nullable().optional(),
 });
 
 export const workoutPlanSchema = z.object({
@@ -130,6 +137,7 @@ export const workoutPlanSchema = z.object({
   minutes: z.number().int().min(1).max(600),
   why: z.string().max(300).nullable(),
   exercises: z.array(plannedExerciseSchema).min(1).max(20),
+  routineId: z.uuid().nullable().optional(),
 });
 
 export const startWorkoutSchema = z.object({

@@ -17,6 +17,7 @@ import {
   updateRoutineExercise,
 } from "../../actions";
 import { ExercisePicker, ExerciseThumb } from "../../exercise-picker";
+import { WorkoutGaps } from "../../gaps";
 
 // Your own workout: the exercises you like, in your order, each with its
 // sets, reps (or seconds, or minutes) and a weight to start from. Starting
@@ -91,6 +92,15 @@ export function RoutineEditor({ routine, library }: { routine: Routine; library:
             </li>
           ))}
         </ol>
+      )}
+
+      {routine.exercises.length > 0 && (
+        <WorkoutGaps
+          items={routine.exercises}
+          library={library}
+          equipment={[...new Set(routine.exercises.flatMap((e) => e.equipment))]}
+          target={{ routineId: routine.id }}
+        />
       )}
 
       {routine.exercises.length > 0 && (
@@ -190,7 +200,7 @@ function PlanCard({
   return (
     <section className="flex flex-col gap-3 rounded-3xl bg-card p-4 shadow-sm ring-1 ring-foreground/10" aria-label={e.name}>
       <div className="flex items-center gap-3">
-        <ExerciseThumb exercise={e} className="size-12" />
+        <ExerciseThumb exercise={e} className="size-20" />
         <div className="flex min-w-0 flex-1 flex-col">
           <h2 className="leading-snug font-semibold text-heading">{e.name}</h2>
           <span className="truncate text-xs text-muted-foreground">

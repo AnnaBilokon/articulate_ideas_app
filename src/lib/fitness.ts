@@ -48,6 +48,7 @@ export type WorkoutExercise = {
   muscles: Muscle[];
   how: string | null;
   picture: string | null;
+  steps: string[];
 };
 
 export type Workout = {
@@ -66,7 +67,7 @@ export type Workout = {
   exercises: WorkoutExercise[];
 };
 
-const EXERCISE_COLUMNS = "id, name, kind, equipment, muscles, measure, reps, seconds, each_side, how, picture, hidden_at";
+const EXERCISE_COLUMNS = "id, name, kind, equipment, muscles, measure, reps, seconds, each_side, how, picture, steps, hidden_at";
 
 type ExerciseRow = {
   id: string;
@@ -80,6 +81,7 @@ type ExerciseRow = {
   each_side: boolean;
   how: string | null;
   picture: string | null;
+  steps: string[] | null;
   hidden_at: string | null;
 };
 
@@ -95,6 +97,7 @@ export const toExercise = (r: ExerciseRow): Exercise => ({
   eachSide: r.each_side,
   how: r.how,
   picture: r.picture,
+  steps: r.steps ?? [],
   hidden: r.hidden_at !== null,
 });
 
@@ -135,7 +138,7 @@ const toSet = (s: SetRow): WorkoutSet => ({
   done: s.done_at !== null,
 });
 
-const WORKOUT_COLUMNS = `id, created_at, day, title, kind, minutes, equipment, source, routine_id, done_at, feeling, note, fitness_workout_exercises(id, exercise_id, name, position, sets, reps, seconds, each_side, fitness_sets(${SET_COLUMNS}), fitness_exercises(kind, equipment, measure, muscles, how, picture))`;
+const WORKOUT_COLUMNS = `id, created_at, day, title, kind, minutes, equipment, source, routine_id, done_at, feeling, note, fitness_workout_exercises(id, exercise_id, name, position, sets, reps, seconds, each_side, fitness_sets(${SET_COLUMNS}), fitness_exercises(kind, equipment, measure, muscles, how, picture, steps))`;
 
 type WorkoutRow = {
   id: string;
@@ -167,6 +170,7 @@ type WorkoutRow = {
       muscles: string[];
       how: string | null;
       picture: string | null;
+      steps: string[] | null;
     } | null;
   }[];
 };
@@ -203,6 +207,7 @@ function toWorkout(r: WorkoutRow): Workout {
         muscles: (e.fitness_exercises?.muscles ?? []) as Muscle[],
         how: e.fitness_exercises?.how ?? null,
         picture: e.fitness_exercises?.picture ?? null,
+        steps: e.fitness_exercises?.steps ?? [],
       };
     }),
   };

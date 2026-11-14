@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Loader2, Play, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { createRoutine, startEmptyWorkout, startRoutine } from "./actions";
+import { createRoutine, startRoutine } from "./actions";
 
 // Buttons that start something and open it: a workout of your own, an empty
 // one, or a new workout to put together.
@@ -30,20 +31,12 @@ const errorLine = (error: string | null) =>
     </span>
   );
 
+/** Put a workout together as you go; it's saved once it has exercises. */
 export function StartEmptyButton({ className }: { className?: string }) {
-  const { error, pending, run } = useStart();
   return (
-    <span className="flex flex-col gap-1">
-      <Button
-        size="lg"
-        disabled={pending}
-        className={cn("h-12 rounded-xl px-5 text-base", className)}
-        onClick={() => run(startEmptyWorkout, (id) => `/fitness/workouts/${id}`)}
-      >
-        {pending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4.5" />} Start empty workout
-      </Button>
-      {errorLine(error)}
-    </span>
+    <Link href="/fitness/workouts/new" className={cn(buttonVariants({ size: "lg" }), "h-12 rounded-xl px-5 text-base", className)}>
+      <Plus className="size-4.5" /> Start empty workout
+    </Link>
   );
 }
 

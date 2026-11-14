@@ -96,7 +96,7 @@ function ExerciseRow({ exercise: e, onEdit }: { exercise: Exercise; onEdit: () =
       onClick={onEdit}
       className="group flex w-full items-center gap-3 rounded-2xl bg-card p-2.5 text-left shadow-sm ring-1 ring-foreground/10 transition-shadow hover:shadow-md hover:ring-primary/30 sm:p-3"
     >
-      <ExerciseThumb exercise={e} className="size-14" />
+      <ExerciseThumb exercise={e} className="size-20" />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{e.name}</span>
@@ -168,7 +168,7 @@ function ExerciseEditor({ existing, onClose }: { existing: Exercise | null; onCl
             </Dialog.Close>
           </div>
 
-          {existing && <ExerciseHow name={existing.name} how={null} picture={existing.picture} />}
+          {existing && <ExerciseHow name={existing.name} how={null} picture={existing.picture} steps={existing.steps} />}
 
           <form
             className="flex flex-col gap-4"

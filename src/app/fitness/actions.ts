@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { getRoutine, getWorkout, lastTimes, listExercises, type Workout } from "@/lib/fitness";
-import { swapFor } from "@/lib/fitness-plan";
+import { coolDownFor, mainKind, swapFor, warmUpFor } from "@/lib/fitness-plan";
 import { localDate } from "@/lib/schedule";
 import {
   addDays,
@@ -48,14 +48,6 @@ function refresh(workoutId?: string) {
 function refreshRoutine(routineId?: string) {
   revalidatePath("/fitness");
   if (routineId) revalidatePath(`/fitness/routines/${routineId}`);
-}
-
-/** The kind most of the exercises are; strength when it's a tie. */
-function mainKind(kinds: (ExerciseKind | null)[]): ExerciseKind {
-  const counts = new Map<ExerciseKind, number>();
-  for (const k of kinds) if (k) counts.set(k, (counts.get(k) ?? 0) + 1);
-  const top = Math.max(0, ...counts.values());
-  return (counts.get("strength") ?? 0) === top ? "strength" : ([...counts].find(([, n]) => n === top)?.[0] ?? "strength");
 }
 
 /** An exercise as it goes into a workout: the plan, and a weight to start from. */
@@ -109,6 +101,13 @@ async function insertExercises(workoutId: string, items: NewExercise[], from: nu
   return !setsError;
 }
 
+/** Started but never given an exercise: not a workout, so it goes. */
+async function dropEmptyWorkouts() {
+  const { data } = await db().from("fitness_workouts").select("id, fitness_workout_exercises(id)").is("done_at", null);
+  const empty = (data ?? []).filter((w) => w.fitness_workout_exercises.length === 0).map((w) => w.id);
+  if (empty.length > 0) await db().from("fitness_workouts").delete().in("id", empty);
+}
+
 async function createWorkout(w: {
   title: string;
   kind: ExerciseKind;
@@ -117,6 +116,7 @@ async function createWorkout(w: {
   source: WorkoutSource;
   routineId?: string;
 }): Promise<string | null> {
+  await dropEmptyWorkouts();
   const { data } = await db()
     .from("fitness_workouts")
     .insert({
@@ -143,7 +143,16 @@ export async function startWorkout(input: StartWorkoutInput): Promise<Result & {
   if (!parsed.success) return { error: "That workout didn't come through right. Try another." };
   const { plan, equipment, source } = parsed.data;
 
-  const id = await createWorkout({ title: plan.title, kind: plan.kind, minutes: plan.minutes, equipment, source });
+  // One of your own workouts, fitted to the time: it counts as doing that one.
+  const routineId = plan.routineId ?? undefined;
+  const id = await createWorkout({
+    title: plan.title,
+    kind: plan.kind,
+    minutes: plan.minutes,
+    equipment,
+    source: routineId ? "routine" : source,
+    routineId,
+  });
   if (!id) return { error: "Could not start the workout. Try again." };
   if (!(await insertExercises(id, plan.exercises.map((e) => ({ ...e, measure: measureOf(e) })), 0))) {
     await db().from("fitness_workouts").delete().eq("id", id);
@@ -201,11 +210,31 @@ export async function startRoutine(routineId: string): Promise<Result & { id?: s
   return { error: null, id };
 }
 
-/** An empty workout, to add exercises to as you go. */
-export async function startEmptyWorkout(): Promise<Result & { id?: string }> {
+/**
+ * A workout you put together as you go. It's only saved once it has its
+ * first exercises, so an empty one never shows up in your week.
+ */
+export async function startOwnWorkout(title: string, exerciseIds: string[]): Promise<Result & { id?: string }> {
   await requireSession();
-  const id = await createWorkout({ title: "Workout", kind: "strength", minutes: 30, equipment: [], source: "own" });
+  const name = z.string().trim().min(1).max(80).catch("Workout").parse(title);
+  const parsed = ids.safeParse(exerciseIds);
+  if (!parsed.success) return { error: "Pick at least one exercise." };
+  const library = await listExercises();
+  const picked = parsed.data.flatMap((id) => library.filter((e) => e.id === id));
+  if (picked.length === 0) return { error: "Pick at least one exercise." };
+
+  const id = await createWorkout({
+    title: name,
+    kind: mainKind(picked.map((e) => e.kind)),
+    minutes: 30,
+    equipment: [...new Set(picked.flatMap((e) => e.equipment))],
+    source: "own",
+  });
   if (!id) return { error: "Could not start the workout. Try again." };
+  if (!(await insertExercises(id, picked.map(fromLibrary), 0))) {
+    await db().from("fitness_workouts").delete().eq("id", id);
+    return { error: "Could not start the workout. Try again." };
+  }
   refresh();
   return { error: null, id };
 }
@@ -230,6 +259,52 @@ export async function addWorkoutExercises(workoutId: string, exerciseIds: string
   const from = Math.max(-1, ...workout.exercises.map((_, i) => i)) + 1;
   if (!(await insertExercises(workoutId, picked.map(fromLibrary), from))) return { error: "Could not add them. Try again." };
   refresh(workoutId);
+  return { error: null };
+}
+
+// A warm-up before, or stretching after: the moves the suggestion showed.
+
+type Target = { workoutId: string } | { routineId: string };
+
+export async function addWarmUpOrCoolDown(target: Target, which: "warmup" | "cooldown"): Promise<Result> {
+  await requireSession();
+  const id = "workoutId" in target ? target.workoutId : target.routineId;
+  if (!isId(id)) return { error: "Workout not found." };
+  const library = await listExercises();
+
+  const items =
+    "workoutId" in target
+      ? ((await getWorkout(id))?.exercises.map((e) => ({ rowId: e.id, exerciseId: e.exerciseId, kind: e.kind, muscles: e.muscles })) ?? null)
+      : ((await getRoutine(id))?.exercises.map((e) => ({ rowId: e.id, exerciseId: e.exerciseId, kind: e.kind, muscles: e.muscles })) ?? null);
+  if (!items) return { error: "Workout not found." };
+  const worked = [...new Set(items.filter((i) => i.kind === "strength").flatMap((i) => i.muscles))];
+  const taken = new Set(items.flatMap((i) => (i.exerciseId ? [i.exerciseId] : [])));
+  const moves = which === "warmup" ? warmUpFor(library, worked, taken) : coolDownFor(library, worked, taken);
+  if (moves.length === 0) return { error: "Nothing to add with your exercises." };
+
+  // A warm-up goes first: everything else moves down to make room.
+  const table = "workoutId" in target ? "fitness_workout_exercises" : "fitness_routine_exercises";
+  if (which === "warmup") {
+    const moved = await Promise.all(items.map((i, n) => db().from(table).update({ position: moves.length + n }).eq("id", i.rowId)));
+    if (moved.some((r) => r.error)) return { error: "Could not add it. Try again." };
+  }
+  const from = which === "warmup" ? 0 : items.length;
+
+  if ("workoutId" in target) {
+    const ok = await insertExercises(
+      id,
+      moves.map((e) => ({ exerciseId: e.id, name: e.name, measure: "hold", sets: 1, reps: null, seconds: e.seconds, eachSide: e.eachSide })),
+      from,
+    );
+    if (!ok) return { error: "Could not add it. Try again." };
+    refresh(id);
+  } else {
+    const { error } = await db()
+      .from("fitness_routine_exercises")
+      .insert(moves.map((e, i) => ({ routine_id: id, exercise_id: e.id, position: from + i, sets: 1, reps: null, seconds: e.seconds })));
+    if (error) return { error: "Could not add it. Try again." };
+    refreshRoutine(id);
+  }
   return { error: null };
 }
 
@@ -364,6 +439,8 @@ export async function finishWorkout(id: string, input: FinishWorkoutInput): Prom
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const workout = await getWorkout(id);
   if (!workout) return { error: "Workout not found." };
+  // Nothing done: nothing to save.
+  if (!workout.exercises.some((e) => e.logged.some((s) => s.done))) return { error: "Tick at least one set first." };
   const { error } = await db()
     .from("fitness_workouts")
     .update({
