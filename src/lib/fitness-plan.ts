@@ -553,7 +553,9 @@ function optionsFor(library: Exercise[], muscle: Muscle, equipment: Equipment[],
   );
   // Ones that mainly work it, when there are a couple; others only to make up the number.
   const main = fits.filter((e) => e.muscles[0] === muscle);
-  return rankBy(main.length >= 2 ? main : fits, (e) => (e.picture ? 1 : 0) + (e.muscles[0] === muscle ? 1.5 : 0) - 0.3 * e.muscles.length, rand).slice(0, 3);
+  // The everyday ones first (the starter library, with its short cues): a
+  // row before a shrug or a scapular pull-up.
+  return rankBy(main.length >= 2 ? main : fits, (e) => (e.picture ? 1 : 0) + (e.muscles[0] === muscle ? 1.5 : 0) + (e.how ? 1.5 : 0), rand).slice(0, 3);
 }
 
 /** About five minutes to get warm: one move to raise the pulse, then a few for today's muscles. */
