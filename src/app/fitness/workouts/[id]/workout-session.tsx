@@ -296,7 +296,7 @@ function ExerciseCard({
     >
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => setShowHow(!showHow)} aria-label={`How to do ${e.name}`} className="shrink-0">
-          <ExerciseThumb exercise={e} className="size-14" />
+          <ExerciseThumb exercise={e} className="size-20 sm:size-24" />
         </button>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h2 className="leading-snug font-semibold text-heading">{e.name}</h2>

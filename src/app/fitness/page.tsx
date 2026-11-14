@@ -67,6 +67,26 @@ export default async function FitnessTodayPage() {
         </section>
       )}
 
+      <details className="group rounded-3xl bg-card shadow-sm ring-1 ring-foreground/10" open>
+        <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
+            <Sparkles className="size-5" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="font-semibold text-heading">Plan today</span>
+            <span className="text-sm text-muted-foreground">
+              {routines.length > 0
+                ? "Pick your time: built from your workouts and your week"
+                : "Pick the time and what you have, and get a workout"}
+            </span>
+          </span>
+          <ChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t px-4 pt-4 pb-5 sm:px-5">
+          <TodayPlanner library={library} routines={routines} recent={toRecent(workouts)} today={today} />
+        </div>
+      </details>
+
       <section className="flex flex-col gap-3" aria-labelledby="my-workouts">
         <div className="flex items-baseline justify-between gap-2">
           <h2 id="my-workouts" className="text-xl font-semibold tracking-tight text-heading">
@@ -90,22 +110,6 @@ export default async function FitnessTodayPage() {
           </li>
         </ul>
       </section>
-
-      <details className="group rounded-3xl bg-card shadow-sm ring-1 ring-foreground/10" open={routines.length === 0}>
-        <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
-            <Sparkles className="size-5" />
-          </span>
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="font-semibold text-heading">Need an idea?</span>
-            <span className="text-sm text-muted-foreground">Pick the time and what you have, and get a workout</span>
-          </span>
-          <ChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="border-t px-4 pt-4 pb-5 sm:px-5">
-          <TodayPlanner library={library} recent={toRecent(workouts)} today={today} />
-        </div>
-      </details>
 
       <LogActivity today={today} />
     </main>

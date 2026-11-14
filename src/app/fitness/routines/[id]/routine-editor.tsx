@@ -190,7 +190,7 @@ function PlanCard({
   return (
     <section className="flex flex-col gap-3 rounded-3xl bg-card p-4 shadow-sm ring-1 ring-foreground/10" aria-label={e.name}>
       <div className="flex items-center gap-3">
-        <ExerciseThumb exercise={e} className="size-12" />
+        <ExerciseThumb exercise={e} className="size-20" />
         <div className="flex min-w-0 flex-1 flex-col">
           <h2 className="leading-snug font-semibold text-heading">{e.name}</h2>
           <span className="truncate text-xs text-muted-foreground">

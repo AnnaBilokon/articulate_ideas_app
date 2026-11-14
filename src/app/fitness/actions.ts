@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { getRoutine, getWorkout, lastTimes, listExercises, type Workout } from "@/lib/fitness";
-import { swapFor } from "@/lib/fitness-plan";
+import { mainKind, swapFor } from "@/lib/fitness-plan";
 import { localDate } from "@/lib/schedule";
 import {
   addDays,
@@ -48,14 +48,6 @@ function refresh(workoutId?: string) {
 function refreshRoutine(routineId?: string) {
   revalidatePath("/fitness");
   if (routineId) revalidatePath(`/fitness/routines/${routineId}`);
-}
-
-/** The kind most of the exercises are; strength when it's a tie. */
-function mainKind(kinds: (ExerciseKind | null)[]): ExerciseKind {
-  const counts = new Map<ExerciseKind, number>();
-  for (const k of kinds) if (k) counts.set(k, (counts.get(k) ?? 0) + 1);
-  const top = Math.max(0, ...counts.values());
-  return (counts.get("strength") ?? 0) === top ? "strength" : ([...counts].find(([, n]) => n === top)?.[0] ?? "strength");
 }
 
 /** An exercise as it goes into a workout: the plan, and a weight to start from. */
@@ -143,7 +135,16 @@ export async function startWorkout(input: StartWorkoutInput): Promise<Result & {
   if (!parsed.success) return { error: "That workout didn't come through right. Try another." };
   const { plan, equipment, source } = parsed.data;
 
-  const id = await createWorkout({ title: plan.title, kind: plan.kind, minutes: plan.minutes, equipment, source });
+  // One of your own workouts, fitted to the time: it counts as doing that one.
+  const routineId = plan.routineId ?? undefined;
+  const id = await createWorkout({
+    title: plan.title,
+    kind: plan.kind,
+    minutes: plan.minutes,
+    equipment,
+    source: routineId ? "routine" : source,
+    routineId,
+  });
   if (!id) return { error: "Could not start the workout. Try again." };
   if (!(await insertExercises(id, plan.exercises.map((e) => ({ ...e, measure: measureOf(e) })), 0))) {
     await db().from("fitness_workouts").delete().eq("id", id);

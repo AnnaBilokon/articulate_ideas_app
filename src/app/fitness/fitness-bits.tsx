@@ -100,7 +100,7 @@ export function ExercisePicture({ picture, name, className }: { picture: string;
 export function ExerciseHow({ name, how, picture }: { name: string; how: string | null; picture: string | null }) {
   return (
     <div className="flex flex-col gap-2">
-      {picture && <ExercisePicture picture={picture} name={name} className="max-w-xs" />}
+      {picture && <ExercisePicture picture={picture} name={name} className="w-full max-w-md" />}
       {how && <p className="text-sm leading-6 text-muted-foreground">{how}</p>}
       <a
         href={videoSearchUrl(name)}
