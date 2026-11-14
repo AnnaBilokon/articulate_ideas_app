@@ -17,6 +17,8 @@ import {
   updateRoutineExercise,
 } from "../../actions";
 import { ExercisePicker, ExerciseThumb } from "../../exercise-picker";
+import { exercisePhases, suggestTitle } from "@/lib/fitness-plan";
+import { MainHeading, PhasePanel, TitleSuggestion } from "../../fitness-bits";
 import { WorkoutGaps } from "../../gaps";
 
 // Your own workout: the exercises you like, in your order, each with its
@@ -34,6 +36,27 @@ export function RoutineEditor({ routine, library }: { routine: Routine; library:
   const [error, setError] = useState<string | null>(null);
   const [starting, startStart] = useTransition();
   const [, start] = useTransition();
+
+  const phases = exercisePhases(routine.exercises);
+  const suggestion = suggestTitle(routine.exercises);
+  const cards = (list: RoutineExercise[]) => (
+    <ol className="flex flex-col gap-3">
+      {list.map((e) => {
+        const i = routine.exercises.indexOf(e);
+        return (
+          <li key={e.id}>
+            <PlanCard
+              key={`${e.id}-${e.sets}-${e.reps}-${e.seconds}-${e.weightKg}`}
+              exercise={e}
+              first={i === 0}
+              last={i === routine.exercises.length - 1}
+              onError={setError}
+            />
+          </li>
+        );
+      })}
+    </ol>
+  );
 
   const saveDetails = () => {
     if (!name.trim() || (name === routine.name && note === (routine.note ?? ""))) return;
@@ -54,6 +77,15 @@ export function RoutineEditor({ routine, library }: { routine: Routine; library:
           aria-label="Workout name"
           className="-mx-2 rounded-lg bg-transparent px-2 py-1 text-3xl font-semibold tracking-tight text-heading outline-none hover:bg-muted/60 focus:bg-muted/60"
         />
+        {suggestion && suggestion !== name && (
+          <TitleSuggestion
+            title={suggestion}
+            onUse={() => {
+              setName(suggestion);
+              start(async () => setError((await updateRoutine(routine.id, { name: suggestion, note })).error));
+            }}
+          />
+        )}
         <p className="text-sm text-muted-foreground">
           {routine.exercises.length} {routine.exercises.length === 1 ? "exercise" : "exercises"}
           {routine.lastDone ? ` · last done ${weekday.format(new Date(`${routine.lastDone}T00:00:00Z`))}` : ""}
@@ -79,19 +111,12 @@ export function RoutineEditor({ routine, library }: { routine: Routine; library:
           </Button>
         </div>
       ) : (
-        <ol className="flex flex-col gap-3">
-          {routine.exercises.map((e, i) => (
-            <li key={e.id}>
-              <PlanCard
-                key={`${e.id}-${e.sets}-${e.reps}-${e.seconds}-${e.weightKg}`}
-                exercise={e}
-                first={i === 0}
-                last={i === routine.exercises.length - 1}
-                onError={setError}
-              />
-            </li>
-          ))}
-        </ol>
+        <>
+          {phases.warmup.length > 0 && <PhasePanel phase="warmup">{cards(phases.warmup)}</PhasePanel>}
+          {(phases.warmup.length > 0 || phases.cooldown.length > 0) && phases.main.length > 0 && <MainHeading />}
+          {cards(phases.main)}
+          {phases.cooldown.length > 0 && <PhasePanel phase="cooldown">{cards(phases.cooldown)}</PhasePanel>}
+        </>
       )}
 
       {routine.exercises.length > 0 && (

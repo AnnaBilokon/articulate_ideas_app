@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import {
+  ArrowDown,
+  ArrowUp,
   BookmarkPlus,
   Check,
   CheckCircle2,
@@ -41,6 +43,7 @@ import {
   addWorkoutExercises,
   deleteWorkout,
   finishWorkout,
+  moveWorkoutExercise,
   removeSet,
   removeWorkoutExercise,
   renameWorkout,
@@ -50,7 +53,8 @@ import {
   swapExercise,
 } from "../../actions";
 import { ExercisePicker, ExerciseThumb } from "../../exercise-picker";
-import { Chip, ExerciseHow, minutesLabel } from "../../fitness-bits";
+import { exercisePhases, suggestTitle } from "@/lib/fitness-plan";
+import { Chip, ExerciseHow, MainHeading, PhasePanel, TitleSuggestion, minutesLabel } from "../../fitness-bits";
 import { WorkoutGaps } from "../../gaps";
 
 // A workout, set by set: type the weight and reps you really did (7 of a
@@ -110,6 +114,24 @@ export function WorkoutSession({
   const showClock = elapsed !== null && elapsed < 6 * 3600_000;
   const restLeft = rest && now !== null ? rest.endsAt - now : null;
   const gapItems = workout.exercises.map((e) => ({ exerciseId: e.exerciseId, kind: e.kind, muscles: e.muscles }));
+  const phases = exercisePhases(workout.exercises);
+  const cards = (list: WorkoutExercise[]) => (
+    <ol className="flex flex-col gap-4">
+      {list.map((e) => (
+        <li key={e.id}>
+          <ExerciseCard
+            exercise={e}
+            first={workout.exercises[0]?.id === e.id}
+            last={workout.exercises.at(-1)?.id === e.id}
+            lastTime={e.exerciseId ? lastTimes[e.exerciseId] : undefined}
+            locked={done}
+            onSetDone={(at) => setDone(measureOf(e), at)}
+            onError={setError}
+          />
+        </li>
+      ))}
+    </ol>
+  );
   const equipment = workout.equipment.length > 0 ? workout.equipment : [...new Set(workout.exercises.flatMap((e) => e.equipment))];
 
   useEffect(() => {
@@ -148,28 +170,18 @@ export function WorkoutSession({
         </div>
       )}
 
-      <ol className="flex flex-col gap-4">
-        {workout.exercises.map((e) => (
-          <li key={e.id}>
-            <ExerciseCard
-              exercise={e}
-              last={e.exerciseId ? lastTimes[e.exerciseId] : undefined}
-              locked={done}
-              onSetDone={(at) => setDone(measureOf(e), at)}
-              onError={setError}
-            />
-          </li>
-        ))}
-      </ol>
+      {phases.warmup.length > 0 && <PhasePanel phase="warmup">{cards(phases.warmup)}</PhasePanel>}
+      {(phases.warmup.length > 0 || phases.cooldown.length > 0) && phases.main.length > 0 && <MainHeading />}
+      {cards(phases.main)}
 
       {!done && (
-        <WorkoutGaps
-          items={gapItems}
-          library={library}
-          equipment={equipment}
-          target={{ workoutId: workout.id }}
-          only={["muscle", "cooldown"]}
-        />
+        <WorkoutGaps items={gapItems} library={library} equipment={equipment} target={{ workoutId: workout.id }} only={["muscle"]} />
+      )}
+
+      {phases.cooldown.length > 0 && <PhasePanel phase="cooldown">{cards(phases.cooldown)}</PhasePanel>}
+
+      {!done && (
+        <WorkoutGaps items={gapItems} library={library} equipment={equipment} target={{ workoutId: workout.id }} only={["cooldown"]} />
       )}
 
       {!done && workout.exercises.length > 0 && (
@@ -228,10 +240,15 @@ function WorkoutTitle({ workout }: { workout: Workout }) {
   const [title, setTitle] = useState(workout.title);
   const [error, setError] = useState<string | null>(null);
   const [, start] = useTransition();
+  const suggestion = suggestTitle(workout.exercises);
   // Put together as you went: name it as you like.
   if (workout.source !== "own" || workout.doneAt) {
     return <h1 className="text-3xl font-semibold tracking-tight text-balance text-heading">{workout.title}</h1>;
   }
+  const rename = (next: string) => {
+    setTitle(next);
+    start(async () => setError((await renameWorkout(workout.id, next)).error));
+  };
   return (
     <div className="flex flex-col gap-1">
       <input
@@ -243,6 +260,7 @@ function WorkoutTitle({ workout }: { workout: Workout }) {
         aria-label="Workout name"
         className="-mx-2 rounded-lg bg-transparent px-2 py-1 text-3xl font-semibold tracking-tight text-heading outline-none hover:bg-muted/60 focus:bg-muted/60"
       />
+      {suggestion && suggestion !== title && <TitleSuggestion title={suggestion} onUse={() => rename(suggestion)} />}
       {error && <p className="text-sm text-coral-foreground">{error}</p>}
     </div>
   );
@@ -277,13 +295,17 @@ function RestBar({ left, rest, onChange }: { left: number; rest: Rest; onChange:
 
 function ExerciseCard({
   exercise: e,
-  last,
+  first,
+  last: isLast,
+  lastTime: last,
   locked,
   onSetDone,
   onError,
 }: {
   exercise: WorkoutExercise;
-  last: LastTime | undefined;
+  first: boolean;
+  last: boolean;
+  lastTime: LastTime | undefined;
   locked: boolean;
   onSetDone: (at: number) => void;
   onError: (error: string | null) => void;
@@ -330,6 +352,16 @@ function ExerciseCard({
             <DropdownMenuItem onClick={() => setShowHow(!showHow)}>
               <Info /> {showHow ? "Hide how" : "How to do it"}
             </DropdownMenuItem>
+            {!locked && !first && (
+              <DropdownMenuItem onClick={() => run(() => moveWorkoutExercise(e.id, -1))}>
+                <ArrowUp /> Move up
+              </DropdownMenuItem>
+            )}
+            {!locked && !isLast && (
+              <DropdownMenuItem onClick={() => run(() => moveWorkoutExercise(e.id, 1))}>
+                <ArrowDown /> Move down
+              </DropdownMenuItem>
+            )}
             {!locked && e.exerciseId && (
               <DropdownMenuItem
                 onClick={() =>

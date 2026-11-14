@@ -629,6 +629,47 @@ export function workoutGaps(items: GapItem[], library: Exercise[], equipment: Eq
   return gaps;
 }
 
+/**
+ * A name for a workout from what's in it: "Leg day", "Push day", "Upper
+ * body and core", "Stretch and mobility". Null when it's empty.
+ */
+export function suggestTitle(items: { kind: ExerciseKind | null; muscles: Muscle[] }[]): string | null {
+  const strength = items.filter((i) => i.kind === "strength");
+  if (strength.length === 0) {
+    const kinds = items.map((i) => i.kind).filter((k): k is ExerciseKind => k !== null);
+    if (kinds.length === 0) return null;
+    const kind = mainKind(kinds);
+    return kind === "mobility" ? "Stretch and mobility" : kind === "cardio" ? "Cardio" : null;
+  }
+  // By each exercise's main muscle: a deadlift works the back too, but it's a leg exercise.
+  const main = strength.flatMap((i) => i.muscles.slice(0, 1));
+  const count = (muscles: Muscle[]) => main.filter((m) => muscles.includes(m)).length;
+  const lower = count(LOWER);
+  const upper = count(UPPER);
+  const core = count(["core"]);
+  let title: string;
+  if (lower > 0 && upper > 0) title = "Full body";
+  else if (lower > 0) title = count(["glutes"]) > count(["legs"]) ? "Glutes" : "Leg day";
+  else if (upper > 0) {
+    const push = count(["chest", "shoulders"]);
+    const pull = count(["back"]);
+    title = push > 0 && pull === 0 ? "Push day" : pull > 0 && push === 0 ? "Pull day" : push === 0 && pull === 0 ? "Arms" : "Upper body";
+  } else return "Core";
+  return core > 0 && title !== "Full body" ? `${title} and core` : title;
+}
+
+/**
+ * A workout's parts: the warm-up (whatever comes before the first strength
+ * exercise), the main part, and the stretching after the last one. A
+ * workout with no strength exercises is all main part.
+ */
+export function exercisePhases<T extends { kind: ExerciseKind | null }>(items: T[]): { warmup: T[]; main: T[]; cooldown: T[] } {
+  const first = items.findIndex((i) => i.kind === "strength");
+  if (first === -1) return { warmup: [], main: items, cooldown: [] };
+  const last = items.findLastIndex((i) => i.kind === "strength");
+  return { warmup: items.slice(0, first), main: items.slice(first, last + 1), cooldown: items.slice(last + 1) };
+}
+
 /** Another exercise for the same job, for "Swap": same kind, a shared muscle, at hand. */
 export function swapFor(
   library: Exercise[],
