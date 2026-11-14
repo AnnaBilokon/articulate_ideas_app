@@ -108,6 +108,17 @@ async function dropEmptyWorkouts() {
   if (empty.length > 0) await db().from("fitness_workouts").delete().in("id", empty);
 }
 
+/**
+ * The day a workout is for: today, or a past day for one you forgot to add
+ * (up to a year back). Null when it isn't a day that can have one.
+ */
+function workoutDay(day: string | undefined): string | null {
+  const today = localDate();
+  if (day === undefined) return today;
+  if (!z.iso.date().safeParse(day).success || day > today || day < addDays(today, -366)) return null;
+  return day;
+}
+
 async function createWorkout(w: {
   title: string;
   kind: ExerciseKind;
@@ -115,12 +126,13 @@ async function createWorkout(w: {
   equipment: Equipment[];
   source: WorkoutSource;
   routineId?: string;
+  day: string;
 }): Promise<string | null> {
   await dropEmptyWorkouts();
   const { data } = await db()
     .from("fitness_workouts")
     .insert({
-      day: localDate(),
+      day: w.day,
       title: w.title,
       kind: w.kind,
       minutes: w.minutes,
@@ -152,6 +164,7 @@ export async function startWorkout(input: StartWorkoutInput): Promise<Result & {
     equipment,
     source: routineId ? "routine" : source,
     routineId,
+    day: localDate(),
   });
   if (!id) return { error: "Could not start the workout. Try again." };
   if (!(await insertExercises(id, plan.exercises.map((e) => ({ ...e, measure: measureOf(e) })), 0))) {
@@ -162,10 +175,12 @@ export async function startWorkout(input: StartWorkoutInput): Promise<Result & {
   return { error: null, id };
 }
 
-/** Starts one of your own workouts, with last time's weights filled in. */
-export async function startRoutine(routineId: string): Promise<Result & { id?: string }> {
+/** Starts one of your own workouts, with last time's weights filled in; on a past day, to add one you forgot. */
+export async function startRoutine(routineId: string, onDay?: string): Promise<Result & { id?: string }> {
   await requireSession();
   if (!isId(routineId)) return { error: "Workout not found." };
+  const day = workoutDay(onDay);
+  if (!day) return { error: "Pick a day in the past year, up to today." };
   const routine = await getRoutine(routineId);
   if (!routine) return { error: "Workout not found." };
   if (routine.exercises.length === 0) return { error: "Add an exercise first." };
@@ -186,6 +201,7 @@ export async function startRoutine(routineId: string): Promise<Result & { id?: s
     equipment: [...new Set(routine.exercises.flatMap((e) => e.equipment))],
     source: "routine",
     routineId,
+    day,
   });
   if (!id) return { error: "Could not start the workout. Try again." };
   const ok = await insertExercises(
@@ -217,8 +233,10 @@ const DEFAULT_ROUTINE_NAME = "New workout";
  * A workout you put together as you go. It's only saved once it has its
  * first exercises, so an empty one never shows up in your week.
  */
-export async function startOwnWorkout(title: string, exerciseIds: string[]): Promise<Result & { id?: string }> {
+export async function startOwnWorkout(title: string, exerciseIds: string[], onDay?: string): Promise<Result & { id?: string }> {
   await requireSession();
+  const day = workoutDay(onDay);
+  if (!day) return { error: "Pick a day in the past year, up to today." };
   const name = z.string().trim().min(1).max(80).catch(DEFAULT_WORKOUT_NAME).parse(title);
   const parsed = ids.safeParse(exerciseIds);
   if (!parsed.success) return { error: "Pick at least one exercise." };
@@ -232,6 +250,7 @@ export async function startOwnWorkout(title: string, exerciseIds: string[]): Pro
     minutes: 30,
     equipment: [...new Set(picked.flatMap((e) => e.equipment))],
     source: "own",
+    day,
   });
   if (!id) return { error: "Could not start the workout. Try again." };
   if (!(await insertExercises(id, picked.map(fromLibrary), 0))) {
