@@ -215,6 +215,7 @@ export function WorkoutSession({
         <FinishDialog
           workout={workout}
           suggestedMinutes={showClock ? Math.max(1, Math.round(elapsed / 60_000)) : workout.minutes}
+          setsDone={setsDone}
           setsLeft={allSets.length - setsDone}
           onClose={() => setFinishing(false)}
         />
@@ -512,14 +513,17 @@ function SetRow({
 function FinishDialog({
   workout,
   suggestedMinutes,
+  setsDone,
   setsLeft,
   onClose,
 }: {
   workout: Workout;
   suggestedMinutes: number;
+  setsDone: number;
   setsLeft: number;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [minutes, setMinutes] = useState(String(suggestedMinutes));
   const [feeling, setFeeling] = useState<Feeling | null>(null);
   const [note, setNote] = useState("");
@@ -533,19 +537,47 @@ function FinishDialog({
         <Dialog.Popup className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col gap-4 overflow-y-auto rounded-t-3xl bg-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-card-foreground shadow-2xl ring-1 ring-foreground/10 sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl">
           <div className="flex items-center justify-between gap-2">
             <Dialog.Title className="text-lg font-semibold text-heading">
-              {setsLeft === 0 ? "All done. Nice work!" : "Finish the workout?"}
+              {setsDone === 0 ? "Nothing ticked yet" : setsLeft === 0 ? "All done. Nice work!" : "Finish the workout?"}
             </Dialog.Title>
             <Dialog.Close render={<Button variant="ghost" size="icon" aria-label="Close" disabled={pending} />}>
               <X className="size-4" />
             </Dialog.Close>
           </div>
-          {setsLeft > 0 && (
+          {setsDone === 0 && (
+            <div className="flex flex-col gap-3">
+              <p className="-mt-2 text-sm text-muted-foreground">
+                A workout is saved once you tick a set. Carry on, or leave without saving it.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="lg" className="h-11 rounded-xl" onClick={onClose}>
+                  Carry on
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  className="h-11 rounded-xl text-muted-foreground hover:text-coral-foreground"
+                  disabled={pending}
+                  onClick={() =>
+                    start(async () => {
+                      const result = await deleteWorkout(workout.id);
+                      if (result.error) setError(result.error);
+                      else router.push("/fitness");
+                    })
+                  }
+                >
+                  {pending ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Leave without saving
+                </Button>
+              </div>
+              {error && <p className="text-sm text-coral-foreground">{error}</p>}
+            </div>
+          )}
+          {setsDone > 0 && setsLeft > 0 && (
             <p className="-mt-2 text-sm text-muted-foreground">
               {setsLeft} {setsLeft === 1 ? "set isn't" : "sets aren't"} ticked. That&apos;s fine: what you did counts.
             </p>
           )}
           <form
-            className="flex flex-col gap-4"
+            className={cn("flex flex-col gap-4", setsDone === 0 && "hidden")}
             onSubmit={(x) => {
               x.preventDefault();
               start(async () => {

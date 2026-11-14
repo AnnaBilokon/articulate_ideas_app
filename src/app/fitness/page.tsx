@@ -20,7 +20,7 @@ export default async function FitnessTodayPage() {
   const today = localDate();
   const [library, workouts, routines] = await Promise.all([listExercises(), listWorkouts(recentFrom(today), today), listRoutines()]);
 
-  const started = workouts.filter((w) => w.day === today && !w.doneAt);
+  const started = workouts.filter((w) => w.day === today && !w.doneAt && w.exercises.length > 0);
   const doneToday = workouts.filter((w) => w.day === today && w.doneAt);
   const thisWeek = workouts.filter((w) => w.doneAt && w.day >= weekStart(today));
   const weekMinutes = thisWeek.reduce((sum, w) => sum + w.minutes, 0);

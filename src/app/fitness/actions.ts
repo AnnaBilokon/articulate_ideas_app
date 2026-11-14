@@ -101,6 +101,13 @@ async function insertExercises(workoutId: string, items: NewExercise[], from: nu
   return !setsError;
 }
 
+/** Started but never given an exercise: not a workout, so it goes. */
+async function dropEmptyWorkouts() {
+  const { data } = await db().from("fitness_workouts").select("id, fitness_workout_exercises(id)").is("done_at", null);
+  const empty = (data ?? []).filter((w) => w.fitness_workout_exercises.length === 0).map((w) => w.id);
+  if (empty.length > 0) await db().from("fitness_workouts").delete().in("id", empty);
+}
+
 async function createWorkout(w: {
   title: string;
   kind: ExerciseKind;
@@ -109,6 +116,7 @@ async function createWorkout(w: {
   source: WorkoutSource;
   routineId?: string;
 }): Promise<string | null> {
+  await dropEmptyWorkouts();
   const { data } = await db()
     .from("fitness_workouts")
     .insert({
@@ -202,11 +210,31 @@ export async function startRoutine(routineId: string): Promise<Result & { id?: s
   return { error: null, id };
 }
 
-/** An empty workout, to add exercises to as you go. */
-export async function startEmptyWorkout(): Promise<Result & { id?: string }> {
+/**
+ * A workout you put together as you go. It's only saved once it has its
+ * first exercises, so an empty one never shows up in your week.
+ */
+export async function startOwnWorkout(title: string, exerciseIds: string[]): Promise<Result & { id?: string }> {
   await requireSession();
-  const id = await createWorkout({ title: "Workout", kind: "strength", minutes: 30, equipment: [], source: "own" });
+  const name = z.string().trim().min(1).max(80).catch("Workout").parse(title);
+  const parsed = ids.safeParse(exerciseIds);
+  if (!parsed.success) return { error: "Pick at least one exercise." };
+  const library = await listExercises();
+  const picked = parsed.data.flatMap((id) => library.filter((e) => e.id === id));
+  if (picked.length === 0) return { error: "Pick at least one exercise." };
+
+  const id = await createWorkout({
+    title: name,
+    kind: mainKind(picked.map((e) => e.kind)),
+    minutes: 30,
+    equipment: [...new Set(picked.flatMap((e) => e.equipment))],
+    source: "own",
+  });
   if (!id) return { error: "Could not start the workout. Try again." };
+  if (!(await insertExercises(id, picked.map(fromLibrary), 0))) {
+    await db().from("fitness_workouts").delete().eq("id", id);
+    return { error: "Could not start the workout. Try again." };
+  }
   refresh();
   return { error: null, id };
 }
@@ -411,6 +439,8 @@ export async function finishWorkout(id: string, input: FinishWorkoutInput): Prom
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const workout = await getWorkout(id);
   if (!workout) return { error: "Workout not found." };
+  // Nothing done: nothing to save.
+  if (!workout.exercises.some((e) => e.logged.some((s) => s.done))) return { error: "Tick at least one set first." };
   const { error } = await db()
     .from("fitness_workouts")
     .update({
