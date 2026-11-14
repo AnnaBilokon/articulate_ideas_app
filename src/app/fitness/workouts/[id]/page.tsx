@@ -38,7 +38,7 @@ export default async function WorkoutPage({ params }: PageProps<"/fitness/workou
           {workout.source === "ai" && " · by Claude"}
         </span>
       </div>
-      <WorkoutSession workout={workout} library={library} lastTimes={Object.fromEntries(last)} />
+      <WorkoutSession workout={workout} library={library} lastTimes={Object.fromEntries(last)} today={today} />
     </main>
   );
 }

@@ -92,14 +92,18 @@ function useNow(): number | null {
   return now;
 }
 
+const shortDay = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+
 export function WorkoutSession({
   workout,
   library,
   lastTimes,
+  today,
 }: {
   workout: Workout;
   library: Exercise[];
   lastTimes: Record<string, LastTime>;
+  today: string;
 }) {
   const now = useNow();
   const [rest, setRest] = useState<Rest | null>(null);
@@ -107,11 +111,13 @@ export function WorkoutSession({
   const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const done = workout.doneAt !== null;
+  // Added afterwards, for a day that's gone: no clock or rest timer.
+  const past = workout.day < today;
   const allSets = workout.exercises.flatMap((e) => e.logged);
   const setsDone = allSets.filter((s) => s.done).length;
   const elapsed = now === null ? null : now - Date.parse(workout.createdAt);
   // Left open for hours: the clock no longer means anything.
-  const showClock = elapsed !== null && elapsed < 6 * 3600_000;
+  const showClock = !past && elapsed !== null && elapsed < 6 * 3600_000;
   const restLeft = rest && now !== null ? rest.endsAt - now : null;
   const gapItems = workout.exercises.map((e) => ({ exerciseId: e.exerciseId, kind: e.kind, muscles: e.muscles }));
   const phases = exercisePhases(workout.exercises);
@@ -147,7 +153,7 @@ export function WorkoutSession({
 
   /** Starts the rest timer from the moment the set was ticked. */
   function setDone(measure: Measure, at: number) {
-    if (measure !== "duration") setRest({ endsAt: at + restFor(measure) * 1000, total: restFor(measure) });
+    if (measure !== "duration" && !past) setRest({ endsAt: at + restFor(measure) * 1000, total: restFor(measure) });
   }
 
   return (
@@ -203,13 +209,15 @@ export function WorkoutSession({
           {rest && restLeft !== null && <RestBar left={restLeft} rest={rest} onChange={setRest} />}
           <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <div className="flex flex-col">
-              <span className="text-xl font-semibold text-heading tabular-nums">{showClock ? clock(elapsed) : "–"}</span>
+              <span className="text-xl font-semibold text-heading tabular-nums">
+                {past ? shortDay.format(new Date(`${workout.day}T00:00:00Z`)) : showClock ? clock(elapsed) : "–"}
+              </span>
               <span className="text-xs text-muted-foreground">
                 {setsDone} of {allSets.length} sets
               </span>
             </div>
             <Button size="lg" className="h-12 rounded-xl px-6 text-base" onClick={() => setFinishing(true)}>
-              <CheckCircle2 className="size-4.5" /> Finish
+              <CheckCircle2 className="size-4.5" /> {past ? "Save workout" : "Finish"}
             </Button>
           </div>
         </div>

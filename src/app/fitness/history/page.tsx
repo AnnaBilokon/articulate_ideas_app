@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { Flame } from "lucide-react";
+import { Flame, Plus } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { listWorkouts, type Workout } from "@/lib/fitness";
 import { localDate } from "@/lib/schedule";
@@ -60,7 +61,11 @@ export default async function FitnessHistoryPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
-      <PageHeader title="History" description="Every workout you've done, and how your weeks are going." />
+      <PageHeader title="History" description="Every workout you've done, and how your weeks are going.">
+        <Link href="/fitness/workouts/past" className={cn(buttonVariants({ variant: "outline" }), "w-fit")}>
+          <Plus className="size-4" /> Add a past workout
+        </Link>
+      </PageHeader>
 
       <section className="fitness-hero flex flex-col gap-5 rounded-[1.75rem] p-5 shadow-lg sm:p-6" aria-label="At a glance">
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">

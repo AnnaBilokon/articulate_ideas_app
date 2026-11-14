@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { ChevronDown, ChevronRight, Play, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, History, Play, Sparkles } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { listExercises, listRoutines, listWorkouts, recentFrom, toRecent, type Workout } from "@/lib/fitness";
 import { weekDays } from "@/lib/fitness-plan";
 import { localDate } from "@/lib/schedule";
@@ -21,7 +23,8 @@ export default async function FitnessTodayPage() {
   const today = localDate();
   const [library, workouts, routines] = await Promise.all([listExercises(), listWorkouts(recentFrom(today), today), listRoutines()]);
 
-  const started = workouts.filter((w) => w.day === today && !w.doneAt && w.exercises.length > 0);
+  // Not finished yet: today's, and ones added for a past day.
+  const started = workouts.filter((w) => !w.doneAt && w.exercises.length > 0);
   const doneToday = workouts.filter((w) => w.day === today && w.doneAt);
   const recent = workouts.filter((w) => w.day < today && w.doneAt).slice(0, 3);
   const thisWeek = workouts.filter((w) => w.doneAt && w.day >= weekStart(today));
@@ -47,8 +50,12 @@ export default async function FitnessTodayPage() {
             >
               <Play className="size-5 shrink-0" />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="font-semibold">Carry on: {w.title}</span>
-                <span className="text-sm opacity-80">{setsLine(w)}</span>
+                <span className="font-semibold">
+                  {w.day === today ? "Carry on" : "Finish"}: {w.title}
+                </span>
+                <span className="text-sm opacity-80">
+                  {w.day === today ? setsLine(w) : `${weekday.format(new Date(`${w.day}T00:00:00Z`))} · ${setsLine(w)}`}
+                </span>
               </span>
               <ChevronRight className="size-5 shrink-0" />
             </Link>
@@ -129,7 +136,15 @@ export default async function FitnessTodayPage() {
         </div>
       </details>
 
-      <LogActivity today={today} />
+      <div className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium text-muted-foreground">Did something and forgot to add it?</h2>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/fitness/workouts/past" className={cn(buttonVariants({ variant: "outline" }), "w-fit")}>
+            <History className="size-4" /> Add a past workout
+          </Link>
+          <LogActivity today={today} />
+        </div>
+      </div>
     </main>
   );
 }
