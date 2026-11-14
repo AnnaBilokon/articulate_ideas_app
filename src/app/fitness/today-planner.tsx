@@ -111,7 +111,7 @@ export function TodayPlanner({ library, recent, today }: { library: Exercise[]; 
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-4 rounded-2xl bg-card p-4 ring-1 ring-foreground/10 sm:p-5">
+      <div className="flex flex-col gap-4">
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-sm font-medium">How much time do you have?</legend>
           <div className="flex flex-wrap gap-2">
@@ -189,7 +189,7 @@ export function TodayPlanner({ library, recent, today }: { library: Exercise[]; 
           </ul>
         )}
 
-        <Card className="bg-muted/40">
+        <Card className="rounded-2xl bg-accent/60 shadow-none ring-0">
           <CardContent className="flex flex-col gap-3">
             <p className="flex items-center gap-2 text-sm font-medium">
               <Sparkles className="size-4 text-primary" /> None of these? Ask Claude
@@ -245,7 +245,7 @@ function IdeaCard({
   const [all, setAll] = useState(false);
   const exercises = all ? plan.exercises : plan.exercises.slice(0, SHOWN_EXERCISES);
   return (
-    <Card className="gap-0 py-0">
+    <Card className="gap-0 rounded-2xl bg-muted/50 py-0 shadow-none ring-0">
       <CardContent className="flex flex-col gap-3 p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-1">

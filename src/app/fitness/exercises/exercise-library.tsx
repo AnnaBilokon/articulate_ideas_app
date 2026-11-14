@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { Dumbbell, Eye, EyeOff, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Eye, EyeOff, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,17 +11,20 @@ import {
   EQUIPMENT_LABELS,
   KIND_LABELS,
   MUSCLE_LABELS,
+  NO_FILTER,
   equipmentKinds,
   exerciseKinds,
+  filterExercises,
   muscleGroups,
-  pictureUrls,
   type Equipment,
   type Exercise,
+  type ExerciseFilter,
   type ExerciseInput,
   type ExerciseKind,
   type Measure,
 } from "@/lib/schemas";
 import { createExercise, deleteExercise, setExerciseHidden, updateExercise } from "../actions";
+import { ExerciseFilters, ExerciseThumb } from "../exercise-picker";
 import { Chip, ExerciseHow, KindBadge } from "../fitness-bits";
 
 const MEASURE_LABELS: Record<Measure, string> = { reps: "Reps", hold: "Seconds", duration: "Minutes (steady)" };
@@ -32,47 +35,25 @@ const defaultAmount = (e: Exercise) =>
     : `${e.measure === "reps" ? `${e.reps} reps` : `${e.seconds} s`}${e.eachSide ? " each side" : ""}`;
 
 export function ExerciseLibrary({ exercises }: { exercises: Exercise[] }) {
-  const [kind, setKind] = useState<ExerciseKind | "all">("all");
-  const [equipment, setEquipment] = useState<Equipment | "all">("all");
+  const [filter, setFilter] = useState<ExerciseFilter>(NO_FILTER);
   const [editing, setEditing] = useState<Exercise | "new" | null>(null);
 
-  const shown = exercises.filter(
-    (e) => (kind === "all" || e.kind === kind) && (equipment === "all" || e.equipment.includes(equipment)),
-  );
+  const shown = filterExercises(exercises, filter);
   const visible = shown.filter((e) => !e.hidden);
   const hidden = shown.filter((e) => e.hidden);
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3">
-        <Button className="w-fit" onClick={() => setEditing("new")}>
-          <Plus className="size-4" /> Add an exercise
-        </Button>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Kind">
-          <Chip on={kind === "all"} onClick={() => setKind("all")}>
-            All kinds
-          </Chip>
-          {exerciseKinds.map((k) => (
-            <Chip key={k} on={kind === k} onClick={() => setKind(k)}>
-              {KIND_LABELS[k]}
-            </Chip>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Equipment">
-          <Chip on={equipment === "all"} onClick={() => setEquipment("all")}>
-            Any equipment
-          </Chip>
-          {equipmentKinds.map((e) => (
-            <Chip key={e} on={equipment === e} onClick={() => setEquipment(e)}>
-              {EQUIPMENT_LABELS[e]}
-            </Chip>
-          ))}
-        </div>
-      </div>
+      <ExerciseFilters filter={filter} onChange={setFilter} />
 
-      <p className="text-sm text-muted-foreground">
-        {visible.length} {visible.length === 1 ? "exercise" : "exercises"}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          {visible.length} {visible.length === 1 ? "exercise" : "exercises"}
+        </p>
+        <Button variant="outline" className="rounded-xl" onClick={() => setEditing("new")}>
+          <Plus className="size-4" /> Add your own
+        </Button>
+      </div>
       <ul className="flex flex-col gap-2">
         {visible.map((e) => (
           <li key={e.id}>
@@ -113,16 +94,9 @@ function ExerciseRow({ exercise: e, onEdit }: { exercise: Exercise; onEdit: () =
     <button
       type="button"
       onClick={onEdit}
-      className="group flex w-full items-center gap-3 rounded-xl bg-card px-3 py-3 text-left ring-1 ring-foreground/10 transition-shadow hover:shadow-md hover:ring-primary/30 sm:px-4"
+      className="group flex w-full items-center gap-3 rounded-2xl bg-card p-2.5 text-left shadow-sm ring-1 ring-foreground/10 transition-shadow hover:shadow-md hover:ring-primary/30 sm:p-3"
     >
-      {e.picture ? (
-        // eslint-disable-next-line @next/next/no-img-element -- small, already resized
-        <img src={pictureUrls(e.picture)[1]} alt="" loading="lazy" className="size-14 shrink-0 rounded-lg bg-muted object-cover" />
-      ) : (
-        <span className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          <Dumbbell className="size-5" />
-        </span>
-      )}
+      <ExerciseThumb exercise={e} className="size-14" />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{e.name}</span>

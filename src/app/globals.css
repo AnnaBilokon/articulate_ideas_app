@@ -656,6 +656,96 @@
   --hero-3: #636b61;
 }
 
+/* Amethyst (Fitness): pearl aqua #99d5c9, pacific blue #6c969d, dusty grape
+   #645e9d, dark amethyst #392b58, midnight violet #2d0320. Dark amethyst
+   carries text and buttons, pearl aqua the highlights and done states, and
+   the deep end of the range makes Fitness's dark hero. */
+:root[data-palette="amethyst"] {
+  --background: #f6f5fa;
+  --foreground: #1f1530;
+  --card: #fefdff;
+  --card-foreground: #1f1530;
+  --popover: #fefdff;
+  --popover-foreground: #1f1530;
+  --heading: #392b58;
+  --primary: #392b58;
+  --primary-foreground: #ffffff;
+  --secondary: #ebe9f5;
+  --secondary-foreground: #392b58;
+  --muted: #efedf5;
+  --muted-foreground: #5a5470;
+  --accent: #e2f3ef;
+  --accent-foreground: #1d5248;
+  --highlight: #99d5c9;
+  --highlight-foreground: #1d1236;
+  --destructive: #b42318;
+  --border: #e3e0ee;
+  --input: #cfcae0;
+  --ring: #645e9d;
+  --chart-1: #645e9d;
+  --chart-2: #b8841c;
+  --chart-3: #1f8a78;
+  --chart-4: #2d0320;
+  --chart-5: #a3431f;
+  --shadow-rgb: 31 21 48;
+  --series-1: #645e9d;
+  --series-2: #b8841c;
+  --series-3: #1f8a78;
+  --series-4: #c2477a;
+  --series-5: #4f8ee0;
+  --series-6: #4f8ee0;
+  --series-other: #bdb9cc;
+  --glow-1: color-mix(in oklab, #99d5c9 55%, transparent);
+  --glow-2: color-mix(in oklab, #645e9d 22%, transparent);
+  --glow-3: color-mix(in oklab, #6c969d 18%, transparent);
+  --hero-1: #99d5c9;
+  --hero-2: #645e9d;
+  --hero-3: #392b58;
+}
+
+.dark[data-palette="amethyst"] {
+  --background: #110a1a;
+  --foreground: #ebe7f3;
+  --card: #1a1326;
+  --card-foreground: #ebe7f3;
+  --popover: #1f172e;
+  --popover-foreground: #ebe7f3;
+  --heading: #f4f1fa;
+  --primary: #99d5c9;
+  --primary-foreground: #1d1236;
+  --secondary: #2a2140;
+  --secondary-foreground: #e6e0f5;
+  --muted: #211a30;
+  --muted-foreground: #aca5c2;
+  --accent: #15302b;
+  --accent-foreground: #b4e3d9;
+  --highlight: #99d5c9;
+  --highlight-foreground: #1d1236;
+  --destructive: #f28b82;
+  --border: #2d2441;
+  --input: #3b3053;
+  --ring: #99d5c9;
+  --chart-1: #9a94d6;
+  --chart-2: #d9a83a;
+  --chart-3: #99d5c9;
+  --chart-4: #f08db4;
+  --chart-5: #e9e3f7;
+  --shadow-rgb: 0 0 0;
+  --series-1: #9a94d6;
+  --series-2: #d9a83a;
+  --series-3: #99d5c9;
+  --series-4: #f08db4;
+  --series-5: #6f9ef0;
+  --series-6: #6f9ef0;
+  --series-other: #57506a;
+  --glow-1: color-mix(in oklab, #645e9d 26%, transparent);
+  --glow-2: color-mix(in oklab, #99d5c9 9%, transparent);
+  --glow-3: color-mix(in oklab, #2d0320 40%, transparent);
+  --hero-1: #392b58;
+  --hero-2: #645e9d;
+  --hero-3: #99d5c9;
+}
+
 /* Grape soda (Goals and Achievements): grape soda #88498f, pacific blue
    #779fa1, pale oak #e0cba8, tomato #ff6542, mauve shadow #564154. Pale oak
    warms the surfaces and highlights, grape carries buttons and focus, mauve
@@ -863,6 +953,17 @@
     color-mix(in oklab, var(--hero-2) 12%, var(--card)) 55%,
     color-mix(in oklab, var(--hero-3) 10%, var(--card))
   );
+}
+
+/* Fitness's hero: from dark amethyst to midnight violet, with a pearl aqua
+   glow; the same in light and dark mode, with light text. */
+.fitness-hero {
+  background-color: #392b58;
+  background-image:
+    radial-gradient(ellipse 70% 90% at 100% 0%, color-mix(in oklab, #99d5c9 38%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 80% at 0% 100%, color-mix(in oklab, #645e9d 55%, transparent), transparent 70%),
+    linear-gradient(135deg, #392b58, #2d0320);
+  color: #ffffff;
 }
 
 /* The workspace's own page surface and glow, under its header. */

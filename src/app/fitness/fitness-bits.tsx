@@ -40,7 +40,7 @@ export function KindBadge({ kind, className }: { kind: WorkoutKind; className?: 
   );
 }
 
-/** Monday to Sunday: a dot for each workout done, in its kind's colour. */
+/** Monday to Sunday: a dot for each workout done, in its kind's colour. On the dark hero by default. */
 export function WeekStrip({
   days,
   today,
@@ -54,27 +54,26 @@ export function WeekStrip({
     <ol className="grid grid-cols-7 gap-1.5" aria-label="This week">
       {days.map((day, i) => {
         const kinds = done.filter((w) => w.day === day).map((w) => w.kind);
-        const future = day > today;
         return (
           <li
             key={day}
             className={cn(
-              "flex flex-col items-center gap-1.5 rounded-xl py-2",
-              day === today ? "bg-highlight/60 ring-1 ring-primary/30" : "bg-muted/50",
-              future && "opacity-50",
+              "flex flex-col items-center gap-1.5 rounded-2xl py-2",
+              day === today ? "bg-white/20 ring-1 ring-[#99d5c9]/70" : "bg-white/8",
+              day > today && "opacity-55",
             )}
             aria-label={`${WEEKDAYS[i].short}: ${kinds.length === 0 ? "nothing" : kinds.map((k) => KIND_LABELS[k]).join(", ")}`}
           >
-            <span className="text-xs font-medium text-muted-foreground">{WEEKDAYS[i].short}</span>
-            <span className="flex h-5 items-center gap-0.5">
+            <span className="text-xs font-medium text-white/75">{WEEKDAYS[i].short}</span>
+            <span className="flex h-6 items-center gap-0.5">
               {kinds.length === 0 ? (
-                <span className="size-1.5 rounded-full bg-foreground/15" />
+                <span className="size-1.5 rounded-full bg-white/30" />
               ) : kinds.length === 1 ? (
-                <span className={cn("flex size-5 items-center justify-center rounded-full text-background", KIND_TONES[kinds[0]].dot)}>
-                  <Check className="size-3" strokeWidth={3} />
+                <span className="flex size-6 items-center justify-center rounded-full bg-[#99d5c9] text-[#1d1236]">
+                  <Check className="size-3.5" strokeWidth={3} />
                 </span>
               ) : (
-                kinds.slice(0, 3).map((k, j) => <span key={j} className={cn("size-2.5 rounded-full", KIND_TONES[k].dot)} />)
+                kinds.slice(0, 3).map((k, j) => <span key={j} className={cn("size-2.5 rounded-full ring-1 ring-white/40", KIND_TONES[k].dot)} />)
               )}
             </span>
           </li>

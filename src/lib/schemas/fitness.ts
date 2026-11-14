@@ -137,6 +137,87 @@ export const startWorkoutSchema = z.object({
   equipment: equipmentList,
   source: z.enum(["rules", "ai"]),
 });
+
+/** Where a workout came from: a suggestion, your own, or logged afterwards. */
+export const workoutSources = ["rules", "ai", "routine", "own", "logged"] as const;
+export type WorkoutSource = (typeof workoutSources)[number];
+
+const weightKg = z.number().min(0, "A weight can't be negative.").max(999, "That's a lot: under 1000 kg.").nullable();
+
+/** A set as you log it: reps (or seconds) and weight, and whether it's done. */
+export const setSchema = z.object({
+  reps: z.number().int().min(0, "Reps can't be negative.").max(200, "At most 200 reps.").nullable(),
+  seconds: z.number().int().min(0).max(7200, "At most 2 hours.").nullable(),
+  weightKg,
+  done: z.boolean(),
+});
+export type SetInput = z.infer<typeof setSchema>;
+
+// Your own workouts ("routines"): exercises you like, with the plan for each.
+
+export type RoutineExercise = {
+  id: string;
+  exerciseId: string;
+  name: string;
+  kind: ExerciseKind;
+  measure: Measure;
+  equipment: Equipment[];
+  muscles: Muscle[];
+  picture: string | null;
+  eachSide: boolean;
+  sets: number;
+  reps: number | null;
+  seconds: number | null;
+  weightKg: number | null;
+};
+
+export type Routine = {
+  id: string;
+  name: string;
+  note: string | null;
+  exercises: RoutineExercise[];
+  /** The day it was last done, or null. */
+  lastDone: string | null;
+};
+
+export const routineSchema = z.object({
+  name: z.string().trim().min(1, "Give it a name.").max(80, "Keep the name under 80 characters."),
+  note: z.string().trim().max(1000, "Keep the note under 1000 characters."),
+});
+export type RoutineInput = z.infer<typeof routineSchema>;
+
+export const routineExerciseSchema = z.object({
+  sets: z.number().int().min(1, "At least 1 set.").max(10, "At most 10 sets."),
+  reps: z.number().int().min(1, "At least 1 rep.").max(100, "At most 100 reps.").nullable(),
+  seconds: z.number().int().min(5, "At least 5 seconds.").max(7200, "At most 2 hours.").nullable(),
+  weightKg,
+});
+export type RoutineExerciseInput = z.infer<typeof routineExerciseSchema>;
+
+/** Sets for an exercise as planned: 3 sets of 10, or 3 holds of 30 s. */
+export function plannedSets(e: { measure: Measure | null; sets: number | null; reps: number | null; seconds: number | null }) {
+  if (e.measure === "duration") return [{ targetReps: null, targetSeconds: e.seconds ?? 1200 }];
+  return Array.from({ length: e.sets ?? 3 }, () => ({
+    targetReps: e.measure === "hold" ? null : (e.reps ?? 10),
+    targetSeconds: e.measure === "hold" ? (e.seconds ?? 30) : null,
+  }));
+}
+
+export type ExerciseFilter = { query: string; muscle: Muscle | "all"; kind: ExerciseKind | "all"; equipment: Equipment | "all" };
+
+export const NO_FILTER: ExerciseFilter = { query: "", muscle: "all", kind: "all", equipment: "all" };
+
+/** Search by name (any word order) and filter by muscle, kind and equipment. */
+export function filterExercises<T extends Pick<Exercise, "name" | "muscles" | "kind" | "equipment">>(list: T[], f: ExerciseFilter): T[] {
+  const words = f.query.toLowerCase().split(/\s+/).filter(Boolean);
+  return list.filter(
+    (e) =>
+      words.every((w) => e.name.toLowerCase().includes(w)) &&
+      (f.muscle === "all" || e.muscles.includes(f.muscle)) &&
+      (f.kind === "all" || e.kind === f.kind) &&
+      (f.equipment === "all" || e.equipment.includes(f.equipment)),
+  );
+}
 export type StartWorkoutInput = z.infer<typeof startWorkoutSchema>;
 
 export const finishWorkoutSchema = z.object({
@@ -183,5 +264,14 @@ export const videoSearchUrl = (name: string) =>
   `https://www.youtube.com/results?search_query=${encodeURIComponent(`${name} exercise how to`)}`;
 
 /** Whether a weight makes sense to note: it uses more than your body. */
-export const takesWeight = (equipment: Equipment[], measure: Measure) =>
-  measure === "reps" && equipment.some((e) => e === "dumbbells" || e === "kettlebell" || e === "gym");
+export const takesWeight = (equipment: Equipment[], measure: Measure | null) =>
+  measure !== "duration" && equipment.some((e) => e === "dumbbells" || e === "kettlebell" || e === "gym");
+
+/** "8 kg × 10", "× 7", "30 s", "20 min": one set as done or planned. */
+export function setLabel(set: { reps: number | null; seconds: number | null; weightKg: number | null }, measure: Measure | null): string {
+  if (measure === "duration" && set.seconds !== null) return `${Math.round(set.seconds / 60)} min`;
+  const amount = set.reps !== null ? `${set.reps}` : set.seconds !== null ? `${set.seconds} s` : "";
+  return set.weightKg !== null ? `${formatKg(set.weightKg)} kg × ${amount}` : set.reps !== null ? `× ${amount}` : amount;
+}
+
+export const formatKg = (kg: number) => (Number.isInteger(kg) ? String(kg) : kg.toFixed(1));
