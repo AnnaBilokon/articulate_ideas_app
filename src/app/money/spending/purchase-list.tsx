@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { formatPrice, type SpendCategory, type SpendPurchase } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { deletePurchase, updatePurchase } from "./actions";
-import { CategoryChips, parseKr } from "./add-purchase";
+import { CategoryChips } from "./add-purchase";
+import { SumPreview, parseAmount } from "./amount-calculator";
 
 const dayFormat = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
@@ -130,7 +131,7 @@ function EditPurchase({
   const [fromPot, setFromPot] = useState(purchase.fromPot);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const value = parseKr(amount);
+  const value = parseAmount(amount);
   // Its own category stays pickable even if hidden since.
   const choices = categories.filter((c) => !c.archived || c.id === purchase.categoryId);
   const chosen = categories.find((c) => c.id === categoryId);
@@ -146,7 +147,10 @@ function EditPurchase({
   return (
     <div className="my-1 flex flex-col gap-3 rounded-xl bg-muted/50 p-3">
       <div className="grid gap-2 sm:grid-cols-[8rem_10rem_minmax(0,1fr)]">
-        <Input aria-label="Amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-9 bg-background text-right tabular-nums" />
+        <div className="flex flex-col gap-1">
+          <Input aria-label="Amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-9 bg-background text-right tabular-nums" />
+          <SumPreview text={amount} />
+        </div>
         <Input type="date" aria-label="Date" value={spentOn} max={today} onChange={(e) => setSpentOn(e.target.value)} className="h-9 bg-background" />
         <Input aria-label="Note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Note" className="h-9 bg-background" />
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Loader2, Plus } from "lucide-react";
+import { Calculator, Check, Loader2, Plus } from "lucide-react";
 import { SpendIconBadge } from "@/components/spend-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,12 +9,7 @@ import { Input } from "@/components/ui/input";
 import { formatPrice, type SpendCategory } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { addPurchase } from "./actions";
-
-/** "129", "1 299,50", "-45" (a refund) → a number; anything else → NaN. */
-export function parseKr(text: string): number {
-  const t = text.replace(/\s/g, "").replace(/kr$/i, "").replace(",", ".").replace("−", "-");
-  return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
-}
+import { AmountKeypad, SumPreview, parseAmount } from "./amount-calculator";
 
 /** Category chips to pick one, icons first. */
 export function CategoryChips({
@@ -48,7 +43,8 @@ export function CategoryChips({
   );
 }
 
-// Logging a purchase: amount, category, date (today unless changed), note.
+// Logging a purchase: amount (or a sum of a few, for one category), category,
+// date (today unless changed), note.
 // The category and date stay for the next one. In a category linked to a
 // Money pot, it asks whether to take the purchase from the pot, unless the
 // category takes every purchase from it.
@@ -69,8 +65,9 @@ export function AddPurchase({
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [keypad, setKeypad] = useState(false);
   const [pending, start] = useTransition();
-  const value = parseKr(amount);
+  const value = parseAmount(amount);
   const bad = amount.trim() !== "" && (Number.isNaN(value) || value === 0);
   const category = categories.find((c) => c.id === categoryId);
   const pot = category?.potCategoryId ? potNames[category.potCategoryId] : undefined;
@@ -96,24 +93,49 @@ export function AddPurchase({
         <CardTitle className="text-heading">Add a purchase</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
-          <Input
-            aria-label="Amount"
-            aria-invalid={bad || undefined}
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => {
-              setAmount(e.target.value);
-              setAdded(null);
-              setAsking(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !bad && amount.trim() && categoryId) add();
-            }}
-            placeholder="0"
-            className="h-12 bg-background text-right text-2xl font-semibold tabular-nums md:text-2xl"
-          />
-          <span className="text-lg text-muted-foreground">kr</span>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <Input
+              aria-label="Amount"
+              aria-invalid={bad || undefined}
+              // With the keypad open, the phone's own keyboard stays away.
+              inputMode={keypad ? "none" : "decimal"}
+              value={amount}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setAdded(null);
+                setAsking(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !bad && amount.trim() && categoryId) add();
+              }}
+              placeholder="0"
+              className="h-12 bg-background text-right text-2xl font-semibold tabular-nums md:text-2xl"
+            />
+            <span className="text-lg text-muted-foreground">kr</span>
+            <Button
+              type="button"
+              variant={keypad ? "default" : "outline"}
+              size="icon-lg"
+              className="size-12 shrink-0 rounded-xl"
+              aria-pressed={keypad}
+              aria-label="Calculator: add a few amounts together"
+              onClick={() => setKeypad(!keypad)}
+            >
+              <Calculator className="size-5" />
+            </Button>
+          </div>
+          <SumPreview text={amount} />
+          {keypad && (
+            <AmountKeypad
+              value={amount}
+              onChange={(next) => {
+                setAmount(next);
+                setAdded(null);
+                setAsking(false);
+              }}
+            />
+          )}
         </div>
         <CategoryChips
           categories={categories}
@@ -170,7 +192,7 @@ export function AddPurchase({
             </span>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">A refund? Enter it with a minus: −120.</p>
+        <p className="text-xs text-muted-foreground">A few things in one category? Add them up: 45 + 120 + 30. A refund? Enter it with a minus: −120.</p>
       </CardContent>
     </Card>
   );
