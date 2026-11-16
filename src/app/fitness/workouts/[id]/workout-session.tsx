@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Dialog } from "@base-ui/react/dialog";
@@ -17,7 +18,9 @@ import {
   Repeat,
   RotateCcw,
   Timer,
+  TrendingUp,
   Trash2,
+  Trophy,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,10 +32,14 @@ import type { LastTime, Workout, WorkoutExercise, WorkoutSet } from "@/lib/fitne
 import {
   FEELING_LABELS,
   MUSCLE_LABELS,
+  NO_BESTS,
+  beatsBests,
   feelings,
   formatKg,
+  nextWeight,
   setLabel,
   takesWeight,
+  type Bests,
   type Exercise,
   type Feeling,
   type Measure,
@@ -50,6 +57,7 @@ import {
   reopenWorkout,
   saveSet,
   saveWorkoutAsRoutine,
+  setWorkoutWeight,
   swapExercise,
 } from "../../actions";
 import { ExercisePicker, ExerciseThumb } from "../../exercise-picker";
@@ -98,11 +106,14 @@ export function WorkoutSession({
   workout,
   library,
   lastTimes,
+  bests,
   today,
 }: {
   workout: Workout;
   library: Exercise[];
   lastTimes: Record<string, LastTime>;
+  /** Your bests with each exercise before this workout. */
+  bests: Record<string, Bests>;
   today: string;
 }) {
   const now = useNow();
@@ -121,6 +132,9 @@ export function WorkoutSession({
   const restLeft = rest && now !== null ? rest.endsAt - now : null;
   const gapItems = workout.exercises.map((e) => ({ exerciseId: e.exerciseId, kind: e.kind, muscles: e.muscles }));
   const phases = exercisePhases(workout.exercises);
+  const bestsOf = (e: WorkoutExercise) => (e.exerciseId ? (bests[e.exerciseId] ?? NO_BESTS) : NO_BESTS);
+  // One per exercise that beat your best, however many sets did.
+  const newBests = workout.exercises.filter((e) => e.logged.some((s) => s.done && beatsBests(s, bestsOf(e)))).length;
   const cards = (list: WorkoutExercise[]) => (
     <ol className="flex flex-col gap-4">
       {list.map((e) => (
@@ -130,6 +144,7 @@ export function WorkoutSession({
             first={workout.exercises[0]?.id === e.id}
             last={workout.exercises.at(-1)?.id === e.id}
             lastTime={e.exerciseId ? lastTimes[e.exerciseId] : undefined}
+            bests={bestsOf(e)}
             locked={done}
             onSetDone={(at) => setDone(measureOf(e), at)}
             onError={setError}
@@ -160,7 +175,7 @@ export function WorkoutSession({
     <div className={cn("flex flex-col gap-5", !done && "pb-36")}>
       <WorkoutTitle workout={workout} />
 
-      {done && <DoneSummary workout={workout} />}
+      {done && <DoneSummary workout={workout} newBests={newBests} />}
 
       {!done && setsDone === 0 && (
         <WorkoutGaps items={gapItems} library={library} equipment={equipment} target={{ workoutId: workout.id }} only={["warmup"]} />
@@ -306,6 +321,7 @@ function ExerciseCard({
   first,
   last: isLast,
   lastTime: last,
+  bests,
   locked,
   onSetDone,
   onError,
@@ -314,6 +330,7 @@ function ExerciseCard({
   first: boolean;
   last: boolean;
   lastTime: LastTime | undefined;
+  bests: Bests;
   locked: boolean;
   onSetDone: (at: number) => void;
   onError: (error: string | null) => void;
@@ -326,6 +343,12 @@ function ExerciseCard({
   const setsDone = e.logged.filter((s) => s.done).length;
   const run = (task: () => Promise<{ error: string | null }>) => start(async () => onError((await task()).error));
   const columns = weighted ? "grid-cols-[1.5rem_minmax(0,1fr)_4.25rem_4.25rem_2.5rem]" : "grid-cols-[1.5rem_minmax(0,1fr)_4.25rem_2.5rem]";
+  // Every planned rep last time: time to go up a step.
+  const allReps = last !== undefined && last.sets.length > 0 && last.sets.every((s) => s.targetReps !== null && s.reps !== null && s.reps >= s.targetReps);
+  const lastTop = last ? Math.max(0, ...last.sets.map((s) => s.weightKg ?? 0)) : 0;
+  const planned = e.logged.find((s) => !s.done)?.weightKg ?? 0;
+  const tryKg = weighted && allReps && lastTop > 0 ? nextWeight(lastTop, e.equipment) : null;
+  const hint = locked || setsDone > 0 || !allReps ? null : tryKg !== null ? (planned < tryKg ? tryKg : null) : measure === "reps" ? "reps" : null;
 
   return (
     <section
@@ -360,6 +383,11 @@ function ExerciseCard({
             <DropdownMenuItem onClick={() => setShowHow(!showHow)}>
               <Info /> {showHow ? "Hide how" : "How to do it"}
             </DropdownMenuItem>
+            {e.exerciseId && (
+              <DropdownMenuItem render={<Link href={`/fitness/exercises/${e.exerciseId}`} />}>
+                <TrendingUp /> See progress
+              </DropdownMenuItem>
+            )}
             {!locked && !first && (
               <DropdownMenuItem onClick={() => run(() => moveWorkoutExercise(e.id, -1))}>
                 <ArrowUp /> Move up
@@ -393,6 +421,20 @@ function ExerciseCard({
 
       {showHow && <ExerciseHow name={e.name} how={e.how} picture={e.picture} steps={e.steps} />}
 
+      {hint !== null && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-accent px-3 py-2 text-sm text-accent-foreground">
+          <TrendingUp className="size-4 shrink-0" />
+          <span className="flex-1">
+            {typeof hint === "number" ? `You did all your reps last time. Try ${formatKg(hint)} kg today?` : "You did all your reps last time. Try one more each set?"}
+          </span>
+          {typeof hint === "number" && (
+            <Button size="sm" className="rounded-lg" disabled={pending} onClick={() => run(() => setWorkoutWeight(e.id, hint))}>
+              Use {formatKg(hint)} kg
+            </Button>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-1.5">
         <div className={cn("grid items-center gap-2 px-1 text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase", columns)}>
           <span className="text-center">Set</span>
@@ -403,8 +445,10 @@ function ExerciseCard({
         </div>
         {e.logged.map((s, i) => (
           <SetRow
-            key={s.id}
+            // A new weight from "Use 14 kg" starts the row afresh.
+            key={`${s.id}-${s.weightKg}`}
             set={s}
+            bests={bests}
             index={i}
             measure={measure}
             weighted={weighted}
@@ -446,6 +490,7 @@ const toNumber = (text: string) => {
 
 function SetRow({
   set,
+  bests,
   index,
   measure,
   weighted,
@@ -456,6 +501,7 @@ function SetRow({
   onError,
 }: {
   set: WorkoutSet;
+  bests: Bests;
   index: number;
   measure: Measure;
   weighted: boolean;
@@ -501,13 +547,32 @@ function SetRow({
     if (toNumber(kg) !== set.weightKg || (done && toNumber(amount) !== savedAmount)) save(done);
   };
 
+  // A ticked set that beats your best gets a trophy where last time was.
+  const amountNow = toNumber(amount);
+  const beat = done
+    ? beatsBests(
+        {
+          reps: measure === "reps" ? amountNow : null,
+          seconds: measure === "reps" || amountNow === null ? null : measure === "duration" ? amountNow * 60 : amountNow,
+          weightKg: weighted ? toNumber(kg) : null,
+        },
+        bests,
+      )
+    : null;
+
   const field =
     "h-10 rounded-xl border-transparent bg-muted px-1 text-center text-base font-semibold tabular-nums shadow-none focus-visible:bg-background md:text-base";
 
   return (
     <div className={cn("grid items-center gap-2 rounded-2xl px-1 py-1 transition-colors", columns, done && "bg-highlight/30")}>
       <span className="text-center text-sm font-semibold text-muted-foreground">{index + 1}</span>
-      <span className="truncate text-sm text-muted-foreground">{last ? setLabel(last, measure) : "–"}</span>
+      {beat ? (
+        <span className="flex min-w-0 items-center gap-1 text-xs font-semibold text-sunflower-foreground">
+          <Trophy className="size-3.5 shrink-0" /> <span className="truncate">{beat}</span>
+        </span>
+      ) : (
+        <span className="truncate text-sm text-muted-foreground">{last ? setLabel(last, measure) : "–"}</span>
+      )}
       {weighted && (
         <Input
           value={kg}
@@ -675,7 +740,7 @@ function FinishDialog({
   );
 }
 
-function DoneSummary({ workout }: { workout: Workout }) {
+function DoneSummary({ workout, newBests }: { workout: Workout; newBests: number }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -685,6 +750,7 @@ function DoneSummary({ workout }: { workout: Workout }) {
     { label: "Time", value: minutesLabel(workout.minutes) },
     { label: "Sets", value: String(sets.length) },
     ...(volume > 0 ? [{ label: "Lifted", value: `${Math.round(volume).toLocaleString("en-GB")} kg` }] : []),
+    ...(newBests > 0 ? [{ label: "New bests", value: `🏆 ${newBests}` }] : []),
   ];
 
   return (
@@ -693,7 +759,7 @@ function DoneSummary({ workout }: { workout: Workout }) {
         <CheckCircle2 className="size-5 text-[#99d5c9]" /> Done
         {workout.feeling && <span className="font-normal text-white/80">· felt {FEELING_LABELS[workout.feeling].toLowerCase()}</span>}
       </p>
-      <dl className="grid grid-cols-3 gap-2">
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="flex flex-col gap-0.5 rounded-2xl bg-white/10 px-3 py-2.5">
             <dt className="text-xs text-white/75">{s.label}</dt>

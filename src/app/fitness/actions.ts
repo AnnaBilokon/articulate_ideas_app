@@ -405,6 +405,22 @@ async function workoutOf(exerciseRowId: string): Promise<Workout | null> {
   return data ? getWorkout(data.workout_id) : null;
 }
 
+/** Sets the weight on the sets not done yet: "try 14 kg today". */
+export async function setWorkoutWeight(workoutExerciseId: string, weightKg: number): Promise<Result> {
+  await requireSession();
+  if (!isId(workoutExerciseId) || !z.number().min(0).max(999).safeParse(weightKg).success) return { error: "That weight doesn't work." };
+  const { data, error } = await db()
+    .from("fitness_sets")
+    .update({ weight_kg: Math.round(weightKg * 10) / 10 })
+    .eq("workout_exercise_id", workoutExerciseId)
+    .is("done_at", null)
+    .select("id");
+  if (error || !data) return { error: "Could not change the weight. Try again." };
+  const workout = await workoutOf(workoutExerciseId);
+  refresh(workout?.id);
+  return { error: null };
+}
+
 /** Swaps one exercise for another that does the same job with what's at hand. */
 export async function swapExercise(id: string, seed: number): Promise<Result> {
   await requireSession();
@@ -712,7 +728,8 @@ const exerciseColumns = (e: ExerciseInput) => ({
 
 function refreshLibrary() {
   revalidatePath("/fitness");
-  revalidatePath("/fitness/exercises");
+  // The list and each exercise's own page.
+  revalidatePath("/fitness/exercises", "layout");
 }
 
 const duplicate = (code: string | undefined) =>

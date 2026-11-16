@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { ChevronDown, ChevronRight, History, Play, Sparkles } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { listExercises, listRoutines, listWorkouts, recentFrom, toRecent, type Workout } from "@/lib/fitness";
+import { listExercises, listRoutines, listWorkouts, newBestsIn, recentFrom, toRecent, type Workout } from "@/lib/fitness";
 import { weekDays } from "@/lib/fitness-plan";
 import { localDate } from "@/lib/schedule";
 import { MUSCLE_LABELS, weekStart, type Muscle, type Routine } from "@/lib/schemas";
@@ -27,6 +27,7 @@ export default async function FitnessTodayPage() {
   const started = workouts.filter((w) => !w.doneAt && w.exercises.length > 0);
   const doneToday = workouts.filter((w) => w.day === today && w.doneAt);
   const recent = workouts.filter((w) => w.day < today && w.doneAt).slice(0, 3);
+  const bests = await newBestsIn([...doneToday, ...recent]);
   const thisWeek = workouts.filter((w) => w.doneAt && w.day >= weekStart(today));
   const weekMinutes = thisWeek.reduce((sum, w) => sum + w.minutes, 0);
 
@@ -71,7 +72,7 @@ export default async function FitnessTodayPage() {
             Done today
           </h2>
           {doneToday.map((w) => (
-            <WorkoutRow key={w.id} workout={w} />
+            <WorkoutRow key={w.id} workout={w} bests={bests[w.id]} />
           ))}
         </section>
       )}
@@ -87,7 +88,7 @@ export default async function FitnessTodayPage() {
             </Link>
           </div>
           {recent.map((w) => (
-            <WorkoutRow key={w.id} workout={w} />
+            <WorkoutRow key={w.id} workout={w} bests={bests[w.id]} />
           ))}
         </section>
       )}

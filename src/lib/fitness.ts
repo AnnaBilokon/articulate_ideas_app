@@ -2,7 +2,11 @@ import "server-only";
 import type { RecentWorkout } from "@/lib/fitness-plan";
 import { localDate } from "@/lib/schedule";
 import {
+  NO_BESTS,
   addDays,
+  addToBests,
+  beatsBests,
+  type Bests,
   type Equipment,
   type Exercise,
   type ExerciseKind,
@@ -230,8 +234,11 @@ export async function getWorkout(id: string): Promise<Workout | null> {
   return data ? toWorkout(data) : null;
 }
 
-/** What you did last time with an exercise: the day and each set done. */
-export type LastTime = { day: string; sets: { reps: number | null; seconds: number | null; weightKg: number | null }[] };
+/** What you did last time with an exercise: the day and each set done, with what was planned. */
+export type LastTime = {
+  day: string;
+  sets: { reps: number | null; seconds: number | null; weightKg: number | null; targetReps: number | null }[];
+};
 
 /**
  * For each exercise, its sets from the last finished workout that had it
@@ -260,10 +267,89 @@ export async function lastTimes(exerciseIds: string[], exceptWorkoutId?: string)
     if (done.length === 0 || result.has(r.exercise_id!)) continue;
     result.set(r.exercise_id!, {
       day: r.fitness_workouts.day,
-      sets: done.map((s) => ({ reps: s.reps, seconds: s.seconds, weightKg: s.weight_kg === null ? null : Number(s.weight_kg) })),
+      sets: done.map((s) => ({
+        reps: s.reps,
+        seconds: s.seconds,
+        weightKg: s.weight_kg === null ? null : Number(s.weight_kg),
+        targetReps: s.target_reps,
+      })),
     });
   }
   return result;
+}
+
+/** One time you did an exercise, in a finished workout. */
+export type ExerciseSession = {
+  workoutId: string;
+  day: string;
+  createdAt: string;
+  title: string;
+  sets: { reps: number | null; seconds: number | null; weightKg: number | null }[];
+};
+
+/** Every finished workout's done sets for these exercises, oldest first. */
+async function sessionsFor(exerciseIds: string[]): Promise<Map<string, ExerciseSession[]>> {
+  const result = new Map<string, ExerciseSession[]>();
+  if (exerciseIds.length === 0) return result;
+  const { data } = await db()
+    .from("fitness_workout_exercises")
+    .select(`exercise_id, workout_id, fitness_workouts!inner(day, done_at, created_at, title), fitness_sets(${SET_COLUMNS})`)
+    .in("exercise_id", [...new Set(exerciseIds)])
+    .not("fitness_workouts.done_at", "is", null)
+    .limit(3000);
+  const rows = [...(data ?? [])].sort(
+    (a, b) =>
+      a.fitness_workouts.day.localeCompare(b.fitness_workouts.day) ||
+      a.fitness_workouts.created_at.localeCompare(b.fitness_workouts.created_at),
+  );
+  for (const r of rows) {
+    if (!r.exercise_id) continue;
+    const sets = [...r.fitness_sets]
+      .sort(byPosition)
+      .filter((s) => s.done_at !== null)
+      .map((s) => ({ reps: s.reps, seconds: s.seconds, weightKg: s.weight_kg === null ? null : Number(s.weight_kg) }));
+    if (sets.length === 0) continue;
+    const list = result.get(r.exercise_id) ?? [];
+    list.push({ workoutId: r.workout_id, day: r.fitness_workouts.day, createdAt: r.fitness_workouts.created_at, title: r.fitness_workouts.title, sets });
+    result.set(r.exercise_id, list);
+  }
+  return result;
+}
+
+/** Every time you've done an exercise, oldest first. */
+export async function exerciseSessions(exerciseId: string): Promise<ExerciseSession[]> {
+  return (await sessionsFor([exerciseId])).get(exerciseId) ?? [];
+}
+
+/** Your bests with each exercise, from every finished workout but `exceptWorkoutId`. */
+export async function exerciseBests(exerciseIds: string[], exceptWorkoutId?: string): Promise<Record<string, Bests>> {
+  const sessions = await sessionsFor(exerciseIds);
+  return Object.fromEntries(
+    [...sessions].map(([id, list]) => [
+      id,
+      list.filter((s) => s.workoutId !== exceptWorkoutId).reduce((b, s) => addToBests(b, s.sets), NO_BESTS),
+    ]),
+  );
+}
+
+/**
+ * How many new personal bests each workout set: one per exercise that beat
+ * everything before it (three heavier sets of squats are one best).
+ */
+export async function newBestsIn(workouts: Workout[]): Promise<Record<string, number>> {
+  const ids = new Set(workouts.map((w) => w.id));
+  const sessions = await sessionsFor(workouts.flatMap((w) => w.exercises.flatMap((e) => (e.exerciseId ? [e.exerciseId] : []))));
+  const counts: Record<string, number> = {};
+  for (const list of sessions.values()) {
+    let bests = NO_BESTS;
+    for (const s of list) {
+      if (ids.has(s.workoutId)) {
+        if (s.sets.some((set) => beatsBests(set, bests))) counts[s.workoutId] = (counts[s.workoutId] ?? 0) + 1;
+      }
+      bests = addToBests(bests, s.sets);
+    }
+  }
+  return counts;
 }
 
 /** The last two weeks, as the suggestion rules need them. */

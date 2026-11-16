@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { Eye, EyeOff, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Eye, EyeOff, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,7 +58,7 @@ export function ExerciseLibrary({ exercises }: { exercises: Exercise[] }) {
       <ul className="flex flex-col gap-2">
         {visible.map((e) => (
           <li key={e.id}>
-            <ExerciseRow exercise={e} onEdit={() => setEditing(e)} />
+            <ExerciseRow exercise={e} />
           </li>
         ))}
       </ul>
@@ -71,7 +72,7 @@ export function ExerciseLibrary({ exercises }: { exercises: Exercise[] }) {
           <ul className="flex flex-col gap-2 opacity-70">
             {hidden.map((e) => (
               <li key={e.id}>
-                <ExerciseRow exercise={e} onEdit={() => setEditing(e)} />
+                <ExerciseRow exercise={e} />
               </li>
             ))}
           </ul>
@@ -89,11 +90,11 @@ export function ExerciseLibrary({ exercises }: { exercises: Exercise[] }) {
   );
 }
 
-function ExerciseRow({ exercise: e, onEdit }: { exercise: Exercise; onEdit: () => void }) {
+/** An exercise in the list: opens its page, with your bests and how it's going. */
+function ExerciseRow({ exercise: e }: { exercise: Exercise }) {
   return (
-    <button
-      type="button"
-      onClick={onEdit}
+    <Link
+      href={`/fitness/exercises/${e.id}`}
       className="group flex w-full items-center gap-3 rounded-2xl bg-card p-2.5 text-left shadow-sm ring-1 ring-foreground/10 transition-shadow hover:shadow-md hover:ring-primary/30 sm:p-3"
     >
       <ExerciseThumb exercise={e} className="size-20" />
@@ -112,12 +113,21 @@ function ExerciseRow({ exercise: e, onEdit }: { exercise: Exercise; onEdit: () =
             .join(" · ")}
         </span>
       </span>
-      <Pencil className="size-4 shrink-0 text-muted-foreground opacity-60 group-hover:opacity-100" />
-    </button>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+    </Link>
   );
 }
 
-function ExerciseEditor({ existing, onClose }: { existing: Exercise | null; onClose: () => void }) {
+export function ExerciseEditor({
+  existing,
+  onClose,
+  onDeleted,
+}: {
+  existing: Exercise | null;
+  onClose: () => void;
+  /** After deleting: the page it was opened from is gone. */
+  onDeleted?: () => void;
+}) {
   const [name, setName] = useState(existing?.name ?? "");
   const [kind, setKind] = useState<ExerciseKind>(existing?.kind ?? "strength");
   const [equipment, setEquipment] = useState<Equipment[]>(existing?.equipment ?? ["body"]);
@@ -292,7 +302,13 @@ function ExerciseEditor({ existing, onClose }: { existing: Exercise | null; onCl
                     {existing.hidden ? "Show again" : "Hide"}
                   </Button>
                   {confirmDelete ? (
-                    <Button type="button" variant="destructive" disabled={pending} onClick={() => run(() => deleteExercise(existing.id))}>
+                    <Button type="button" variant="destructive" disabled={pending} onClick={() =>
+                        run(async () => {
+                          const result = await deleteExercise(existing.id);
+                          if (!result.error) onDeleted?.();
+                          return result;
+                        })
+                      }>
                       Delete for good
                     </Button>
                   ) : (
