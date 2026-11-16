@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { ColumnChart } from "@/components/charts/column-chart";
 import { seriesColor, type Series } from "@/components/charts/series";
 import { PageHeader } from "@/components/page-header";
+import { STATS_SECTIONS, SectionSwitch } from "@/components/section-switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadMoney } from "@/lib/money";
 import { cellStyle, formatKr, periodShort, periodTotals, type MoneyColor } from "@/lib/schemas";
@@ -18,6 +19,7 @@ export default async function TrendsPage() {
   if (filled.length === 0) {
     return (
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
+        <SectionSwitch items={STATS_SECTIONS} current="/money/trends" />
         <PageHeader title="Trends" description="Where the money goes, month by month." />
         {periods.length === 0 ? <NoMonths /> : <p className="text-muted-foreground">Fill in a month to see trends here.</p>}
       </main>
@@ -57,6 +59,7 @@ export default async function TrendsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6">
+      <SectionSwitch items={STATS_SECTIONS} current="/money/trends" />
       <PageHeader
         title="Trends"
         description={`${filled.length} ${filled.length === 1 ? "month" : "months"}, ${labels[0]} to ${labels[labels.length - 1]}. Hover or tap a month for its numbers.`}

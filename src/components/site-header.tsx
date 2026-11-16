@@ -12,7 +12,6 @@ import {
   ChevronDown,
   Dumbbell,
   Feather,
-  Gem,
   Gift,
   GraduationCap,
   History,
@@ -21,8 +20,8 @@ import {
   Library,
   ListChecks,
   Mic,
+  MoreHorizontal,
   PersonStanding,
-  PiggyBank,
   Receipt,
   Plus,
   Sprout,
@@ -47,8 +46,9 @@ import { cn } from "@/lib/utils";
 
 export const APP_NAME = "My Self Journey";
 
-// A tab can be wide too (the calendar), though its workspace isn't.
-type NavItem = { href: string; label: string; icon: LucideIcon; wide?: boolean };
+// A tab can be wide too (the calendar), though its workspace isn't, and can
+// hold more than one page (Stats: Trends and Savings).
+type NavItem = { href: string; label: string; icon: LucideIcon; wide?: boolean; also?: string[] };
 
 // The app's workspaces, each with its own tabs. A page belongs to the
 // workspace whose prefixes match its path; Learning takes the rest.
@@ -86,8 +86,7 @@ const workspaces: {
       { href: "/growth/goals", label: "Goals", icon: Target },
       { href: "/growth/habits", label: "Habits", icon: ListChecks },
       { href: "/growth/calendar", label: "Calendar", icon: CalendarDays, wide: true },
-      { href: "/growth/achievements", label: "Achievements", icon: Trophy },
-      { href: "/growth/strengths", label: "Strengths", icon: Gem },
+      { href: "/growth/achievements", label: "Wins", icon: Trophy, also: ["/growth/strengths"] },
       { href: "/growth/beliefs", label: "Beliefs", icon: Feather },
     ],
   },
@@ -115,8 +114,7 @@ const workspaces: {
       { href: "/money/spending", label: "Spending", icon: Receipt },
       { href: "/money/wishlist", label: "Wishlist", icon: Gift },
       { href: "/money/months", label: "Months", icon: CalendarRange },
-      { href: "/money/trends", label: "Trends", icon: BarChart3 },
-      { href: "/money/savings", label: "Savings", icon: PiggyBank },
+      { href: "/money/trends", label: "Stats", icon: BarChart3, also: ["/money/savings"] },
     ],
   },
 ];
@@ -125,7 +123,9 @@ const matches = (pathname: string, href: string) => pathname === href || pathnam
 
 /** The tab for a page: the longest one that matches, so /money/months isn't also Overview. */
 const activeTab = (pathname: string, nav: NavItem[]) =>
-  nav.filter((item) => matches(pathname, item.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
+  nav
+    .flatMap((item) => [item.href, ...(item.also ?? [])].filter((href) => matches(pathname, href)).map((href) => ({ item, href })))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.item.href;
 
 function currentWorkspace(pathname: string) {
   if (pathname === "/") return null;
@@ -159,10 +159,10 @@ function WorkspaceMenu({ current }: { current: (typeof workspaces)[number] | nul
         className="-ml-1 flex items-center gap-1.5 rounded-xl p-1 pr-1.5 font-semibold tracking-tight whitespace-nowrap transition-colors hover:bg-accent data-popup-open:bg-accent"
       >
         <LogoMark />
-        {/* The name from 768px up; on narrower screens the tabs need the room. */}
-        <span className="max-md:sr-only">{current?.label ?? APP_NAME}</span>
-        {/* On phones the logo alone opens the menu, to leave room for the tabs. */}
-        <ChevronDown className="size-3.5 text-muted-foreground max-sm:hidden" />
+        {/* On phones the tabs are in the bar at the bottom, so the name has room;
+            between phone and laptop width the tabs up here need it. */}
+        <span className="sm:max-md:sr-only">{current?.label ?? APP_NAME}</span>
+        <ChevronDown className="size-3.5 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent data-workspace={current?.id} align="start" className="w-52">
         <DropdownMenuItem render={<Link href="/" />}>
@@ -188,7 +188,7 @@ function WorkspaceMenu({ current }: { current: (typeof workspaces)[number] | nul
 
 const tabClass = (active: boolean) =>
   cn(
-    "flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors hover:bg-accent hover:text-accent-foreground max-sm:px-1.5",
+    "flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
     active
       ? "bg-highlight text-highlight-foreground hover:bg-highlight hover:text-highlight-foreground"
       : "text-muted-foreground",
@@ -213,18 +213,14 @@ export function SiteHeader() {
       >
         <WorkspaceMenu current={current} />
         <nav className="flex items-center gap-1 text-sm max-sm:gap-0.5">
-          {nav.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              aria-current={href === active ? "page" : undefined}
-              className={tabClass(href === active)}
-            >
-              {/* Icons on phones, words from tablet width up. */}
-              <Icon className="size-4.5 sm:hidden" />
-              <span className="max-sm:sr-only">{label}</span>
-            </Link>
-          ))}
+          {/* On phones the tabs are in the bar at the bottom instead. */}
+          <span className="flex items-center gap-1 max-sm:hidden">
+            {nav.map(({ href, label }) => (
+              <Link key={href} href={href} aria-current={href === active ? "page" : undefined} className={tabClass(href === active)}>
+                {label}
+              </Link>
+            ))}
+          </span>
           {current?.id === "learning" && (
             <Link
               href="/topics/new"
@@ -242,5 +238,86 @@ export function SiteHeader() {
         </nav>
       </div>
     </header>
+  );
+}
+
+// Pages with a bar of their own at the bottom (Finish, Start workout, Save):
+// a focused task, so the app's bar steps aside.
+const OWN_BOTTOM_BAR = [/^\/fitness\/workouts\/[^/]+$/, /^\/fitness\/routines\/[^/]+$/, /^\/money\/months\/[^/]+$/];
+
+/** At most this many tabs side by side; past it, the rest go under More. */
+const BAR_TABS = 5;
+
+const barItem = (active: boolean) =>
+  cn(
+    "flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[0.7rem] font-medium transition-colors",
+    active ? "text-heading" : "text-muted-foreground hover:text-foreground",
+  );
+
+function BarIcon({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) {
+  return (
+    <span className={cn("flex h-7 w-12 items-center justify-center rounded-full transition-colors", active && "bg-highlight text-highlight-foreground")}>
+      <Icon className="size-5" />
+    </span>
+  );
+}
+
+/**
+ * On phones, the tabs sit in a bar at the bottom, in reach of a thumb, like
+ * an app's. Journey home's bar has the workspaces; inside one, its tabs.
+ */
+export function BottomNav() {
+  const pathname = usePathname();
+  if (pathname === "/login" || OWN_BOTTOM_BAR.some((r) => r.test(pathname))) return null;
+  const current = currentWorkspace(pathname);
+  const nav: NavItem[] = current?.nav ?? [
+    { href: "/", label: "Home", icon: House },
+    ...workspaces.map(({ href, label, icon }) => ({ href, label, icon })),
+  ];
+  const active = current ? activeTab(pathname, nav) : pathname === "/" ? "/" : undefined;
+  const shown = nav.length > BAR_TABS ? nav.slice(0, BAR_TABS - 1) : nav;
+  const more = nav.length > BAR_TABS ? nav.slice(BAR_TABS - 1) : [];
+  const moreActive = more.some((m) => m.href === active);
+
+  return (
+    <>
+      {/* Room at the end of the page, so the bar never covers it. */}
+      <div aria-hidden className="h-[calc(4.5rem+env(safe-area-inset-bottom))] shrink-0 sm:hidden" />
+      <nav
+        data-workspace={current?.id}
+        aria-label={current ? `${current.label} tabs` : "Workspaces"}
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-border/70 bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden"
+      >
+        <ul className="flex px-1 pt-1">
+          {shown.map(({ href, label, icon }) => (
+            <li key={href} className="min-w-0 flex-1">
+              <Link href={href} aria-current={href === active ? "page" : undefined} className={barItem(href === active)}>
+                <BarIcon icon={icon} active={href === active} />
+                <span className="max-w-full truncate px-0.5">{label}</span>
+              </Link>
+            </li>
+          ))}
+          {more.length > 0 && (
+            <li className="min-w-0 flex-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger className={cn(barItem(moreActive), "w-full")} aria-label="More tabs">
+                  <BarIcon icon={moreActive ? more.find((m) => m.href === active)!.icon : MoreHorizontal} active={moreActive} />
+                  <span className="max-w-full truncate px-0.5">{moreActive ? more.find((m) => m.href === active)!.label : "More"}</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent data-workspace={current?.id} side="top" align="end" className="w-48">
+                  {more.map(({ href, label, icon: Icon }) => (
+                    <DropdownMenuItem key={href} render={<Link href={href} />}>
+                      <Icon />
+                      {label}
+                      {href === active && <Check className="ml-auto" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </li>
+          )}
+        </ul>
+      </nav>
+    </>
   );
 }

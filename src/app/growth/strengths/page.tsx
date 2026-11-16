@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { Gem } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { WINS_SECTIONS, SectionSwitch } from "@/components/section-switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { listStrengths } from "@/lib/beliefs";
 import { listAchievements } from "@/lib/goals";
@@ -14,6 +15,7 @@ export default async function StrengthsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
+      <SectionSwitch items={WINS_SECTIONS} current="/growth/strengths" />
       <PageHeader title="Strengths" description="What you're good at, with the proof. Come back here on the days you doubt it.">
         <AddStrength first={strengths.length === 0} />
       </PageHeader>

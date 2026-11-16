@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { Trophy } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { WINS_SECTIONS, SectionSwitch } from "@/components/section-switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { listAchievements, listGoals } from "@/lib/goals";
 import { localDate } from "@/lib/schedule";
@@ -23,6 +24,7 @@ export default async function AchievementsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
+      <SectionSwitch items={WINS_SECTIONS} current="/growth/achievements" />
       <PageHeader
         title="Achievements"
         description={
