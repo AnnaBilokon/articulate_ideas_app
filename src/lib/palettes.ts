@@ -32,7 +32,7 @@ export const WORKSPACE_NAMES: Record<PaletteWorkspace, string> = {
   home: "Journey home",
   learning: "Learning",
   growth: "Growth",
-  goals: "Goals and Achievements",
+  goals: "Goals and Wins",
   fitness: "Fitness",
   money: "Money",
   wishlist: "Wishlist",
@@ -55,6 +55,7 @@ export const WORKSPACE_PALETTES: Record<PaletteWorkspace, readonly PaletteId[]> 
 const WORKSPACE_PATHS: readonly [string, PaletteWorkspace][] = [
   ["/growth/goals", "goals"],
   ["/growth/achievements", "goals"],
+  ["/growth/strengths", "goals"],
   ["/growth", "growth"],
   ["/fitness", "fitness"],
   ["/money/wishlist", "wishlist"],

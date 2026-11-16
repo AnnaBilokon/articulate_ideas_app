@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { SiteHeader } from "@/components/site-header";
+import { BottomNav, SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { DEFAULT_PALETTE, paletteScript } from "@/lib/palettes";
 import "./globals.css";
@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   description: "Learning, goals, habits and growth, in one place.",
 };
 
+// Edge to edge on a phone, so the bottom bar can sit clear of the home
+// indicator (env(safe-area-inset-bottom)).
+export const viewport: Viewport = { viewportFit: "cover" };
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // The inline script and next-themes set data-palette and the dark class
@@ -37,6 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider>
           <SiteHeader />
           {children}
+          <BottomNav />
         </ThemeProvider>
       </body>
     </html>

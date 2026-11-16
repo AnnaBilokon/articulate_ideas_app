@@ -5,6 +5,7 @@ import { ColumnChart } from "@/components/charts/column-chart";
 import { LineChart } from "@/components/charts/line-chart";
 import { seriesColor } from "@/components/charts/series";
 import { PageHeader } from "@/components/page-header";
+import { STATS_SECTIONS, SectionSwitch } from "@/components/section-switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadMoney } from "@/lib/money";
 import { cellStyle, formatKr, periodShort, periodTotals, runningBalances, type MoneyColor } from "@/lib/schemas";
@@ -21,6 +22,7 @@ export default async function SavingsPage() {
   if (filled.length === 0) {
     return (
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
+        <SectionSwitch items={STATS_SECTIONS} current="/money/savings" />
         <PageHeader title="Savings and pots" description="What you've put aside, and how it grows." />
         {periods.length === 0 ? <NoMonths /> : <p className="text-muted-foreground">Fill in a month to see your savings here.</p>}
       </main>
@@ -72,6 +74,7 @@ export default async function SavingsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6">
+      <SectionSwitch items={STATS_SECTIONS} current="/money/savings" />
       <PageHeader title="Savings and pots" description={`Balances at the end of each month, up to ${periodShort(latest.month)}.`} />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
