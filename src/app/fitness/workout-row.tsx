@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Trophy } from "lucide-react";
 import type { Workout } from "@/lib/fitness";
 import { FEELING_LABELS, KIND_TONES } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ export function workoutTotals(w: Workout) {
   return { sets: sets.length, lifted: Math.round(sets.reduce((sum, s) => sum + (s.weightKg ?? 0) * (s.reps ?? 0), 0)) };
 }
 
-export function WorkoutRow({ workout: w }: { workout: Workout }) {
+export function WorkoutRow({ workout: w, bests = 0 }: { workout: Workout; /** New personal bests set in it. */ bests?: number }) {
   const { sets, lifted } = workoutTotals(w);
   const date = new Date(`${w.day}T00:00:00Z`);
   return (
@@ -31,6 +31,11 @@ export function WorkoutRow({ workout: w }: { workout: Workout }) {
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-medium text-heading">{w.title}</span>
           <KindBadge kind={w.kind} />
+          {bests > 0 && (
+            <span className="flex items-center gap-1 rounded-full bg-sunflower-soft px-2 py-0.5 text-xs font-medium text-sunflower-foreground">
+              <Trophy className="size-3" /> {bests} {bests === 1 ? "best" : "bests"}
+            </span>
+          )}
         </span>
         <span className="truncate text-sm text-muted-foreground">
           {[

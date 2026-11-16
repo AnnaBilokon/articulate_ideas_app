@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { getWorkout, lastTimes, listExercises } from "@/lib/fitness";
+import { exerciseBests, getWorkout, lastTimes, listExercises } from "@/lib/fitness";
 import { localDate } from "@/lib/schedule";
 import { KindBadge } from "../../fitness-bits";
 import { WorkoutSession } from "./workout-session";
@@ -17,13 +17,8 @@ export default async function WorkoutPage({ params }: PageProps<"/fitness/workou
   if (!z.uuid().safeParse(id).success) notFound();
   const workout = await getWorkout(id);
   if (!workout) notFound();
-  const [library, last] = await Promise.all([
-    listExercises(),
-    lastTimes(
-      workout.exercises.flatMap((e) => (e.exerciseId ? [e.exerciseId] : [])),
-      workout.id,
-    ),
-  ]);
+  const exerciseIds = workout.exercises.flatMap((e) => (e.exerciseId ? [e.exerciseId] : []));
+  const [library, last, bests] = await Promise.all([listExercises(), lastTimes(exerciseIds, workout.id), exerciseBests(exerciseIds, workout.id)]);
   const today = localDate();
 
   return (
@@ -38,7 +33,7 @@ export default async function WorkoutPage({ params }: PageProps<"/fitness/workou
           {workout.source === "ai" && " · by Claude"}
         </span>
       </div>
-      <WorkoutSession workout={workout} library={library} lastTimes={Object.fromEntries(last)} today={today} />
+      <WorkoutSession workout={workout} library={library} lastTimes={Object.fromEntries(last)} bests={bests} today={today} />
     </main>
   );
 }

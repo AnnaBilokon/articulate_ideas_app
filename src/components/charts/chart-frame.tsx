@@ -9,12 +9,18 @@ import type { ChartData, Series } from "./series";
 // the tooltip, and the frame with its table view (every chart has one, so
 // no value depends on hovering or on telling colours apart).
 
-/** How values read: kronor, or a 0-1 share shown as a percent. */
-export type Unit = "kr" | "percent";
+/** How values read: kronor, a 0-1 share shown as a percent, or a workout's kg, reps, seconds or minutes. */
+export type Unit = "kr" | "percent" | "kg" | "reps" | "seconds" | "minutes";
+
+const plain = (suffix: string) => (v: number) => `${Number.isInteger(v) ? v : v.toFixed(1)}${suffix}`;
 
 export const formatters: Record<Unit, { value: (v: number) => string; tick: (v: number) => string }> = {
   kr: { value: formatKr, tick: formatCompactKr },
   percent: { value: (v) => `${Math.round(v * 100)}%`, tick: (v) => `${Math.round(v * 100)}%` },
+  kg: { value: plain(" kg"), tick: plain("") },
+  reps: { value: plain(" reps"), tick: plain("") },
+  seconds: { value: plain(" s"), tick: plain("") },
+  minutes: { value: plain(" min"), tick: plain("") },
 };
 
 

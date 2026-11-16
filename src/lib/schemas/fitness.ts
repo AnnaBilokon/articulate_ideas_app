@@ -282,4 +282,54 @@ export function setLabel(set: { reps: number | null; seconds: number | null; wei
   return set.weightKg !== null ? `${formatKg(set.weightKg)} kg × ${amount}` : set.reps !== null ? `× ${amount}` : amount;
 }
 
+/** A set as done: what personal bests are made of. */
+export type SetResult = { reps: number | null; seconds: number | null; weightKg: number | null };
+
+/** Your bests with an exercise: heaviest weight, best set (kg × reps), most reps, longest. */
+export type Bests = { weightKg: number | null; volume: number | null; reps: number | null; seconds: number | null };
+
+export const NO_BESTS: Bests = { weightKg: null, volume: null, reps: null, seconds: null };
+
+const max = (a: number | null, b: number | null) => (a === null ? b : b === null ? a : Math.max(a, b));
+
+/** Your bests, with these sets added. */
+export function addToBests(bests: Bests, sets: SetResult[]): Bests {
+  let next = bests;
+  for (const s of sets) {
+    const weighted = s.weightKg !== null && s.weightKg > 0 && s.reps !== null && s.reps > 0;
+    next = {
+      weightKg: weighted ? max(next.weightKg, s.weightKg) : next.weightKg,
+      volume: weighted ? max(next.volume, s.weightKg! * s.reps!) : next.volume,
+      // Reps count on their own only without a weight (a push-up, a pull-up).
+      reps: !weighted && s.reps !== null && s.reps > 0 ? max(next.reps, s.reps) : next.reps,
+      seconds: s.seconds !== null && s.seconds > 0 ? max(next.seconds, s.seconds) : next.seconds,
+    };
+  }
+  return next;
+}
+
+const hasAny = (b: Bests) => b.weightKg !== null || b.volume !== null || b.reps !== null || b.seconds !== null;
+
+/**
+ * Whether a set beats your bests, and how: "Heaviest yet", "Best set yet",
+ * "Most reps yet", "Longest yet". Never the first time you do an exercise:
+ * there's nothing to beat yet.
+ */
+export function beatsBests(s: SetResult, bests: Bests): string | null {
+  if (!hasAny(bests)) return null;
+  const weighted = s.weightKg !== null && s.weightKg > 0 && s.reps !== null && s.reps > 0;
+  if (weighted) {
+    if (bests.weightKg !== null && s.weightKg! > bests.weightKg) return "Heaviest yet";
+    if (bests.volume !== null && s.weightKg! * s.reps! > bests.volume) return "Best set yet";
+    return null;
+  }
+  if (s.reps !== null && s.reps > 0 && bests.reps !== null && s.reps > bests.reps) return "Most reps yet";
+  if (s.seconds !== null && s.seconds > 0 && bests.seconds !== null && s.seconds > bests.seconds) return "Longest yet";
+  return null;
+}
+
+/** The next weight up: 2 kg with dumbbells or a kettlebell, 2.5 kg on a bar or machine. */
+export const nextWeight = (kg: number, equipment: Equipment[]) =>
+  kg + (equipment.includes("dumbbells") || equipment.includes("kettlebell") ? 2 : 2.5);
+
 export const formatKg = (kg: number) => (Number.isInteger(kg) ? String(kg) : kg.toFixed(1));

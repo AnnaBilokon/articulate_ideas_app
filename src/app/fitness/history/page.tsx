@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { Flame, Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { listWorkouts, type Workout } from "@/lib/fitness";
+import { listWorkouts, newBestsIn, type Workout } from "@/lib/fitness";
 import { localDate } from "@/lib/schedule";
 import { KIND_LABELS, WEEKDAYS, addDays, weekStart, workoutKinds } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,7 @@ export default async function FitnessHistoryPage() {
   const today = localDate();
   const firstWeek = addDays(weekStart(today), -7 * (WEEKS - 1));
   const done = (await listWorkouts(firstWeek, today)).filter((w) => w.doneAt);
+  const bests = await newBestsIn(done);
 
   const thisWeek = done.filter((w) => w.day >= weekStart(today));
   const thisMonth = done.filter((w) => w.day.slice(0, 7) === today.slice(0, 7));
@@ -175,7 +176,7 @@ export default async function FitnessHistoryPage() {
                   </span>
                 </h2>
                 {list.map((w) => (
-                  <WorkoutRow key={w.id} workout={w} />
+                  <WorkoutRow key={w.id} workout={w} bests={bests[w.id]} />
                 ))}
               </section>
             );
