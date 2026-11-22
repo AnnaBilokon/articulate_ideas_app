@@ -14,8 +14,9 @@ import { cn } from "@/lib/utils";
 // again at the end. Used by the quiz, reviews and word practice, which differ
 // only in where the questions come from and what the end screen shows.
 
-// href: where the question came from (a topic card, a quick fact).
-export type SessionQuestion = { id: string; text: string; topicId?: string; topicTitle?: string; href?: string };
+// href: where the question came from (a topic card, a quick fact, a chat).
+// hint: a reminder of where it came from, shown on request (a chat's note).
+export type SessionQuestion = { id: string; text: string; topicId?: string; topicTitle?: string; href?: string; hint?: string };
 export type FirstTry = { question: SessionQuestion; attemptId: string; score: number; confidentMiss: boolean };
 type Turn = { question: SessionQuestion; reask: boolean };
 type Phase = "confidence" | "answer" | "grading" | "feedback";
@@ -60,6 +61,7 @@ export function RecallSession<Summary>({
   const [firstTries, setFirstTries] = useState<FirstTry[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [finishing, setFinishing] = useState(false);
+  const [hintShown, setHintShown] = useState(false);
 
   const turn = queue[pos];
   const done = pos >= queue.length;
@@ -120,6 +122,7 @@ export function RecallSession<Summary>({
     setConfidence(null);
     setAnswer("");
     setGraded(null);
+    setHintShown(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (nextPos >= queue.length) {
@@ -173,6 +176,18 @@ export function RecallSession<Summary>({
             </div>
           )}
           <p className="text-lg leading-7 font-medium sm:text-xl">{turn.question.text}</p>
+
+          {turn.question.hint && phase !== "feedback" &&
+            (hintShown ? (
+              <p className="rounded-lg bg-muted/70 px-3 py-2 text-sm leading-6 text-muted-foreground">
+                <span className="font-medium text-foreground">From your chat: </span>
+                {turn.question.hint}
+              </p>
+            ) : (
+              <Button variant="ghost" size="sm" className="-mt-3 w-fit text-muted-foreground" onClick={() => setHintShown(true)}>
+                Remind me what we talked about
+              </Button>
+            ))}
 
           {phase === "confidence" && (
             <div className="flex flex-col gap-2">

@@ -481,6 +481,16 @@ Every topic followed the same track in the same format, which made learning feel
 - [ ] 6. Real life: "Apply it" missions (the Applied stage) and bridge questions between two topics
 - [ ] 7. Critical-thinking drills: steelman, pre-mortem, bias spotting, argument map, "what would change your mind?"
 
+### Explore: learning from curiosity (November 2026)
+
+Recalling the same things every day felt tough, and nothing pulled you back to learn something new: every path started with the app's lesson and ended in recall. Explore turns it around. You start from your own question, Claude explains, and recall is opt-in, only on what you chose to keep.
+
+- [x] "What are you curious about?" at the top of Learning Today: type a question (or tap an example); a short intro of 80-140 words with one example, a title and an area (a favourite area when one fits). Recent chats under it
+- [x] The chat (Sonnet): ask anything, follow-ups to tap after every reply (an example, deeper, compare, in practice, what goes wrong); about every 4 messages Claude may offer a light "Want to check yourself?" question, which you can answer (brief feedback) or skip. Up to 30 of your messages a chat
+- [x] "Save to my knowledge": Claude writes a note (summary, key ideas from what you asked about, examples) and drafts 2-3 review questions; you tick the ones to keep (or none) and they come back from tomorrow, grouped by chat. Keep chatting and "Update my note"
+- [x] In reviews, "Remind me what we talked about" shows the chat's note summary as a hint
+- [x] Library > Chats: every chat, searchable over chats and notes; "Learn it as a full topic" opens the New topic form filled in; delete a chat. A chat counts as a learning day for the streak and tree
+
 ### Speaking coach (October 2026)
 
 A Speaking tab for English articulation, active vocabulary and thinking on the spot at work and in social talk.

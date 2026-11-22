@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Dumbbell,
   Flame,
+  MessagesSquare,
   GraduationCap,
   Repeat,
   Sparkles,
@@ -15,6 +16,7 @@ import {
   WholeWord,
   Zap,
 } from "lucide-react";
+import { ExploreStart } from "@/components/explore-start";
 import { LearningTree } from "@/components/learning-tree";
 import { LightDayButton } from "@/components/light-day-button";
 import { NextReviewLine } from "@/components/next-review-line";
@@ -24,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { favoriteAreas } from "@/lib/discover";
+import { listExplorations } from "@/lib/explore";
 import { nextLearnStep } from "@/lib/learn-flow";
 import { LIGHT_DAY_CAP, reviewOverview } from "@/lib/reviews";
 import { MAX_PER_TOPIC } from "@/lib/schedule";
@@ -37,7 +40,7 @@ import { cn } from "@/lib/utils";
 export default async function LearnToday() {
   await connection(); // Read fresh data on every visit, not once at build.
   const supabase = db();
-  const [{ data: all }, review, words, areas, savedCount, streak, { count: termCount }] = await Promise.all([
+  const [{ data: all }, review, words, areas, savedCount, streak, { count: termCount }, chats] = await Promise.all([
     supabase
       .from("topics")
       .select("id, title, level, created_at, topic_tags(tags(name)), lesson_chunks(id), dumps(id)")
@@ -49,6 +52,7 @@ export default async function LearnToday() {
     savedQuestionsToLearn(),
     learningStreak(),
     supabase.from("glossary_terms").select("id", { count: "exact", head: true }),
+    listExplorations(3),
   ]);
   // Learned once day 1 is done; the rest are still in progress.
   const topics = (all ?? []).filter((t) => nextLearnStep({ hasLesson: t.lesson_chunks.length > 0, hasDump: t.dumps.length > 0 }));
@@ -70,6 +74,47 @@ export default async function LearnToday() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
       <PageHeader title="Today" description="Recall what's due, then keep learning." />
+
+      {/* Curiosity first: ask anything, read a short intro, then talk it through. */}
+      <Card className="bg-accent/50 ring-primary/20">
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <MessagesSquare className="size-5" />
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-lg font-semibold tracking-tight text-heading">What are you curious about?</h2>
+              <p className="text-sm text-muted-foreground">
+                Read a short intro, then ask, explore and get examples. Save what you like to your knowledge.
+              </p>
+            </div>
+          </div>
+          <ExploreStart />
+          {chats.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-sm font-medium text-muted-foreground">Recent chats</span>
+                <Link href="/library/explore" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                  All chats
+                </Link>
+              </div>
+              <ul className="flex flex-wrap gap-2">
+                {chats.map((chat) => (
+                  <li key={chat.id}>
+                    <Link
+                      href={`/explore/${chat.id}`}
+                      className="flex items-center gap-1.5 rounded-full bg-background px-3 py-1 text-sm font-medium ring-1 ring-foreground/10 transition-colors hover:bg-highlight hover:text-highlight-foreground"
+                    >
+                      {chat.title}
+                      <ChevronRight className="size-3.5 text-muted-foreground" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map(({ label, value, icon: Icon, tone, title }) => (

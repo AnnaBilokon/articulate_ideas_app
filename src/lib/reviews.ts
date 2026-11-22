@@ -1,15 +1,26 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { planTodaysReview, startOfDay } from "@/lib/schedule";
+import { exploreNoteSchema } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
 // topicId groups questions for mixing and the per-topic limit: a topic's id,
-// or "quick-facts:<area>" for questions from quick facts. href opens where it came from.
-export type ReviewQuestion = { id: string; text: string; topicId: string; topicTitle: string; href: string; lastScore: number | null };
+// "quick-facts:<area>" for questions from quick facts, or "explore:<id>" for
+// questions from a chat. href opens where it came from; hint, when there is
+// one, reminds you what the chat was about.
+export type ReviewQuestion = {
+  id: string;
+  text: string;
+  topicId: string;
+  topicTitle: string;
+  href: string;
+  lastScore: number | null;
+  hint?: string;
+};
 
-/** The group a question counts in: its topic, or its quick facts' area. */
-const groupOf = (q: { topic_id: string | null; quick_facts: { area: string } | null }) =>
-  q.topic_id ?? (q.quick_facts ? `quick-facts:${q.quick_facts.area}` : null);
+/** The group a question counts in: its topic, its quick facts' area, or its chat. */
+const groupOf = (q: { topic_id: string | null; quick_facts: { area: string } | null; exploration_id: string | null }) =>
+  q.topic_id ?? (q.quick_facts ? `quick-facts:${q.quick_facts.area}` : q.exploration_id ? `explore:${q.exploration_id}` : null);
 
 // "Too much?": a light day reviews at most this many questions. The choice is
 // kept in a cookie that names the day, so it ends by itself at midnight.
@@ -49,12 +60,12 @@ export async function reviewOverview(now: Date = new Date()): Promise<ReviewOver
     supabase.from("settings").select("daily_review_cap").eq("id", 1).maybeSingle(),
     supabase
       .from("review_state")
-      .select("due_at, last_score, recall_questions(id, text, topic_id, topics(title), quick_fact_id, quick_facts(area))")
+      .select("due_at, last_score, recall_questions(id, text, topic_id, topics(title), quick_fact_id, quick_facts(area), exploration_id, explorations(title, note))")
       .lte("due_at", now.toISOString())
       .order("due_at"),
     supabase
       .from("attempts")
-      .select("question_id, recall_questions(topic_id, quick_facts(area))")
+      .select("question_id, recall_questions(topic_id, quick_facts(area), exploration_id)")
       .eq("mode", "review")
       .gte("created_at", startOfDay(now).toISOString()),
     supabase.from("review_state").select("due_at").gt("due_at", now.toISOString()).order("due_at").limit(1),
@@ -75,6 +86,20 @@ export async function reviewOverview(now: Date = new Date()): Promise<ReviewOver
     if (q?.quick_fact_id && q.quick_facts) {
       const area = q.quick_facts.area;
       return [{ id: q.id, text: q.text, topicId: `quick-facts:${area}`, topicTitle: `Quick facts · ${area}`, href: `/library/facts#${q.quick_fact_id}`, lastScore: last_score }];
+    }
+    if (q?.exploration_id && q.explorations) {
+      const note = exploreNoteSchema.safeParse(q.explorations.note);
+      return [
+        {
+          id: q.id,
+          text: q.text,
+          topicId: `explore:${q.exploration_id}`,
+          topicTitle: `Explore · ${q.explorations.title}`,
+          href: `/explore/${q.exploration_id}`,
+          lastScore: last_score,
+          hint: note.success ? note.data.summary : undefined,
+        },
+      ];
     }
     return [];
   });
