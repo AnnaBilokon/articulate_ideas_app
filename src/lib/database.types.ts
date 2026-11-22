@@ -403,6 +403,44 @@ export type Database = {
           },
         ]
       }
+      explanations: {
+        Row: {
+          created_at: string
+          drill_type: string | null
+          feedback: Json | null
+          id: string
+          score: number | null
+          text: string
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          drill_type?: string | null
+          feedback?: Json | null
+          id?: string
+          score?: number | null
+          text: string
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          drill_type?: string | null
+          feedback?: Json | null
+          id?: string
+          score?: number | null
+          text?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "explanations_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       explorations: {
         Row: {
           area: string
@@ -441,44 +479,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      explanations: {
-        Row: {
-          created_at: string
-          drill_type: string | null
-          feedback: Json | null
-          id: string
-          score: number | null
-          text: string
-          topic_id: string
-        }
-        Insert: {
-          created_at?: string
-          drill_type?: string | null
-          feedback?: Json | null
-          id?: string
-          score?: number | null
-          text: string
-          topic_id: string
-        }
-        Update: {
-          created_at?: string
-          drill_type?: string | null
-          feedback?: Json | null
-          id?: string
-          score?: number | null
-          text?: string
-          topic_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "explanations_topic_id_fkey"
-            columns: ["topic_id"]
-            isOneToOne: false
-            referencedRelation: "topics"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       fitness_exercises: {
         Row: {
