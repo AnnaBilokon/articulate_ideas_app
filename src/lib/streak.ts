@@ -4,8 +4,8 @@ import { db } from "@/lib/supabase";
 
 // Days in a row with learning: a day counts when you recalled something (a
 // review or quiz answer, word practice, a part recall, a brain dump, a
-// teach-back, a Think deeper answer, a challenge, a tutor conversation or a
-// speaking exercise). Days are calendar days in the app's
+// teach-back, a Think deeper answer, a challenge, a tutor conversation, an
+// Explore chat or a speaking exercise). Days are calendar days in the app's
 // time zone.
 
 export type Streak = {
@@ -52,6 +52,7 @@ const ACTIVITY = [
   ["critical_answers", "created_at"],
   ["challenge_attempts", "created_at"],
   ["tutor_sessions", "created_at"],
+  ["explorations", "created_at"],
   ["speaking_exercises", "completed_at"],
 ] as const;
 

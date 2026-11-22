@@ -441,6 +441,45 @@ export type Database = {
           },
         ]
       }
+      explorations: {
+        Row: {
+          area: string
+          created_at: string
+          id: string
+          messages: Json
+          note: Json | null
+          question: string
+          review_drafts: Json | null
+          saved_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          area: string
+          created_at?: string
+          id?: string
+          messages?: Json
+          note?: Json | null
+          question: string
+          review_drafts?: Json | null
+          saved_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          id?: string
+          messages?: Json
+          note?: Json | null
+          question?: string
+          review_drafts?: Json | null
+          saved_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fitness_exercises: {
         Row: {
           created_at: string
@@ -1292,6 +1331,7 @@ export type Database = {
       recall_questions: {
         Row: {
           created_at: string
+          exploration_id: string | null
           id: string
           key_points: string[]
           position: number
@@ -1302,6 +1342,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          exploration_id?: string | null
           id?: string
           key_points: string[]
           position: number
@@ -1312,6 +1353,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          exploration_id?: string | null
           id?: string
           key_points?: string[]
           position?: number
@@ -1321,6 +1363,13 @@ export type Database = {
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "recall_questions_exploration_id_fkey"
+            columns: ["exploration_id"]
+            isOneToOne: false
+            referencedRelation: "explorations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recall_questions_quick_fact_id_fkey"
             columns: ["quick_fact_id"]
