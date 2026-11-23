@@ -33,7 +33,8 @@ export type SpendCategory = {
   /** Every purchase comes off the pot, without asking. */
   potAlways: boolean;
 };
-export type SpendPurchase = { id: string; categoryId: string; spentOn: string; amount: number; note: string | null; fromPot: boolean };
+/** potId: the Money pot it was taken from, any pot, not only its category's; null if none. */
+export type SpendPurchase = { id: string; categoryId: string; spentOn: string; amount: number; note: string | null; potId: string | null };
 
 /** Suggestions to start from, one tap each. */
 export const starterCategories: { name: string; icon: SpendIcon; color: SpendColor }[] = [
@@ -66,8 +67,8 @@ export const purchaseSchema = z.object({
     .refine((v) => v !== 0, "Enter an amount.")
     .refine((v) => Math.abs(v) <= 1e9, "That's a lot. Check the amount."),
   note: z.string().trim().max(200, "Keep the note under 200 characters."),
-  /** Taken from the category's pot. */
-  fromPot: z.boolean().default(false),
+  /** The pot it's taken from: the category's or any other. */
+  potId: z.uuid().nullable().default(null),
 });
 export type PurchaseInput = z.input<typeof purchaseSchema>;
 

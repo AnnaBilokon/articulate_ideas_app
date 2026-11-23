@@ -18,7 +18,7 @@ export async function loadSpending(): Promise<SpendingData> {
     db().from("spend_categories").select("id, name, icon, color, position, archived_at, pot_category_id, pot_always").order("position").order("created_at"),
     db()
       .from("spend_purchases")
-      .select("id, category_id, spent_on, amount, note, from_pot")
+      .select("id, category_id, spent_on, amount, note, pot_id")
       .order("spent_on", { ascending: false })
       .order("created_at", { ascending: false }),
     db().from("money_settings").select("payday").eq("id", 1).maybeSingle(),
@@ -42,7 +42,7 @@ export async function loadSpending(): Promise<SpendingData> {
       spentOn: p.spent_on,
       amount: Number(p.amount),
       note: p.note,
-      fromPot: p.from_pot,
+      potId: p.pot_id,
     })),
     payday: settings?.payday ?? 25,
     pots: pots ?? [],

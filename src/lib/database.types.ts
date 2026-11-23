@@ -1104,6 +1104,7 @@ export type Database = {
           colors: Json
           id: string
           note: string | null
+          opening: number | null
           period_id: string
           planned: number | null
           spent: number | null
@@ -1115,6 +1116,7 @@ export type Database = {
           colors?: Json
           id?: string
           note?: string | null
+          opening?: number | null
           period_id: string
           planned?: number | null
           spent?: number | null
@@ -1126,6 +1128,7 @@ export type Database = {
           colors?: Json
           id?: string
           note?: string | null
+          opening?: number | null
           period_id?: string
           planned?: number | null
           spent?: number | null
@@ -1724,6 +1727,7 @@ export type Database = {
           from_pot: boolean
           id: string
           note: string | null
+          pot_id: string | null
           spent_on: string
         }
         Insert: {
@@ -1733,6 +1737,7 @@ export type Database = {
           from_pot?: boolean
           id?: string
           note?: string | null
+          pot_id?: string | null
           spent_on: string
         }
         Update: {
@@ -1742,6 +1747,7 @@ export type Database = {
           from_pot?: boolean
           id?: string
           note?: string | null
+          pot_id?: string | null
           spent_on?: string
         }
         Relationships: [
@@ -1750,6 +1756,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "spend_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spend_purchases_pot_id_fkey"
+            columns: ["pot_id"]
+            isOneToOne: false
+            referencedRelation: "money_categories"
             referencedColumns: ["id"]
           },
         ]

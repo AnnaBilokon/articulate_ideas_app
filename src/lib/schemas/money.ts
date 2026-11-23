@@ -54,7 +54,7 @@ export const cellStyle = (color: MoneyColor | null | undefined) =>
 export const isMoneyColor = (v: unknown): v is MoneyColor => moneyColors.includes(v as MoneyColor);
 
 /** The amounts of an entry that can be coloured. */
-export const moneyFields = ["amount", "planned", "spent", "balance"] as const;
+export const moneyFields = ["amount", "planned", "spent", "balance", "opening"] as const;
 export type MoneyField = (typeof moneyFields)[number];
 export type MoneyColors = Partial<Record<MoneyField, MoneyColor>>;
 
@@ -75,6 +75,8 @@ export type MoneyEntry = {
   spent: number | null;
   /** Pots and savings: the balance at the end, when entered. */
   balance: number | null;
+  /** Pots and savings: what was really there at the start, when typed (a fresh start); else last month's. */
+  opening: number | null;
   note: string | null;
   colors: MoneyColors;
 };
@@ -89,6 +91,10 @@ export type MoneyPeriod = {
   oneOffs: MoneyOneOff[];
   /** Pots: purchases from the spending tracker taken from them this period, by pot id. */
   potSpending?: Record<string, number>;
+  /** The same, by pot and then by spending category name: what took from each pot. */
+  potSpendingFrom?: Record<string, Record<string, number>>;
+  /** Purchases in a category linked to a pot that weren't taken from it, by pot id. */
+  notFromPot?: Record<string, number>;
 };
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -214,10 +220,26 @@ export function periodTotals(period: MoneyPeriod, categories: MoneyCategory[]): 
 }
 
 /**
+ * What a pot or saving holds at the end of a period without a typed balance:
+ * where it started (a typed fresh start, else last month's), plus what went
+ * in, minus what was spent from it (including purchases taken from it in the
+ * spending tracker).
+ */
+export function carriedBalance(
+  kind: MoneyKind,
+  entry: Pick<MoneyEntry, "amount" | "spent" | "opening"> | undefined,
+  before: number | undefined,
+  tracked: number,
+): number {
+  const start = entry?.opening ?? before ?? 0;
+  const spent = kind === "pot" ? (entry?.spent ?? 0) + tracked : 0;
+  return start + (entry?.amount ?? 0) - spent;
+}
+
+/**
  * Balances of pots and savings at the end of each period, oldest first. An
- * entered balance wins; otherwise the one before, plus what went in, minus
- * what was spent (including purchases taken from a pot in the spending
- * tracker). Keyed by period id, then category id.
+ * entered balance wins; otherwise carriedBalance. Keyed by period id, then
+ * category id.
  */
 export function runningBalances(periods: MoneyPeriod[], categories: MoneyCategory[]): Map<string, Map<string, number>> {
   const tracked = categories.filter((c) => c.kind === "pot" || c.kind === "saving");
@@ -231,7 +253,7 @@ export function runningBalances(periods: MoneyPeriod[], categories: MoneyCategor
       const before = last.get(c.id);
       const tracked = p.potSpending?.[c.id] ?? 0;
       if (!e && before === undefined && tracked === 0) continue;
-      const value = e?.balance ?? (before ?? 0) + (e?.amount ?? 0) - (e?.spent ?? 0) - tracked;
+      const value = e?.balance ?? carriedBalance(c.kind, e, before, tracked);
       balances.set(c.id, value);
       last.set(c.id, value);
     }
@@ -252,6 +274,7 @@ export const periodInputSchema = z.object({
         planned: money,
         spent: money,
         balance: money,
+        opening: money.default(null),
         note: z.string().trim().max(500).nullable(),
         colors: z.partialRecord(z.enum(moneyFields), z.enum(moneyColors)),
       }),

@@ -52,6 +52,7 @@ export async function savePeriod(periodId: string, input: PeriodInput): Promise<
           planned: e.planned,
           spent: e.spent,
           balance: e.balance,
+          opening: e.opening,
           note: e.note || null,
           colors: e.colors,
         })),

@@ -103,7 +103,7 @@ function CategoryForm({
       {pots.length > 0 && (
         <div className="flex flex-col gap-2">
           <label className="flex flex-wrap items-center gap-2 text-sm">
-            <span>Takes from pot</span>
+            <span>Usually takes from pot</span>
             <select
               value={potId ?? ""}
               onChange={(e) => {

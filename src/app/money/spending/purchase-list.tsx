@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { formatPrice, type SpendCategory, type SpendPurchase } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { deletePurchase, updatePurchase } from "./actions";
-import { CategoryChips } from "./add-purchase";
+import { CategoryChips, PotSelect } from "./add-purchase";
 import { SumPreview, parseAmount } from "./amount-calculator";
 
 const dayFormat = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
@@ -86,9 +86,9 @@ export function PurchaseList({
                               {c && <SpendIconBadge icon={c.icon} color={c.color} size="sm" />}
                               <span className="flex min-w-0 flex-1 flex-col">
                                 <span className="truncate text-sm">{c?.name}</span>
-                                {(p.note || (p.fromPot && c?.potCategoryId)) && (
+                                {(p.note || p.potId) && (
                                   <span className="truncate text-xs text-muted-foreground">
-                                    {[p.note, p.fromPot && c?.potCategoryId ? `from the ${potNames[c.potCategoryId] ?? ""} pot` : null].filter(Boolean).join(" · ")}
+                                    {[p.note, p.potId ? `from the ${potNames[p.potId] ?? ""} pot` : null].filter(Boolean).join(" · ")}
                                   </span>
                                 )}
                               </span>
@@ -128,14 +128,17 @@ function EditPurchase({
   const [categoryId, setCategoryId] = useState(purchase.categoryId);
   const [spentOn, setSpentOn] = useState(purchase.spentOn);
   const [note, setNote] = useState(purchase.note ?? "");
-  const [fromPot, setFromPot] = useState(purchase.fromPot);
+  const [potId, setPotId] = useState(purchase.potId);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const value = parseAmount(amount);
   // Its own category stays pickable even if hidden since.
   const choices = categories.filter((c) => !c.archived || c.id === purchase.categoryId);
   const chosen = categories.find((c) => c.id === categoryId);
-  const potId = chosen?.potCategoryId;
+  // A category that takes every purchase from its pot decides; otherwise any pot, or none.
+  const alwaysPot = chosen?.potAlways ? chosen.potCategoryId : null;
+  // Pots since hidden still show when this purchase came off one.
+  const potChoices = potId && !potNames[potId] ? { ...potNames, [potId]: "A hidden pot" } : potNames;
 
   const run = (action: () => Promise<{ error: string | null }>) =>
     start(async () => {
@@ -155,12 +158,15 @@ function EditPurchase({
         <Input aria-label="Note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Note" className="h-9 bg-background" />
       </div>
       <CategoryChips categories={choices} value={categoryId} onChange={setCategoryId} />
-      {potId && chosen?.potAlways && <p className="text-sm text-muted-foreground">Taken from the {potNames[potId] ?? ""} pot, like every purchase in {chosen.name}.</p>}
-      {potId && !chosen?.potAlways && (
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={fromPot} onChange={(e) => setFromPot(e.target.checked)} className="size-4 accent-primary" />
-          Taken from the {potNames[potId] ?? ""} pot
-        </label>
+      {alwaysPot ? (
+        <p className="text-sm text-muted-foreground">Taken from the {potNames[alwaysPot] ?? ""} pot, like every purchase in {chosen?.name}.</p>
+      ) : (
+        Object.keys(potChoices).length > 0 && (
+          <label className="flex flex-wrap items-center gap-2 text-sm">
+            <span>Taken from</span>
+            <PotSelect value={potId} onChange={setPotId} potNames={potChoices} label="Taken from pot" />
+          </label>
+        )
       )}
       {error && (
         <p className="text-sm text-coral-foreground" role="alert">
@@ -168,7 +174,7 @@ function EditPurchase({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" disabled={pending || Number.isNaN(value) || value === 0} onClick={() => run(() => updatePurchase(purchase.id, { categoryId, spentOn, amount: value, note, fromPot: Boolean(potId) && fromPot }))}>
+        <Button size="sm" disabled={pending || Number.isNaN(value) || value === 0} onClick={() => run(() => updatePurchase(purchase.id, { categoryId, spentOn, amount: value, note, potId: alwaysPot ?? potId }))}>
           {pending && <Loader2 className="size-3.5 animate-spin" />} Save
         </Button>
         <Button size="sm" variant="ghost" disabled={pending} onClick={onDone}>
