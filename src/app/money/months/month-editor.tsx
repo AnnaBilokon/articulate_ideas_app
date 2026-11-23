@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  carriedBalance,
   cellStyle,
   formatKr,
   moneyKindInfo,
@@ -26,9 +27,12 @@ import { CellColorPicker } from "../cell-color";
 // Filling in a month: actual and expected per category, one-offs, pots
 // (transferred, spent, balance) and savings (transferred, balance), with
 // the totals updating as you type. Blank means not entered. Any amount can
-// be given a colour, like highlighting a cell.
+// be given a colour, like highlighting a cell. Pots and savings can start
+// fresh: what's really there at the start of the month replaces what was
+// carried over. Each pot says in words what happened to it, and warns when
+// numbers don't add up.
 
-type Row = { amount: string; planned: string; spent: string; balance: string; note: string; colors: MoneyColors };
+type Row = { amount: string; planned: string; spent: string; balance: string; opening: string; note: string; colors: MoneyColors };
 
 const toText = (v: number | null) => (v === null ? "" : String(v));
 
@@ -132,6 +136,7 @@ export function MonthEditor({
             planned: toText(e?.planned ?? null),
             spent: toText(e?.spent ?? null),
             balance: toText(e?.balance ?? null),
+            opening: toText(e?.opening ?? null),
             note: e?.note ?? "",
             colors: e?.colors ?? {},
           },
@@ -143,6 +148,9 @@ export function MonthEditor({
     period.oneOffs.map((o) => ({ title: o.title, amount: String(o.amount), color: o.color as MoneyColor | null })),
   );
   const [note, setNote] = useState(period.note ?? "");
+  // "Started with" shows once asked for, or when this month already starts fresh.
+  const startsFresh = (kind: MoneyKind) => shown.some((c) => c.kind === kind && entries.get(c.id)?.opening != null);
+  const [fresh, setFresh] = useState({ pot: startsFresh("pot"), saving: startsFresh("saving") });
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -197,6 +205,7 @@ export function MonthEditor({
       planned: num(rows[c.id].planned),
       spent: num(rows[c.id].spent),
       balance: num(rows[c.id].balance),
+      opening: c.kind === "pot" || c.kind === "saving" ? num(rows[c.id].opening) : null,
       note: rows[c.id].note.trim() || null,
       colors: rows[c.id].colors,
     })),
@@ -207,7 +216,7 @@ export function MonthEditor({
   };
   const totals = periodTotals(draft, categories);
   const invalid =
-    Object.values(rows).some((r) => [r.amount, r.planned, r.spent, r.balance].some((t) => Number.isNaN(parseAmount(t)))) ||
+    Object.values(rows).some((r) => [r.amount, r.planned, r.spent, r.balance, r.opening].some((t) => Number.isNaN(parseAmount(t)))) ||
     oneOffs.some((o) => Number.isNaN(parseAmount(o.amount)) || (o.amount.trim() !== "" && !o.title.trim()));
 
   const save = () =>
@@ -229,7 +238,89 @@ export function MonthEditor({
   const computed = (c: MoneyCategory) => {
     const r = rows[c.id];
     const tracked = c.kind === "pot" ? (period.potSpending?.[c.id] ?? 0) : 0;
-    return (balancesBefore[c.id] ?? 0) + (num(r.amount) ?? 0) - (c.kind === "pot" ? (num(r.spent) ?? 0) : 0) - tracked;
+    return carriedBalance(c.kind, { amount: num(r.amount), spent: num(r.spent), opening: num(r.opening) }, balancesBefore[c.id], tracked);
+  };
+
+  /**
+   * A pot's month in words: where it started, what went in and out, and
+   * what's left, whether less or more was spent than put in, what took from
+   * it in Spending, and warnings when the numbers don't add up. Savings get
+   * the warning only.
+   */
+  const story = (c: MoneyCategory) => {
+    const r = rows[c.id];
+    const opening = num(r.opening);
+    const start = opening ?? balancesBefore[c.id] ?? 0;
+    const into = num(r.amount);
+    const typedSpent = c.kind === "pot" ? (num(r.spent) ?? 0) : 0;
+    const tracked = c.kind === "pot" ? (period.potSpending?.[c.id] ?? 0) : 0;
+    const spent = typedSpent + tracked;
+    const calc = computed(c);
+    const typed = num(r.balance);
+    const lines: { text: string; warn?: boolean }[] = [];
+    if (c.kind === "pot") {
+      if (start || into || spent) {
+        lines.push({
+          text: `${formatKr(start)} ${opening !== null ? "to start" : "from last month"} + ${formatKr(into ?? 0)} in − ${formatKr(spent)} spent = ${formatKr(calc)} left.`,
+        });
+      }
+      if (into) {
+        const diff = into - spent;
+        lines.push({
+          text:
+            Math.abs(diff) < 1
+              ? "You spent what you put in."
+              : diff > 0
+                ? `You spent ${formatKr(diff)} less than you put in: it stays in the pot for next month.`
+                : `You spent ${formatKr(-diff)} more than you put in this month.`,
+        });
+      }
+      const from = Object.entries(period.potSpendingFrom?.[c.id] ?? {});
+      if (from.length > 0) lines.push({ text: `From Spending: ${from.map(([name, sum]) => `${name} ${formatKr(sum)}`).join(", ")}.` });
+      const notFrom = period.notFromPot?.[c.id] ?? 0;
+      if (notFrom) {
+        lines.push({ text: `Spending has another ${formatKr(notFrom)} in this pot's category that wasn't taken from it. Edit those purchases there if it should be.` });
+      }
+      if (typedSpent && tracked) {
+        lines.push({
+          warn: true,
+          text: `Both the Spent box (${formatKr(typedSpent)}) and Spending (${formatKr(tracked)}) come off. If the box already has those purchases, they count twice.`,
+        });
+      }
+    }
+    if (typed !== null && Math.abs(typed - calc) >= 1) {
+      const diff = typed - calc;
+      lines.push({
+        warn: c.kind === "pot",
+        text:
+          c.kind === "pot"
+            ? `You typed ${formatKr(typed)} left; by the numbers it's ${formatKr(calc)}. What you typed carries over, ${formatKr(Math.abs(diff))} ${diff > 0 ? "more" : "less"}. Clear it to use the numbers, or start fresh with what's really there.`
+            : into !== null
+              ? `The balance is ${formatKr(Math.abs(diff))} ${diff > 0 ? "more" : "less"} than ${opening !== null ? "the start" : "last month's"} plus In: interest, a withdrawal, or a transfer not entered?`
+              : "",
+      });
+    }
+    const shownLines = lines.filter((l) => l.text);
+    if (shownLines.length === 0) return null;
+    return (
+      <span className="flex flex-col gap-0.5 text-xs">
+        {shownLines.map((l, i) => (
+          <span key={i} className={l.warn ? "text-coral-foreground" : "text-muted-foreground"}>
+            {l.text}
+          </span>
+        ))}
+      </span>
+    );
+  };
+
+  /** Turns "Started with" on for a section, or off (clearing what was typed there: back to carrying over). */
+  const toggleFresh = (kind: "pot" | "saving") => {
+    if (fresh[kind]) {
+      setRows((r) => Object.fromEntries(Object.entries(r).map(([id, row]) => [id, shown.find((c) => c.id === id)?.kind === kind ? { ...row, opening: "" } : row])));
+      setDirty(true);
+      setSaved(false);
+    }
+    setFresh({ ...fresh, [kind]: !fresh[kind] });
   };
 
   /**
@@ -242,7 +333,7 @@ export function MonthEditor({
     if (r.amount.trim() !== "") return null;
     const planned = num(r.planned);
     const balance = num(r.balance);
-    const before = balancesBefore[c.id];
+    const before = num(r.opening) ?? balancesBefore[c.id];
     // In = balance - last month's + what went out of it this month.
     const out = c.kind === "pot" ? (num(r.spent) ?? 0) + (period.potSpending?.[c.id] ?? 0) : 0;
     const rise = balance !== null && before !== undefined ? Math.round((balance - before + out) * 100) / 100 : null;
@@ -358,23 +449,25 @@ export function MonthEditor({
           key={kind}
           kind={kind}
           list={shown.filter((c) => c.kind === kind)}
+          fresh={fresh[kind]}
+          action={
+            <Button size="sm" variant={fresh[kind] ? "ghost" : "secondary"} className="w-fit" onClick={() => toggleFresh(kind)}>
+              {fresh[kind] ? "Carry over instead" : "Start fresh from this month"}
+            </Button>
+          }
           extra={(c) => {
             const hint = inHint(c);
-            const fromSpending =
-              kind === "pot" && period.potSpending?.[c.id] ? (
-                <span className="text-xs text-muted-foreground">
-                  Plus {formatKr(period.potSpending[c.id])} from Spending, taken off what&apos;s left
-                </span>
-              ) : null;
-            return hint || fromSpending ? (
+            const words = story(c);
+            return hint || words ? (
               <span className="flex flex-col gap-1">
                 {hint}
-                {fromSpending}
+                {words}
               </span>
             ) : null;
           }}
           inputs={(c) => (
             <>
+              {fresh[kind] && field(c, "opening", "started with", String(Math.round(balancesBefore[c.id] ?? 0)))}
               {field(c, "amount", "in")}
               {kind === "pot" && field(c, "spent", "spent")}
               {field(c, "balance", kind === "pot" ? "left" : "balance", String(Math.round(computed(c))))}
@@ -469,6 +562,12 @@ const rowTemplate: Record<MoneyKind, string> = {
   pot: "sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_6.5rem]",
   saving: "sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem]",
 };
+// With "Started with" in front.
+const freshTemplate: Partial<Record<MoneyKind, string>> = {
+  pot: "sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_6.5rem_6.5rem]",
+  saving: "sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_6.5rem]",
+};
+const phoneGrid: Record<number, string> = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" };
 
 function Section({
   kind,
@@ -476,6 +575,8 @@ function Section({
   inputs,
   note,
   extra,
+  fresh = false,
+  action,
 }: {
   kind: MoneyKind;
   list: MoneyCategory[];
@@ -483,19 +584,34 @@ function Section({
   note?: (c: MoneyCategory) => React.ReactNode;
   /** A line under a row, across it. */
   extra?: (c: MoneyCategory) => React.ReactNode;
+  /** Pots and savings: a "Started with" column first. */
+  fresh?: boolean;
+  /** A button under the title. */
+  action?: React.ReactNode;
 }) {
   if (list.length === 0) return null;
-  const cols = columns[kind];
-  const phoneCols = cols.length === 3 ? "grid-cols-3" : "grid-cols-2";
+  const cols = fresh ? [{ key: "opening" as const, label: "Started with" }, ...columns[kind]] : columns[kind];
+  const phoneCols = phoneGrid[cols.length] ?? "grid-cols-2";
+  const template = (fresh && freshTemplate[kind]) || rowTemplate[kind];
   return (
     <Card size="sm">
       <CardHeader>
         <CardTitle className="text-heading">{moneyKindInfo[kind].plural}</CardTitle>
-        {kind === "pot" && <p className="text-sm text-muted-foreground">Leave &ldquo;Left&rdquo; blank to carry over: last month&apos;s, plus in, minus spent.</p>}
-        {kind === "saving" && <p className="text-sm text-muted-foreground">Leave the balance blank to add this month&apos;s transfer to last month&apos;s.</p>}
+        {fresh ? (
+          <p className="text-sm text-muted-foreground">
+            Type what&apos;s really in each one at the start of this month. This month and the ones after count from there; earlier months stay as they
+            were. Leave one blank to carry it over.
+          </p>
+        ) : (
+          <>
+            {kind === "pot" && <p className="text-sm text-muted-foreground">Leave &ldquo;Left&rdquo; blank to carry over: last month&apos;s, plus in, minus spent.</p>}
+            {kind === "saving" && <p className="text-sm text-muted-foreground">Leave the balance blank to add this month&apos;s transfer to last month&apos;s.</p>}
+          </>
+        )}
+        {action}
       </CardHeader>
       <CardContent className="flex flex-col gap-3 sm:gap-2">
-        <div className={cn("grid gap-2", phoneCols, rowTemplate[kind])}>
+        <div className={cn("grid gap-2", phoneCols, template)}>
           <span className="hidden sm:block" />
           {cols.map((col) => (
             <span key={col.key} className="text-right text-xs font-medium text-muted-foreground">
@@ -507,7 +623,7 @@ function Section({
         {list.map((c) => {
           const below = extra?.(c);
           return (
-            <div key={c.id} className={cn("grid items-center gap-x-2 gap-y-1.5", rowTemplate[kind])}>
+            <div key={c.id} className={cn("grid items-center gap-x-2 gap-y-1.5", template)}>
               <span className={cn("min-w-0 truncate text-sm", c.archived && "text-muted-foreground")}>{c.name}</span>
               <div className={cn("grid gap-2 sm:contents", phoneCols)}>{inputs(c)}</div>
               {note?.(c)}

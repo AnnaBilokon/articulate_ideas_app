@@ -530,6 +530,7 @@ Income, spending and savings per pay period, replacing the budget spreadsheet. M
 - [x] Saved counts only what's really saved (Emergency fund, Save); investments and Tomas are shown apart. Savings goals with progress, what's left and months to go (Emergency fund 60,000, Save 100,000)
 - [x] Spending categories can be linked to a pot; adding a purchase asks whether to take it from the pot, and the pot counts it as spent and shows what's left
 - [x] Wishlist: things to buy later in lists of your own, each with a photo or screenshot (private storage), price, link and note; tick off when bought; a "Want to buy" shortcut on Journey home
+- [x] Any purchase can come off any pot (Transport from Entertainment); a category's own pot is the one it asks about. Months can start fresh: "Started with" per pot and saving replaces what was carried over, from that month on. Each pot says in words where it started, what went in and out, what's left, whether you spent less (it carries over) or more than you put in, and what took from it in Spending; warnings when a typed "Left" doesn't add up, when the Spent box and Spending both count, and when purchases in a pot's category weren't taken from it
 - [x] Palettes per workspace: each workspace has its own list to choose from and remembers its choice (Money: Pacific; home, Learning, Growth: Orchard, Lagoon, Rose mist)
 
 ### Fitness workspace (November 2026)

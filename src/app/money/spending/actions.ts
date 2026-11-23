@@ -50,7 +50,12 @@ export async function saveSpendCategory(id: string | null, input: SpendCategoryI
   if (error) return { error: "Could not save the category. Try again." };
   if (id && always) {
     // Every purchase means the ones already logged too.
-    const { error: purchasesError } = await db().from("spend_purchases").update({ from_pot: true }).eq("category_id", id).eq("from_pot", false);
+    // Ones taken from another pot on purpose stay there.
+    const { error: purchasesError } = await db()
+      .from("spend_purchases")
+      .update({ pot_id: parsed.data.potCategoryId, from_pot: true })
+      .eq("category_id", id)
+      .is("pot_id", null);
     if (purchasesError) return { error: "The category is saved, but its earlier purchases weren't moved to the pot. Try saving again." };
   }
   refresh();
@@ -85,11 +90,11 @@ async function checkPurchase(input: PurchaseInput) {
   const parsed = purchaseSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message, data: null };
   if (parsed.data.spentOn > localDate(new Date(), 1)) return { error: "That date hasn't come yet.", data: null };
-  // Only a category linked to a pot can take from one, and one set to take
-  // every purchase always does.
+  // Any purchase can come off any pot; a category set to take every purchase
+  // from its pot always does.
   const { data } = await db().from("spend_categories").select("pot_category_id, pot_always").eq("id", parsed.data.categoryId).maybeSingle();
-  if (!data?.pot_category_id) return { error: null, data: { ...parsed.data, fromPot: false } };
-  if (data.pot_always) return { error: null, data: { ...parsed.data, fromPot: true } };
+  if (data?.pot_category_id && data.pot_always) return { error: null, data: { ...parsed.data, potId: data.pot_category_id } };
+  if (!(await isPot(parsed.data.potId))) return { error: "Pick one of your pots.", data: null };
   return { error: null, data: parsed.data };
 }
 
@@ -98,7 +103,9 @@ const purchaseColumns = (p: z.infer<typeof purchaseSchema>) => ({
   spent_on: p.spentOn,
   amount: p.amount,
   note: p.note || null,
-  from_pot: p.fromPot,
+  pot_id: p.potId,
+  // Kept in step for the version before pot_id; drop with it.
+  from_pot: p.potId !== null,
 });
 
 export async function addPurchase(input: PurchaseInput): Promise<Result> {

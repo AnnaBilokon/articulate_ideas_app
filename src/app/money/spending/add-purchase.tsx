@@ -43,11 +43,43 @@ export function CategoryChips({
   );
 }
 
+/** A Money pot to take a purchase from, or none. */
+export function PotSelect({
+  value,
+  onChange,
+  potNames,
+  label,
+  none = "Not from a pot",
+}: {
+  value: string | null;
+  onChange: (id: string | null) => void;
+  potNames: Record<string, string>;
+  label: string;
+  none?: string;
+}) {
+  return (
+    <select
+      aria-label={label}
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value || null)}
+      className="h-9 min-w-0 rounded-lg border border-input bg-background px-2.5 text-sm"
+    >
+      <option value="">{none}</option>
+      {Object.entries(potNames).map(([id, name]) => (
+        <option key={id} value={id}>
+          {name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 // Logging a purchase: amount (or a sum of a few, for one category), category,
 // date (today unless changed), note.
 // The category and date stay for the next one. In a category linked to a
-// Money pot, it asks whether to take the purchase from the pot, unless the
-// category takes every purchase from it.
+// Money pot, it asks whether to take the purchase from the pot (or another
+// one), unless the category takes every purchase from it. Any other category
+// can take a purchase from a pot too: Transport from Entertainment, say.
 export function AddPurchase({
   categories,
   today,
@@ -70,22 +102,28 @@ export function AddPurchase({
   const value = parseAmount(amount);
   const bad = amount.trim() !== "" && (Number.isNaN(value) || value === 0);
   const category = categories.find((c) => c.id === categoryId);
-  const pot = category?.potCategoryId ? potNames[category.potCategoryId] : undefined;
+  const ownPot = category?.potCategoryId && potNames[category.potCategoryId] ? category.potCategoryId : null;
+  const pot = ownPot ? potNames[ownPot] : undefined;
+  // Another pot: picked in the question, or for a category without a pot.
+  const [otherPot, setOtherPot] = useState<string | null>(null);
 
-  const save = (fromPot: boolean) =>
+  const save = (potId: string | null) =>
     start(async () => {
       if (!categoryId) return setError("Pick a category.");
-      const result = await addPurchase({ categoryId, spentOn, amount: value, note, fromPot });
+      const result = await addPurchase({ categoryId, spentOn, amount: value, note, potId });
       setError(result.error);
       setAsking(false);
       if (!result.error) {
-        setAdded(`${formatPrice(value)} to ${category?.name ?? ""}${fromPot ? `, from the ${pot} pot` : ""}`);
+        setAdded(`${formatPrice(value)} to ${category?.name ?? ""}${potId ? `, from the ${potNames[potId] ?? ""} pot` : ""}`);
         setAmount("");
         setNote("");
+        setOtherPot(null);
       }
     });
-  // A category with a pot asks first, unless it takes every purchase; the others just save.
-  const add = () => (!pot ? save(false) : category?.potAlways ? save(true) : setAsking(true));
+  // A category with a pot asks first, unless it takes every purchase; the
+  // others save, from the pot picked for them if any.
+  const add = () => (!ownPot ? save(otherPot) : category?.potAlways ? save(ownPot) : setAsking(true));
+  const hasPots = Object.keys(potNames).length > 0;
 
   return (
     <Card>
@@ -143,8 +181,18 @@ export function AddPurchase({
           onChange={(id) => {
             setCategoryId(id);
             setAsking(false);
+            setOtherPot(null);
           }}
         />
+        {category && !ownPot && hasPots && (
+          <label className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Take it from a pot?</span>
+            <PotSelect value={otherPot} onChange={setOtherPot} potNames={potNames} label="Take it from a pot" />
+          </label>
+        )}
+        {category && ownPot && category.potAlways && (
+          <p className="text-xs text-muted-foreground">Comes off the {pot} pot, like every purchase in {category.name}.</p>
+        )}
         <div className="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)]">
           <Input
             type="date"
@@ -170,13 +218,28 @@ export function AddPurchase({
             </p>
             <p className="-mt-2 text-xs text-muted-foreground">It then counts as spent from the pot in Money, and what&apos;s left goes down.</p>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" disabled={pending} onClick={() => save(true)}>
+              <Button size="sm" disabled={pending} onClick={() => save(ownPot)}>
                 {pending && <Loader2 className="size-3.5 animate-spin" />} {value < 0 ? "Yes, back in the pot" : "Yes, from the pot"}
               </Button>
-              <Button size="sm" variant="outline" disabled={pending} onClick={() => save(false)}>
+              <Button size="sm" variant="outline" disabled={pending} onClick={() => save(null)}>
                 No, just log it
               </Button>
             </div>
+            {Object.keys(potNames).length > 1 && (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Or another pot:</span>
+                <PotSelect
+                  value={otherPot}
+                  onChange={setOtherPot}
+                  potNames={Object.fromEntries(Object.entries(potNames).filter(([id]) => id !== ownPot))}
+                  label="Another pot"
+                  none="Pick a pot"
+                />
+                <Button size="sm" variant="secondary" disabled={pending || !otherPot} onClick={() => save(otherPot)}>
+                  {value < 0 ? "Back in that pot" : "From that pot"}
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-3">
