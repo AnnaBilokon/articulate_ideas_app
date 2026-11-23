@@ -277,8 +277,9 @@ export function MonthEditor({
       }
       const from = Object.entries(period.potSpendingFrom?.[c.id] ?? {});
       if (from.length > 0) lines.push({ text: `From Spending: ${from.map(([name, sum]) => `${name} ${formatKr(sum)}`).join(", ")}.` });
+      // With a Spent box filled in, those purchases may well be in it.
       const notFrom = period.notFromPot?.[c.id] ?? 0;
-      if (notFrom) {
+      if (notFrom && !typedSpent) {
         lines.push({ text: `Spending has another ${formatKr(notFrom)} in this pot's category that wasn't taken from it. Edit those purchases there if it should be.` });
       }
       if (typedSpent && tracked) {

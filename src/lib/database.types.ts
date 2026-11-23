@@ -1758,6 +1758,13 @@ export type Database = {
             referencedRelation: "spend_categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "spend_purchases_pot_id_fkey"
+            columns: ["pot_id"]
+            isOneToOne: false
+            referencedRelation: "money_categories"
+            referencedColumns: ["id"]
+          },
         ]
       }
       strength_achievements: {
