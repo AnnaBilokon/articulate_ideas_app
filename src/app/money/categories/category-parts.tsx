@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { addCategory, moveCategory, renameCategory, saveColorLabels, saveSavingSettings, setCategoryArchived } from "../actions";
 
-export function AddCategory({ kind }: { kind: MoneyKind }) {
+export function AddCategory({ kind, autoFocus, onAdded }: { kind: MoneyKind; autoFocus?: boolean; onAdded?: (name: string) => void }) {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -17,7 +17,10 @@ export function AddCategory({ kind }: { kind: MoneyKind }) {
     start(async () => {
       const result = await addCategory({ name, kind });
       setError(result.error);
-      if (!result.error) setName("");
+      if (!result.error) {
+        setName("");
+        onAdded?.(name.trim());
+      }
     });
   return (
     <div className="flex flex-col gap-1">
@@ -33,6 +36,7 @@ export function AddCategory({ kind }: { kind: MoneyKind }) {
             }
           }}
           maxLength={60}
+          autoFocus={autoFocus}
           placeholder={`Add ${moneyKindInfo[kind].label.toLowerCase()}`}
           className="h-9 bg-background"
         />

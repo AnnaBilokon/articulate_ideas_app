@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Check, Loader2, Plus, Trash2, X } from "lucide-react";
@@ -22,6 +23,7 @@ import {
 } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { deletePeriod, savePeriod } from "../actions";
+import { AddCategory } from "../categories/category-parts";
 import { CellColorPicker } from "../cell-color";
 
 // Filling in a month: actual and expected per category, one-offs, pots
@@ -125,25 +127,24 @@ export function MonthEditor({
   const entries = new Map(period.entries.map((e) => [e.categoryId, e]));
   // Active categories, plus archived ones this month already has.
   const shown = categories.filter((c) => !c.archived || entries.has(c.id));
-  const [rows, setRows] = useState<Record<string, Row>>(() =>
-    Object.fromEntries(
-      shown.map((c) => {
-        const e = entries.get(c.id);
-        return [
-          c.id,
-          {
-            amount: toText(e?.amount ?? null),
-            planned: toText(e?.planned ?? null),
-            spent: toText(e?.spent ?? null),
-            balance: toText(e?.balance ?? null),
-            opening: toText(e?.opening ?? null),
-            note: e?.note ?? "",
-            colors: e?.colors ?? {},
-          },
-        ];
-      }),
-    ),
-  );
+  /** A category's row as saved (blank for one added since). */
+  const savedRow = (id: string): Row => {
+    const e = entries.get(id);
+    return {
+      amount: toText(e?.amount ?? null),
+      planned: toText(e?.planned ?? null),
+      spent: toText(e?.spent ?? null),
+      balance: toText(e?.balance ?? null),
+      opening: toText(e?.opening ?? null),
+      note: e?.note ?? "",
+      colors: e?.colors ?? {},
+    };
+  };
+  const [typed, setRows] = useState<Record<string, Row>>(() => Object.fromEntries(shown.map((c) => [c.id, savedRow(c.id)])));
+  // A pot or saving added from this screen arrives with the refreshed page;
+  // what's typed elsewhere stays.
+  const rows = shown.every((c) => typed[c.id]) ? typed : { ...Object.fromEntries(shown.map((c) => [c.id, savedRow(c.id)])), ...typed };
+  const [adding, setAdding] = useState<MoneyKind | null>(null);
   const [oneOffs, setOneOffs] = useState(
     period.oneOffs.map((o) => ({ title: o.title, amount: String(o.amount), color: o.color as MoneyColor | null })),
   );
@@ -163,7 +164,7 @@ export function MonthEditor({
   }, [confirmDelete]);
 
   const set = (id: string, key: Exclude<keyof Row, "colors">, value: string) => {
-    setRows((r) => ({ ...r, [id]: { ...r[id], [key]: value } }));
+    setRows((r) => ({ ...r, [id]: { ...(r[id] ?? savedRow(id)), [key]: value } }));
     setDirty(true);
     setSaved(false);
   };
@@ -180,10 +181,11 @@ export function MonthEditor({
         labels: colorLabels,
         onChange: (color) => {
           setRows((r) => {
-            const colors = { ...r[c.id].colors };
+            const row = r[c.id] ?? savedRow(c.id);
+            const colors = { ...row.colors };
             if (color) colors[key] = color;
             else delete colors[key];
-            return { ...r, [c.id]: { ...r[c.id], colors } };
+            return { ...r, [c.id]: { ...row, colors } };
           });
           setDirty(true);
           setSaved(false);
@@ -456,6 +458,33 @@ export function MonthEditor({
               {fresh[kind] ? "Carry over instead" : "Start fresh from this month"}
             </Button>
           }
+          footer={
+            adding === kind ? (
+              <div className="flex flex-col gap-1 border-t pt-3">
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <AddCategory kind={kind} autoFocus onAdded={() => setAdding(null)} />
+                  </div>
+                  <Button variant="ghost" size="icon" className="size-9" aria-label="Cancel" onClick={() => setAdding(null)}>
+                    <X className="size-4" />
+                  </Button>
+                </div>
+                {kind === "saving" && (
+                  <span className="text-xs text-muted-foreground">
+                    It counts as saved. Set a goal, or mark it as an investment, in{" "}
+                    <Link href="/money/categories" className="underline underline-offset-4">
+                      Categories
+                    </Link>
+                    .
+                  </span>
+                )}
+              </div>
+            ) : (
+              <Button variant="secondary" size="sm" className="w-fit" onClick={() => setAdding(kind)}>
+                <Plus className="size-3.5" /> {kind === "pot" ? "Add a pot" : "Add a saving"}
+              </Button>
+            )
+          }
           extra={(c) => {
             const hint = inHint(c);
             const words = story(c);
@@ -578,6 +607,7 @@ function Section({
   extra,
   fresh = false,
   action,
+  footer,
 }: {
   kind: MoneyKind;
   list: MoneyCategory[];
@@ -589,8 +619,10 @@ function Section({
   fresh?: boolean;
   /** A button under the title. */
   action?: React.ReactNode;
+  /** Under the rows, like adding one; shown even with no rows yet. */
+  footer?: React.ReactNode;
 }) {
-  if (list.length === 0) return null;
+  if (list.length === 0 && !footer) return null;
   const cols = fresh ? [{ key: "opening" as const, label: "Started with" }, ...columns[kind]] : columns[kind];
   const phoneCols = phoneGrid[cols.length] ?? "grid-cols-2";
   const template = (fresh && freshTemplate[kind]) || rowTemplate[kind];
@@ -609,10 +641,10 @@ function Section({
             {kind === "saving" && <p className="text-sm text-muted-foreground">Leave the balance blank to add this month&apos;s transfer to last month&apos;s.</p>}
           </>
         )}
-        {action}
+        {list.length > 0 && action}
       </CardHeader>
       <CardContent className="flex flex-col gap-3 sm:gap-2">
-        <div className={cn("grid gap-2", phoneCols, template)}>
+        {list.length > 0 && <div className={cn("grid gap-2", phoneCols, template)}>
           <span className="hidden sm:block" />
           {cols.map((col) => (
             <span key={col.key} className="text-right text-xs font-medium text-muted-foreground">
@@ -620,7 +652,7 @@ function Section({
             </span>
           ))}
           {note && <span className="hidden text-xs font-medium text-muted-foreground sm:block">Note</span>}
-        </div>
+        </div>}
         {list.map((c) => {
           const below = extra?.(c);
           return (
@@ -632,6 +664,7 @@ function Section({
             </div>
           );
         })}
+        {footer}
       </CardContent>
     </Card>
   );
